@@ -1,19 +1,17 @@
-
 # Better Bahn
-<p align="center">
-  <img src="assets/app_icon.png" width="150" />
-</p>
 
 Eine App zum Finden günstigerer Split-Ticket-Optionen für Deutsche Bahn Verbindungen.
 
-
+<p align="center">
+  <img src="assets/app_icon.png" width="100" />
+</p>
 
 ## Funktionen
 
 - Analyse von DB-Links (kurze vbid-Links und lange URLs)
 - Finden der günstigsten Split-Ticket-Kombination
 - Unterstützung für BahnCard-Rabatte (25/50, 1./2. Klasse)
-- Deutschland-Ticket-Integration
+- Deutschland-Ticket Integration
 - Direkte Buchungslinks für gefundene Tickets (Das oberste Angebot ist das richtige)
 - Detaillierte Preisvergleiche und Ersparnisberechnung
 - **Keine Serverkosten: Die App läuft vollständig lokal auf Ihrem Gerät.**
@@ -93,6 +91,12 @@ Diese App nutzt **keine offizielle API** der Deutschen Bahn. Stattdessen simulie
 ## To-Do-Liste
 
 - [ ] Logo zur Android-App hinzufügen
+
+## Spenden
+
+Wenn diese App Ihnen geholfen hat, bei Ihren Bahnreisen Geld zu sparen, wäre es großartig, wenn Sie einen Teil oder die gesamte Ersparnis als Spende in dieses Projekt investieren könnten. Ihre Unterstützung hilft, die Weiterentwicklung und Wartung der App zu sichern!
+
+Sie finden die Spendenmöglichkeiten über den "Sponsor"-Button oben auf dieser GitHub-Seite.
 
 ## Beitragen
 

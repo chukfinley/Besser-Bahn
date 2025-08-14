@@ -88,6 +88,30 @@ Die App analysiert alle möglichen Teilstrecken einer Verbindung und findet durc
 **Wichtiger Hinweis zur Funktionsweise:**
 Diese App nutzt **keine offizielle API** der Deutschen Bahn. Stattdessen simuliert sie die Abfragen, die ein Browser an `bahn.de` senden würde, um die nötigen Fahrplandaten und Preise zu erhalten. Da für die Analyse vieler möglicher Teilstrecken eine große Anzahl von Anfragen notwendig ist, würde ein zentraler Server (z.B. eine Webseite) sehr schnell von der Deutschen Bahn blockiert werden. Um dies zu vermeiden, sendet **jede Installation der App die Anfragen direkt von Ihrem Gerät**. Dadurch verteilt sich die Last auf viele individuelle Nutzer, und die Funktionalität kann erhalten bleiben. Es gibt daher auch keine Webseiten-Version dieser App.
 
+## Empfohlene Open-Source Bahn-Projekte und Tools
+
+Hier sind einige weitere nützliche Open-Source-Ressourcen und Projekte rund um das Thema Bahnreisen:
+
+*   **Traewelldroid**: Eine App für Android und iOS, die Fahrplaninformationen für den öffentlichen Nah- und Fernverkehr in vielen Ländern Europas bietet. Sie basiert auf Open-Data-Schnittstellen und bietet Funktionen wie Echtzeitdaten, Benachrichtigungen und eine übersichtliche Kartenansicht.
+    *   [GitHub-Repository](https://github.com/Traewelldroid/traewelldroid)
+
+*   **Transportr**: Eine quelloffene Android-App für den öffentlichen Nahverkehr. Sie unterstützt verschiedene Regionen und Anbieter weltweit und bietet Funktionen wie Fahrplanauskunft, Echtzeit-Ankunftszeiten und Favoriten.
+    *   [GitHub-Repository](https://github.com/grote/Transportr)
+
+*   **OpenRailwayMap**: Eine detaillierte interaktive Karte des weltweiten Eisenbahnnetzes, basierend auf OpenStreetMap-Daten. Ideal für alle, die das Streckennetz, die Bahnhöfe oder die Infrastruktur genau erkunden möchten.
+    *   [Website](https://openrailwaymap.org/)
+
+*   **bahn.expert**: Ein Tool für die detaillierte Analyse von Zugverbindungen, Verspätungen und Pünktlichkeitsstatistiken der Deutschen Bahn. Es bietet tiefere Einblicke in die Daten als die offiziellen Kanäle und ist nützlich für Zugfans und Reisende, die mehr über ihre Verbindungen erfahren möchten.
+    *   [Website](https://bahn.expert/)
+
+## Wichtige Informationen zum Datenschutz im Bahnverkehr
+
+Es ist wichtig, sich der Datenschutzaspekte beim Nutzen digitaler Angebote der Deutschen Bahn bewusst zu sein. Organisationen wie Digitalcourage setzen sich für mehr Transparenz und Nutzerrechte ein:
+
+*   **Klage gegen die Deutsche Bahn wegen Datenerfassung im DB Navigator**
+    *   Digitalcourage hat die Deutsche Bahn verklagt, weil der "DB Navigator" persönliche Daten ohne ausreichende Einwilligung weitergibt. Dabei geht es um die Frage, ob solche Datenweitergaben bei der Nutzung von Grundversorgungsangeboten rechtens sind.
+    *   [Weitere Details bei Digitalcourage](https://digitalcourage.de/pressemitteilungen/2025/bahn-klage-termin)
+
 ## To-Do-Liste
 
 - [ ] Logo zur Android-App hinzufügen

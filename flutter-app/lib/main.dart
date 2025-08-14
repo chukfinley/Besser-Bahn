@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const SplitTicketApp());
@@ -16,8 +17,7 @@ class SplitTicketApp
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Better Bahn',
-      debugShowCheckedModeBanner:
-          false, // Remove debug banner
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme:
             ColorScheme.fromSeed(
@@ -59,6 +59,12 @@ class _HomePageState
   final TextEditingController
   _urlController =
       TextEditingController();
+  final TextEditingController
+  _ageController =
+      TextEditingController(text: "30");
+  final ScrollController
+  _scrollController =
+      ScrollController();
   bool _isLoading = false;
   String _resultText = '';
   List<String> _logMessages = [];
@@ -67,15 +73,44 @@ class _HomePageState
   double _splitPrice = 0;
   bool _hasResult = false;
   bool _showLogs = false;
+  bool _hasDeutschlandTicket = false;
+  String? _selectedBahnCard;
 
   // Progress tracking
   int _totalStations = 0;
   int _processedStations = 0;
   double _progress = 0.0;
 
+  // BahnCard options
+  final List<Map<String, String?>>
+  _bahnCardOptions = [
+    {
+      'value': null,
+      'label': 'Keine BahnCard',
+    },
+    {
+      'value': 'BC25_1',
+      'label': 'BahnCard 25, 1. Klasse',
+    },
+    {
+      'value': 'BC25_2',
+      'label': 'BahnCard 25, 2. Klasse',
+    },
+    {
+      'value': 'BC50_1',
+      'label': 'BahnCard 50, 1. Klasse',
+    },
+    {
+      'value': 'BC50_2',
+      'label': 'BahnCard 50, 2. Klasse',
+    },
+  ];
+
   @override
   void dispose() {
     _urlController.dispose();
+    _ageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -100,6 +135,85 @@ class _HomePageState
           ? processed / total
           : 0.0;
     });
+  }
+
+  // Create traveller payload based on age and BahnCard
+  List<Map<String, dynamic>>
+  _createTravellerPayload() {
+    Map<String, dynamic> ermaessigung =
+        {
+          "art": "KEINE_ERMAESSIGUNG",
+          "klasse": "KLASSENLOS",
+        };
+
+    if (_selectedBahnCard != null) {
+      final parts = _selectedBahnCard!
+          .split('_');
+      final bcTyp = parts[0].substring(
+        2,
+      ); // Extract '25' or '50'
+      final klasse = parts[1];
+
+      ermaessigung = {
+        "art": "BAHNCARD$bcTyp",
+        "klasse": "KLASSE_$klasse",
+      };
+    }
+
+    return [
+      {
+        "typ": "ERWACHSENER",
+        "ermaessigungen": [
+          ermaessigung,
+        ],
+        "anzahl": 1,
+        "alter": [],
+      },
+    ];
+  }
+
+  String _generateBookingLink(
+    SplitTicket ticket,
+  ) {
+    final baseUrl =
+        "https://www.bahn.de/buchung/fahrplan/suche";
+
+    final so = Uri.encodeComponent(
+      ticket.from,
+    );
+    final zo = Uri.encodeComponent(
+      ticket.to,
+    );
+    final soid = Uri.encodeComponent(
+      ticket.fromId,
+    );
+    final zoid = Uri.encodeComponent(
+      ticket.toId,
+    );
+    final hd = Uri.encodeComponent(
+      ticket.departureIso.split('.')[0],
+    );
+    final dltv = _hasDeutschlandTicket
+        .toString()
+        .toLowerCase();
+    String rParam = "";
+
+    if (_selectedBahnCard != null) {
+      final bcMap = {
+        'BC25_2': '13:25:KLASSE_2:1',
+        'BC25_1': '13:25:KLASSE_1:1',
+        'BC50_2': '13:50:KLASSE_2:1',
+        'BC50_1': '13:50:KLASSE_1:1',
+      };
+      final rCode =
+          bcMap[_selectedBahnCard];
+      if (rCode != null) {
+        rParam =
+            "&r=${Uri.encodeComponent(rCode)}";
+      }
+    }
+
+    return "$baseUrl#sts=true&so=$so&zo=$zo&soid=$soid&zoid=$zoid&hd=$hd&dltv=$dltv$rParam";
   }
 
   Future<void> _analyzeUrl(
@@ -135,13 +249,49 @@ class _HomePageState
         "Starte Analyse für URL: $url",
       );
 
+      // Get traveller payload
+      final travellerPayload =
+          _createTravellerPayload();
+      final int age =
+          int.tryParse(
+            _ageController.text,
+          ) ??
+          30;
+
+      _addLog(
+        "Reisender: Alter $age" +
+            (_selectedBahnCard != null
+                ? ", mit $_selectedBahnCard"
+                : ", ohne BahnCard") +
+            (_hasDeutschlandTicket
+                ? ", mit Deutschland-Ticket"
+                : ", ohne Deutschland-Ticket"),
+      );
+
       // Parse URL to extract vbid or station IDs
-      final Uri uri = Uri.parse(url);
+      String urlToParse = url;
+      if (url.contains(
+        "/buchung/start",
+      )) {
+        final Uri uri = Uri.parse(url);
+        final vbid =
+            uri.queryParameters['vbid'];
+        if (vbid != null) {
+          urlToParse =
+              "https://www.bahn.de?vbid=$vbid";
+        }
+      }
+
+      final Uri uri = Uri.parse(
+        urlToParse,
+      );
       Map<String, dynamic>
       connectionData;
       String dateStr;
 
-      if (url.contains('vbid=')) {
+      if (urlToParse.contains(
+        'vbid=',
+      )) {
         // Handle short URL with vbid
         final String vbid =
             uri.queryParameters['vbid'] ??
@@ -150,6 +300,7 @@ class _HomePageState
         connectionData =
             await _resolveVbidToConnection(
               vbid,
+              travellerPayload,
             );
 
         if (connectionData.isEmpty) {
@@ -215,6 +366,7 @@ class _HomePageState
               toStationId,
               dateStr,
               timeStr,
+              travellerPayload,
             );
       }
 
@@ -288,6 +440,9 @@ class _HomePageState
                           'T',
                         )[1] ??
                     '',
+                'departure_iso':
+                    halt['abfahrtsZeitpunkt'] ??
+                    '',
               });
             }
           }
@@ -313,6 +468,7 @@ class _HomePageState
             allStops,
             dateStr,
             directPriceDouble,
+            travellerPayload,
           );
 
       setState(() {
@@ -344,6 +500,8 @@ class _HomePageState
   Future<Map<String, dynamic>>
   _resolveVbidToConnection(
     String vbid,
+    List<Map<String, dynamic>>
+    travellerPayload,
   ) async {
     _addLog("Löse VBID '$vbid' auf...");
     try {
@@ -386,21 +544,10 @@ class _HomePageState
           "https://www.bahn.de/web/api/angebote/recon";
       final payload = {
         "klasse": "KLASSE_2",
-        "reisende": [
-          {
-            "typ": "ERWACHSENER",
-            "ermaessigungen": [
-              {
-                "art":
-                    "KEINE_ERMAESSIGUNG",
-                "klasse": "KLASSENLOS",
-              },
-            ],
-            "anzahl": 1,
-            "alter": [],
-          },
-        ],
+        "reisende": travellerPayload,
         "ctxRecon": reconString,
+        "deutschlandTicketVorhanden":
+            _hasDeutschlandTicket,
       };
 
       final fullHeaders = {
@@ -502,6 +649,8 @@ class _HomePageState
     String toStationId,
     String date,
     String departureTime,
+    List<Map<String, dynamic>>
+    travellerPayload,
   ) async {
     _addLog(
       "Rufe Verbindungsdetails ab für $fromStationId -> $toStationId am $date um $departureTime",
@@ -528,21 +677,10 @@ class _HomePageState
         "TRAM",
         "ANRUFPFLICHTIG",
       ],
-      "reisende": [
-        {
-          "typ": "ERWACHSENER",
-          "ermaessigungen": [
-            {
-              "art":
-                  "KEINE_ERMAESSIGUNG",
-              "klasse": "KLASSENLOS",
-            },
-          ],
-          "anzahl": 1,
-          "alter": [],
-        },
-      ],
+      "reisende": travellerPayload,
       "schnelleVerbindungen": true,
+      "deutschlandTicketVorhanden":
+          _hasDeutschlandTicket,
     };
 
     final headers = {
@@ -630,26 +768,35 @@ class _HomePageState
     }
   }
 
-  Future<double?> _getPriceForSegment(
-    String fromId,
-    String toId,
+  Future<Map<String, dynamic>?>
+  _getSegmentData(
+    Map<String, dynamic> fromStop,
+    Map<String, dynamic> toStop,
     String date,
-    String departureTime,
+    List<Map<String, dynamic>>
+    travellerPayload,
   ) async {
     _addLog(
-      "Frage Preis an für: $fromId -> $toId am $date um $departureTime",
+      "Frage Daten an für: ${fromStop['name']} -> ${toStop['name']}...",
     );
 
     await Future.delayed(
       const Duration(milliseconds: 500),
     ); // Rate limiting
 
+    final departureTimeStr =
+        fromStop['departure_time'];
+    if (departureTimeStr.isEmpty) {
+      return null;
+    }
+
     final connections =
         await _getConnectionDetails(
-          fromId,
-          toId,
+          fromStop['id'],
+          toStop['id'],
           date,
-          departureTime,
+          departureTimeStr,
+          travellerPayload,
         );
 
     if (connections.isNotEmpty &&
@@ -660,24 +807,66 @@ class _HomePageState
             .isNotEmpty) {
       final firstConnection =
           connections['verbindungen'][0];
-      if (firstConnection.containsKey(
-        'angebotsPreis',
-      )) {
-        final price =
-            firstConnection['angebotsPreis']['betrag'];
-        _addLog(
-          "Preis gefunden: $price €",
-        );
+      final price =
+          firstConnection['angebotsPreis']?['betrag'];
 
-        // Convert to double explicitly, handling both int and double cases
-        return price is int
+      // Get the actual departure time of the found train for this segment
+      final departureIso =
+          firstConnection['verbindungsAbschnitte']?[0]?['halte']?[0]?['abfahrtsZeitpunkt'];
+
+      bool isCoveredByDTicket = false;
+      if (_hasDeutschlandTicket) {
+        for (var section
+            in firstConnection['verbindungsAbschnitte'] ??
+                []) {
+          final attributes =
+              section['verkehrsmittel']?['zugattribute'] ??
+              [];
+          for (var attr in attributes) {
+            if (attr['key'] == '9G') {
+              isCoveredByDTicket = true;
+              break;
+            }
+          }
+          if (isCoveredByDTicket) break;
+        }
+      }
+
+      double finalPrice;
+      if (isCoveredByDTicket) {
+        _addLog(
+          " -> Deutschland-Ticket gültig! Preis wird auf 0.00 € gesetzt.",
+        );
+        finalPrice = 0.0;
+      } else if (price != null) {
+        finalPrice = price is int
             ? price.toDouble()
             : price;
+        _addLog(
+          " -> Preis gefunden: $finalPrice €",
+        );
+      } else {
+        _addLog(
+          " -> Kein Preis für dieses Segment verfügbar.",
+        );
+        return null;
+      }
+
+      if (departureIso != null) {
+        return {
+          "price": finalPrice,
+          "start_name":
+              fromStop['name'],
+          "end_name": toStop['name'],
+          "start_id": fromStop['id'],
+          "end_id": toStop['id'],
+          "departure_iso": departureIso,
+        };
       }
     }
 
     _addLog(
-      "Kein Preis für dieses Segment verfügbar",
+      " -> Keine Verbindungsdaten erhalten.",
     );
     return null;
   }
@@ -687,13 +876,18 @@ class _HomePageState
     List<Map<String, dynamic>> stops,
     String date,
     double directPrice,
+    List<Map<String, dynamic>>
+    travellerPayload,
   ) async {
     final int n = stops.length;
-    final Map<String, double> prices =
-        {};
+    final Map<
+      String,
+      Map<String, dynamic>
+    >
+    segmentsData = {};
 
     _addLog(
-      "\n--- Preise für alle möglichen Teilstrecken werden abgerufen ---",
+      "\n--- Preise und Daten für alle möglichen Teilstrecken werden abgerufen ---",
     );
 
     // Calculate total number of combinations to check
@@ -713,27 +907,23 @@ class _HomePageState
     );
     int processedCombinations = 0;
 
-    // Get prices for all possible segments
+    // Get data for all possible segments
     for (int i = 0; i < n; i++) {
       for (int j = i + 1; j < n; j++) {
         final fromStop = stops[i];
         final toStop = stops[j];
-        final departureTimeStr =
-            fromStop['departure_time'];
 
-        if (departureTimeStr.isEmpty) {
+        if (fromStop['departure_time']
+            .isEmpty) {
           continue;
         }
 
-        _addLog(
-          "Frage Preis an für: ${fromStop['name']} -> ${toStop['name']}...",
-        );
-        final price =
-            await _getPriceForSegment(
-              fromStop['id'],
-              toStop['id'],
+        final data =
+            await _getSegmentData(
+              fromStop,
+              toStop,
               date,
-              departureTimeStr,
+              travellerPayload,
             );
 
         // Update progress
@@ -743,17 +933,9 @@ class _HomePageState
           totalCombinations,
         );
 
-        if (price != null) {
+        if (data != null) {
           final key = "${i}_$j";
-          prices[key] =
-              price; // This should now be a double from _getPriceForSegment
-          _addLog(
-            "Preis gefunden: $price €",
-          );
-        } else {
-          _addLog(
-            "Kein Preis für dieses Segment verfügbar",
-          );
+          segmentsData[key] = data;
         }
       }
     }
@@ -770,9 +952,12 @@ class _HomePageState
     for (int i = 1; i < n; i++) {
       for (int j = 0; j < i; j++) {
         final key = "${j}_$i";
-        if (prices.containsKey(key)) {
+        if (segmentsData.containsKey(
+          key,
+        )) {
           final cost =
-              dp[j] + prices[key]!;
+              dp[j] +
+              segmentsData[key]!['price'];
           if (cost < dp[i]) {
             dp[i] = cost;
             pathReconstruction[i] = j;
@@ -821,13 +1006,11 @@ class _HomePageState
             pathReconstruction[current];
         final key = "${prev}_$current";
 
-        path.add({
-          "from": stops[prev]['name'],
-          "to": stops[current]['name'],
-          "price": prices[key] ?? 0,
-          "fromId": stops[prev]['id'],
-          "toId": stops[current]['id'],
-        });
+        if (segmentsData.containsKey(
+          key,
+        )) {
+          path.add(segmentsData[key]!);
+        }
 
         current = prev;
       }
@@ -844,25 +1027,36 @@ class _HomePageState
       ) {
         final segment = path[i];
         _addLog(
-          "Ticket ${i + 1}: Von ${segment['from']} nach ${segment['to']} für ${segment['price']} €",
+          "Ticket ${i + 1}: Von ${segment['start_name']} nach ${segment['end_name']} für ${segment['price']} €",
         );
 
-        // Ensure price is a double when creating SplitTicket
-        final double ticketPrice =
-            segment['price'] is int
-            ? segment['price']
-                  .toDouble()
-            : segment['price'];
-
-        splitTickets.add(
-          SplitTicket(
-            from: segment['from'],
-            to: segment['to'],
-            price: ticketPrice,
-            fromId: segment['fromId'],
-            toId: segment['toId'],
-          ),
+        final ticket = SplitTicket(
+          from: segment['start_name'],
+          to: segment['end_name'],
+          price: segment['price'],
+          fromId: segment['start_id'],
+          toId: segment['end_id'],
+          departureIso:
+              segment['departure_iso'],
+          coveredByDeutschlandTicket:
+              segment['price'] == 0,
         );
+
+        splitTickets.add(ticket);
+
+        if (segment['price'] > 0) {
+          final bookingLink =
+              _generateBookingLink(
+                ticket,
+              );
+          _addLog(
+            "      -> Buchungslink: $bookingLink",
+          );
+        } else {
+          _addLog(
+            "      -> (Fahrt durch Deutschland-Ticket abgedeckt)",
+          );
+        }
       }
 
       return TicketAnalysisResult(
@@ -886,6 +1080,27 @@ class _HomePageState
     }
   }
 
+  Future<void> _launchUrl(
+    String url,
+  ) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(
+      uri,
+      mode: LaunchMode
+          .externalApplication,
+    )) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Konnte URL nicht öffnen: $url',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -900,159 +1115,314 @@ class _HomePageState
           context,
         ).colorScheme.onPrimary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(
-          16.0,
-        ),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment
-                  .stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller:
-                        _urlController,
-                    decoration: InputDecoration(
-                      labelText:
-                          'DB-Link einfügen',
-                      hintText:
-                          'https://www.bahn.de/buchung/start?vbid=...',
-                      border:
-                          const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: const Icon(
-                          Icons.clear,
-                        ),
-                        onPressed: () {
-                          _urlController
-                              .clear();
-                        },
-                      ),
-                    ),
-                    keyboardType:
-                        TextInputType
-                            .url,
-                  ),
-                ),
-                const SizedBox(
-                  width: 8,
-                ),
-                IconButton(
-                  onPressed: () async {
-                    final data =
-                        await Clipboard.getData(
-                          'text/plain',
-                        );
-                    if (data != null &&
-                        data.text !=
-                            null) {
-                      final text =
-                          data.text!;
-                      if (text.contains(
-                        'bahn.de',
-                      )) {
-                        setState(() {
-                          _urlController
-                                  .text =
-                              text;
-                        });
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Link aus Zwischenablage eingefügt',
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(
-                    Icons.paste,
-                  ),
-                  tooltip:
-                      'Aus Zwischenablage einfügen',
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _isLoading
-                  ? null
-                  : () => _analyzeUrl(
-                      _urlController
-                          .text,
-                    ),
-              icon: const Icon(
-                Icons.search,
-              ),
-              label: const Text(
-                'Verbindung analysieren',
-              ),
-              style: ElevatedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(
-                      vertical: 12,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Progress indicator during loading
-            if (_isLoading) ...[
-              Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        child: Padding(
+          padding: const EdgeInsets.all(
+            16.0,
+          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment
+                    .stretch,
+            children: [
+              // URL input field
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value:
-                              _progress >
-                                  0
-                              ? _progress
-                              : null,
+                  Expanded(
+                    child: TextField(
+                      controller:
+                          _urlController,
+                      decoration: InputDecoration(
+                        labelText:
+                            'DB-Link einfügen',
+                        hintText:
+                            'https://www.bahn.de/buchung/start?vbid=...',
+                        border:
+                            const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                          ),
+                          onPressed: () {
+                            _urlController
+                                .clear();
+                          },
                         ),
                       ),
-                      const SizedBox(
-                        width: 8,
-                      ),
-                      Text(
-                        '$_processedStations/$_totalStations (${(_progress * 100).toInt()}%)',
-                        style:
-                            const TextStyle(
-                              fontSize:
-                                  12,
-                            ),
-                      ),
-                    ],
+                      keyboardType:
+                          TextInputType
+                              .url,
+                    ),
                   ),
                   const SizedBox(
-                    height: 8,
+                    width: 8,
                   ),
-                  Text(
-                    'Suche nach günstigeren Split-Tickets...',
-                    style:
-                        const TextStyle(
-                          fontSize: 14,
-                        ),
+                  IconButton(
+                    onPressed: () async {
+                      final data =
+                          await Clipboard.getData(
+                            'text/plain',
+                          );
+                      if (data !=
+                              null &&
+                          data.text !=
+                              null) {
+                        final text =
+                            data.text!;
+                        if (text
+                            .contains(
+                              'bahn.de',
+                            )) {
+                          setState(() {
+                            _urlController
+                                    .text =
+                                text;
+                          });
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Link aus Zwischenablage eingefügt',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(
+                      Icons.paste,
+                    ),
+                    tooltip:
+                        'Aus Zwischenablage einfügen',
                   ),
                 ],
               ),
+
               const SizedBox(
                 height: 16,
               ),
-            ],
 
-            // Results or welcome message
-            Expanded(
-              child: _isLoading
+              // Options section
+              Card(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.all(
+                        12.0,
+                      ),
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      const Text(
+                        'Reisende & Rabatte',
+                        style: TextStyle(
+                          fontWeight:
+                              FontWeight
+                                  .bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      // Age input
+                      Row(
+                        children: [
+                          const Text(
+                            'Alter:',
+                          ),
+                          const SizedBox(
+                            width: 8,
+                          ),
+                          SizedBox(
+                            width: 60,
+                            child: TextField(
+                              controller:
+                                  _ageController,
+                              keyboardType:
+                                  TextInputType
+                                      .number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter
+                                    .digitsOnly,
+                              ],
+                              decoration: const InputDecoration(
+                                border:
+                                    OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal:
+                                      8,
+                                  vertical:
+                                      8,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 16,
+                          ),
+
+                          // Deutschland-Ticket checkbox
+                          Expanded(
+                            child: CheckboxListTile(
+                              title: const Text(
+                                'Deutschland-Ticket',
+                              ),
+                              value:
+                                  _hasDeutschlandTicket,
+                              onChanged: (value) {
+                                setState(() {
+                                  _hasDeutschlandTicket =
+                                      value ??
+                                      false;
+                                });
+                              },
+                              controlAffinity:
+                                  ListTileControlAffinity
+                                      .leading,
+                              contentPadding:
+                                  EdgeInsets
+                                      .zero,
+                              dense:
+                                  true,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      // BahnCard dropdown
+                      DropdownButtonFormField<
+                        String?
+                      >(
+                        decoration: const InputDecoration(
+                          labelText:
+                              'BahnCard',
+                          border:
+                              OutlineInputBorder(),
+                          contentPadding:
+                              EdgeInsets.symmetric(
+                                horizontal:
+                                    12,
+                                vertical:
+                                    12,
+                              ),
+                        ),
+                        value:
+                            _selectedBahnCard,
+                        items: _bahnCardOptions.map((
+                          option,
+                        ) {
+                          return DropdownMenuItem<
+                            String?
+                          >(
+                            value:
+                                option['value'],
+                            child: Text(
+                              option['label']!,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedBahnCard =
+                                value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              // Search button
+              ElevatedButton.icon(
+                onPressed: _isLoading
+                    ? null
+                    : () => _analyzeUrl(
+                        _urlController
+                            .text,
+                      ),
+                icon: const Icon(
+                  Icons.search,
+                ),
+                label: const Text(
+                  'Verbindung analysieren',
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(
+                        vertical: 12,
+                      ),
+                ),
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              // Progress indicator during loading
+              if (_isLoading) ...[
+                Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: LinearProgressIndicator(
+                            value:
+                                _progress >
+                                    0
+                                ? _progress
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 8,
+                        ),
+                        Text(
+                          '$_processedStations/$_totalStations (${(_progress * 100).toInt()}%)',
+                          style:
+                              const TextStyle(
+                                fontSize:
+                                    12,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 8,
+                    ),
+                    Text(
+                      'Suche nach günstigeren Split-Tickets...',
+                      style:
+                          const TextStyle(
+                            fontSize:
+                                14,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(
+                  height: 16,
+                ),
+              ],
+
+              // Results or welcome message
+              _isLoading
                   ? _buildLogsSection()
                   : _hasResult
                   ? _buildResultsSection()
@@ -1060,22 +1430,28 @@ class _HomePageState
                         .isNotEmpty
                   ? _buildLogsSection()
                   : const Center(
-                      child: Text(
-                        'Füge einen DB-Link ein, um günstigere Split-Ticket-Optionen zu finden.\n\n'
-                        'Unterstützte Links:\n'
-                        '• Kurze Links: https://www.bahn.de/buchung/start?vbid=...\n'
-                        '• Lange Links: https://www.bahn.de/...',
-                        textAlign:
-                            TextAlign
-                                .center,
-                        style: TextStyle(
-                          color: Colors
-                              .grey,
+                      child: Padding(
+                        padding:
+                            EdgeInsets.all(
+                              32.0,
+                            ),
+                        child: Text(
+                          'Füge einen DB-Link ein, um günstigere Split-Ticket-Optionen zu finden.\n\n'
+                          'Unterstützte Links:\n'
+                          '• Kurze Links: https://www.bahn.de/buchung/start?vbid=...\n'
+                          '• Lange Links: https://www.bahn.de/...',
+                          textAlign:
+                              TextAlign
+                                  .center,
+                          style: TextStyle(
+                            color: Colors
+                                .grey,
+                          ),
                         ),
                       ),
                     ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1134,7 +1510,8 @@ class _HomePageState
 
         // Logs content (collapsible)
         if (_showLogs)
-          Expanded(
+          SizedBox(
+            height: 300,
             child: LogConsole(
               messages: _logMessages,
             ),
@@ -1310,51 +1687,68 @@ class _HomePageState
         const SizedBox(height: 8),
 
         // Either show logs or tickets
-        Expanded(
-          child: _showLogs
-              ? LogConsole(
+        _showLogs
+            ? SizedBox(
+                height: 300,
+                child: LogConsole(
                   messages:
                       _logMessages,
-                )
-              : _splitPrice <
-                    _directPrice
-              ? Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                  children: [
-                    const Text(
-                      'Empfohlene Tickets:',
-                      style: TextStyle(
-                        fontWeight:
-                            FontWeight
-                                .bold,
-                      ),
+                ),
+              )
+            : _splitPrice < _directPrice
+            ? Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment
+                        .start,
+                children: [
+                  const Text(
+                    'Empfohlene Tickets:',
+                    style: TextStyle(
+                      fontWeight:
+                          FontWeight
+                              .bold,
                     ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount:
-                            _splitTickets
-                                .length,
-                        itemBuilder: (context, index) {
-                          final ticket =
-                              _splitTickets[index];
-                          return TicketCard(
-                            ticket:
-                                ticket,
-                            index:
-                                index +
-                                1,
-                          );
+                  ),
+                  const SizedBox(
+                    height: 8,
+                  ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics:
+                        const NeverScrollableScrollPhysics(),
+                    itemCount:
+                        _splitTickets
+                            .length,
+                    itemBuilder: (context, index) {
+                      final ticket =
+                          _splitTickets[index];
+                      return TicketCard(
+                        ticket: ticket,
+                        index:
+                            index + 1,
+                        onBookPressed: () {
+                          if (!ticket
+                              .coveredByDeutschlandTicket) {
+                            final bookingLink =
+                                _generateBookingLink(
+                                  ticket,
+                                );
+                            _launchUrl(
+                              bookingLink,
+                            );
+                          }
                         },
+                      );
+                    },
+                  ),
+                ],
+              )
+            : const Center(
+                child: Padding(
+                  padding:
+                      EdgeInsets.all(
+                        32.0,
                       ),
-                    ),
-                  ],
-                )
-              : const Center(
                   child: Text(
                     'Das Direktticket ist die günstigste Option.',
                     style: TextStyle(
@@ -1362,7 +1756,7 @@ class _HomePageState
                     ),
                   ),
                 ),
-        ),
+              ),
       ],
     );
   }
@@ -1519,11 +1913,13 @@ class TicketCard
     extends StatelessWidget {
   final SplitTicket ticket;
   final int index;
+  final VoidCallback? onBookPressed;
 
   const TicketCard({
     super.key,
     required this.ticket,
     required this.index,
+    this.onBookPressed,
   });
 
   @override
@@ -1600,6 +1996,51 @@ class TicketCard
                 ),
               ],
             ),
+            if (ticket
+                .coveredByDeutschlandTicket) ...[
+              const SizedBox(height: 8),
+              const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: Colors.green,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Mit Deutschland-Ticket abgedeckt',
+                    style: TextStyle(
+                      color:
+                          Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(
+                height: 12,
+              ),
+              ElevatedButton.icon(
+                onPressed:
+                    onBookPressed,
+                icon: const Icon(
+                  Icons.shopping_cart,
+                ),
+                label: const Text(
+                  'Ticket buchen',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context)
+                          .colorScheme
+                          .primary,
+                  foregroundColor:
+                      Theme.of(context)
+                          .colorScheme
+                          .onPrimary,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1613,6 +2054,8 @@ class SplitTicket {
   final double price;
   final String fromId;
   final String toId;
+  final String departureIso;
+  final bool coveredByDeutschlandTicket;
 
   SplitTicket({
     required this.from,
@@ -1620,6 +2063,9 @@ class SplitTicket {
     required this.price,
     required this.fromId,
     required this.toId,
+    required this.departureIso,
+    this.coveredByDeutschlandTicket =
+        false,
   });
 }
 

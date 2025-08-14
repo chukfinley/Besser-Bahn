@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="white"/>
+  
+  <!-- BB monogram in Deutsche Bahn red -->
+  <g fill="#FF0000">
+    <!-- First B -->
+    <path d="M150 140h70c30 0 50 25 50 55 0 15-5 30-20 40 20 10 25 30 25 45 0 35-25 60-60 60h-65V140zm60 75c15 0 25-10 25-25s-10-25-25-25h-25v50h25zm5 75c15 0 25-10 25-25s-10-25-25-25h-30v50h30z"/>
+    
+    <!-- Second B -->
+    <path d="M290 140h70c30 0 50 25 50 55 0 15-5 30-20 40 20 10 25 30 25 45 0 35-25 60-60 60h-65V140zm60 75c15 0 25-10 25-25s-10-25-25-25h-25v50h25zm5 75c15 0 25-10 25-25s-10-25-25-25h-30v50h30z"/>
+  </g>
+  
+  <!-- Minimal train track at bottom -->
+  <rect x="120" y="360" width="272" height="12" fill="#FF0000"/>
+  <rect x="120" y="380" width="272" height="12" fill="#FF0000"/>
+  
+  <!-- Track ties -->
+  <rect x="140" y="360" width="10" height="32" fill="#FF0000"/>
+  <rect x="190" y="360" width="10" height="32" fill="#FF0000"/>
+  <rect x="240" y="360" width="10" height="32" fill="#FF0000"/>
+  <rect x="290" y="360" width="10" height="32" fill="#FF0000"/>
+  <rect x="340" y="360" width="10" height="32" fill="#FF0000"/>
+</svg>

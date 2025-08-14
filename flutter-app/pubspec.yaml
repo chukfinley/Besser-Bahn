@@ -1,0 +1,52 @@
+name: better_bahn
+description: "Find cheaper split ticket options for Deutsche Bahn journeys."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.1.0
+  url_launcher: ^6.1.12
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_svg: ^2.0.9  # Added for SVG support
+
+# Flutter launcher icons configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path_android: "assets/icon/app_icon.png"  # PNG fallback for Android
+  image_path_ios: "assets/icon/icon_ios.png"  # PNG fallback for iOS
+  adaptive_icon_background: "#EC0016"  # DB Red color
+  adaptive_icon_foreground: "assets/icon/app_icon.png"  # PNG for adaptive icon foreground
+  # SVG support
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
+
+flutter:
+  uses-material-design: true
+
+  # Add your assets here
+  assets:
+    - assets/icon/
+    # Add other asset folders as needed
+
+  # Uncomment and add custom fonts if needed
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf

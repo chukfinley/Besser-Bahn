@@ -62,6 +62,11 @@ class _HomePageState
   final TextEditingController
   _ageController =
       TextEditingController(text: "30");
+  final TextEditingController
+  _delayController =
+      TextEditingController(
+        text: "500",
+      );
   final ScrollController
   _scrollController =
       ScrollController();
@@ -110,6 +115,7 @@ class _HomePageState
   void dispose() {
     _urlController.dispose();
     _ageController.dispose();
+    _delayController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -599,7 +605,7 @@ class _HomePageState
               // Wait a moment before retrying
               await Future.delayed(
                 const Duration(
-                  milliseconds: 500,
+                  milliseconds: 1000,
                 ),
               );
 
@@ -725,7 +731,7 @@ class _HomePageState
               // Wait a moment before retrying
               await Future.delayed(
                 const Duration(
-                  milliseconds: 500,
+                  milliseconds: 1000,
                 ),
               );
 
@@ -780,8 +786,13 @@ class _HomePageState
       "Frage Daten an für: ${fromStop['name']} -> ${toStop['name']}...",
     );
 
+    final delayMs =
+        int.tryParse(
+          _delayController.text,
+        ) ??
+        500;
     await Future.delayed(
-      const Duration(milliseconds: 500),
+      Duration(milliseconds: delayMs),
     ); // Rate limiting
 
     final departureTimeStr =
@@ -1229,7 +1240,7 @@ class _HomePageState
                         height: 12,
                       ),
 
-                      // Age input
+                      // Age and Delay input
                       Row(
                         children: [
                           const Text(
@@ -1265,33 +1276,64 @@ class _HomePageState
                           const SizedBox(
                             width: 16,
                           ),
-
-                          // Deutschland-Ticket checkbox
-                          Expanded(
-                            child: CheckboxListTile(
-                              title: const Text(
-                                'Deutschland-Ticket',
+                          const Text(
+                            'Delay (ms):',
+                          ),
+                          const SizedBox(
+                            width: 8,
+                          ),
+                          SizedBox(
+                            width: 80,
+                            child: TextField(
+                              controller:
+                                  _delayController,
+                              keyboardType:
+                                  TextInputType
+                                      .number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter
+                                    .digitsOnly,
+                              ],
+                              decoration: const InputDecoration(
+                                border:
+                                    OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal:
+                                      8,
+                                  vertical:
+                                      8,
+                                ),
                               ),
-                              value:
-                                  _hasDeutschlandTicket,
-                              onChanged: (value) {
-                                setState(() {
-                                  _hasDeutschlandTicket =
-                                      value ??
-                                      false;
-                                });
-                              },
-                              controlAffinity:
-                                  ListTileControlAffinity
-                                      .leading,
-                              contentPadding:
-                                  EdgeInsets
-                                      .zero,
-                              dense:
-                                  true,
                             ),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      // Deutschland-Ticket checkbox
+                      CheckboxListTile(
+                        title: const Text(
+                          'Deutschland-Ticket',
+                        ),
+                        value:
+                            _hasDeutschlandTicket,
+                        onChanged: (value) {
+                          setState(() {
+                            _hasDeutschlandTicket =
+                                value ??
+                                false;
+                          });
+                        },
+                        controlAffinity:
+                            ListTileControlAffinity
+                                .leading,
+                        contentPadding:
+                            EdgeInsets
+                                .zero,
+                        dense: true,
                       ),
 
                       const SizedBox(

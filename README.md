@@ -115,6 +115,9 @@ Es ist wichtig, sich der Datenschutzaspekte beim Nutzen digitaler Angebote der D
 ## To-Do-Liste
 
 - [ ] Logo zur Android-App hinzufügen
+- [ ] die totale menge an geld die man gespart hat tracken.
+- [ ] Ratelimit mit proxys oder so umgehen
+
 
 ## Spenden
 

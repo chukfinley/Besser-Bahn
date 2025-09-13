@@ -112,6 +112,20 @@ Es ist wichtig, sich der Datenschutzaspekte beim Nutzen digitaler Angebote der D
     *   Digitalcourage hat die Deutsche Bahn verklagt, weil der "DB Navigator" persönliche Daten ohne ausreichende Einwilligung weitergibt. Dabei geht es um die Frage, ob solche Datenweitergaben bei der Nutzung von Grundversorgungsangeboten rechtens sind.
     *   [Weitere Details bei Digitalcourage](https://digitalcourage.de/pressemitteilungen/2025/bahn-klage-termin)
 
+## 📚 Dokumentation
+
+Eine umfassende Dokumentation ist verfügbar:
+
+- **[Benutzerhandbuch](docs/USER_GUIDE.md)** - Vollständige Anleitung zur Nutzung von Better-Bahn
+- **[Technische Dokumentation](docs/TECHNICAL_DOCUMENTATION.md)** - Architektur und Implementierungsdetails
+- **[API Dokumentation](docs/API_DOCUMENTATION.md)** - Deutsche Bahn API Endpunkte und Verwendung
+- **[Code-Qualitätsanalyse](docs/CODE_QUALITY_ANALYSIS.md)** - Detaillierte Analyse der Codequalität
+- **[Vor- und Nachteile](docs/PROS_CONS_ANALYSIS.md)** - Umfassende Bewertung des Projekts
+- **[Entwicklerhandbuch](docs/CONTRIBUTING.md)** - Anleitung für Beiträge und Entwicklung
+- **[Projektübersicht](docs/PROJECT_OVERVIEW.md)** - Vollständige Projektanalyse
+
+**[📖 Vollständige Dokumentation ansehen](docs/README.md)**
+
 ## To-Do-Liste
 
 - [ ] Logo zur Android-App hinzufügen

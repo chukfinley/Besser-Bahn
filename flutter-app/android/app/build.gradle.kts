@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -19,6 +21,32 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    val keystoreProperties = Properties()
+    val keystoreFile = file("../key.properties")
+    if (keystoreFile.exists()) {
+        keystoreFile.inputStream().use { input ->
+            keystoreProperties.load(input)
+        }
+    } else {
+        // IMPORTANT: If this message appears, your key.properties file is not found.
+        // Double-check its location: ~/git/Better-Bahn/flutter-app/android/key.properties
+        println("WARNING: key.properties file not found at ${keystoreFile.absolutePath}")
+    }
+
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String?
+            keyPassword = keystoreProperties["keyPassword"] as String?
+
+            // --- THIS LINE IS MODIFIED ---
+            // Construct the path directly using rootProject.file and getProperty for safety
+            storeFile = file("../${keystoreProperties.getProperty("storeFile")}")
+
+            storePassword = keystoreProperties["storePassword"] as String?
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.bahn"
@@ -32,10 +60,17 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+            isShrinkResources = true
+            isMinifyEnabled = true
         }
+    }
+
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs (for IzzyOnDroid/F-Droid)
+        includeInApk = false
+        // Disables dependency metadata when building Android App Bundles (for Google Play)
+        includeInBundle = false
     }
 }
 

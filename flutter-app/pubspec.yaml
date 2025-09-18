@@ -2,10 +2,11 @@ name: better_bahn
 description: "Find cheaper split ticket options for Deutsche Bahn journeys."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.2+2
 
 environment:
   sdk: ^3.8.1
+  flutter: ^3.35.3
 
 dependencies:
   flutter:

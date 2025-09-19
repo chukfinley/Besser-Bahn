@@ -2,7 +2,7 @@ name: better_bahn
 description: "Find cheaper split ticket options for Deutsche Bahn journeys."
 publish_to: 'none'
 
-version: 1.0.2+2
+version: 1.0.2+3
 
 environment:
   sdk: ^3.8.1

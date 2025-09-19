@@ -1,4 +1,4 @@
-package com.example.bahn
+package dev.chuk.betterbahn
 
 import io.flutter.embedding.android.FlutterActivity
 

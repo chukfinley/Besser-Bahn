@@ -29,7 +29,7 @@ android {
         }
     } else {
         // IMPORTANT: If this message appears, your key.properties file is not found.
-        // Double-check its location: ~/git/Better-Bahn/flutter-app/android/key.properties
+        // Double-check its location: ~/git/Besser-Bahn/flutter-app/android/key.properties
         println("WARNING: key.properties file not found at ${keystoreFile.absolutePath}")
     }
 

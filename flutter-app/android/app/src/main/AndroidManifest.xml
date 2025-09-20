@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     
     <application
-        android:label="Better Bahn"
+        android:label="Besser Bahn"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

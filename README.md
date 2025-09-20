@@ -1,4 +1,4 @@
-# Better Bahn
+# Besser Bahn
 
 Eine App zum Finden günstigerer Split-Ticket-Optionen für Deutsche Bahn Verbindungen.
 
@@ -28,7 +28,7 @@ Eine App zum Finden günstigerer Split-Ticket-Optionen für Deutsche Bahn Verbin
 ### Android
 [<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png" height="80" alt="Get it at IzzyOnDroid">](https://apt.izzysoft.de/packages/dev.chuk.betterbahn)
 
-Oder gehen Sie zur [Releases-Seite](https://github.com/chukfinley/Better-Bahn/releases) und laden Sie die neueste Version herunter.
+Oder gehen Sie zur [Releases-Seite](https://github.com/chukfinley/Besser-Bahn/releases) und laden Sie die neueste Version herunter.
 
 ### iOS
 Ich selbst besitze weder einen Mac noch ein iOS-Gerät, um die App für iOS zu kompilieren. Sollte jemand von euch die App erfolgreich für iOS kompilieren können, meldet euch gerne bei mir, und ich werde die iOS-Version dann offiziell hier bereitstellen.
@@ -40,11 +40,11 @@ Ich selbst besitze weder einen Mac noch ein iOS-Gerät, um die App für iOS zu k
 1. Stelle sicher, dass Flutter auf deinem System installiert ist
 2. Klone das Repository:
    ```
-   git clone https://github.com/chukfinley/Better-Bahn
+   git clone https://github.com/chukfinley/Besser-Bahn
    ```
 3. Wechsle in das Verzeichnis:
    ```
-   cd better-bahn/flutter-app
+   cd Besser-Bahn/flutter-app
    ```
 4. Installiere die Abhängigkeiten:
    ```

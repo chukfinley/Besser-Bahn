@@ -27,9 +27,10 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
   image_path_android: "assets/icon/app_icon.png"  # PNG fallback for Android
-  image_path_ios: "assets/icon/icon_ios.png"  # PNG fallback for iOS
+  image_path_ios: "assets/icon/app_icon.png"  # PNG fallback for iOS
   adaptive_icon_background: "#EC0016"  # DB Red color
   adaptive_icon_foreground: "assets/icon/app_icon.png"  # PNG for adaptive icon foreground
+  adaptive_icon_monochrome: "assets/icon/app_icon_monochrome.png"  # Enables Material You themed icon
   # SVG support
   web:
     generate: false

@@ -1618,6 +1618,152 @@ def check_vendo_share() -> str:
             f"resolves back to {len(legs)} leg(s) with prices")
 
 
+def _arrival_search(abgang: str, ziel: str, arrive_by: datetime,
+                    context: str | None = None) -> dict:
+    """One `zeitPunktArt: ANKUNFT` journey search — the request both the
+    Termin-Modus and the Aufenthalt plan are built on."""
+    media = "application/x.db.vendo.mob.verbindungssuche.v9+json"
+    wunsch = {
+        "abgangsLocationId": abgang,
+        "alternativeHalteBerechnung": True,
+        "verkehrsmittel": ["ALL"],
+        "zeitWunsch": {
+            "reiseDatum": arrive_by.isoformat(),
+            "zeitPunktArt": "ANKUNFT",
+        },
+        "zielLocationId": ziel,
+    }
+    if context:
+        wunsch["context"] = context
+    res = _post(
+        "https://app.services-bahn.de/mob/angebote/fahrplan",
+        headers=_vendo_headers(media),
+        data=json.dumps({
+            "autonomeReservierung": False, "einstiegsTypList": ["STANDARD"],
+            "fahrverguenstigungen": {"deutschlandTicketVorhanden": False,
+                                     "nurDeutschlandTicketVerbindungen": False},
+            "klasse": "KLASSE_2", "reiseHin": {"wunsch": wunsch},
+            "reisendenProfil": {"reisende": [{
+                "ermaessigungen": ["KEINE_ERMAESSIGUNG KLASSENLOS"],
+                "reisendenTyp": "ERWACHSENER"}]},
+            "reservierungsKontingenteVorhanden": False,
+        }),
+        timeout=TIMEOUT,
+    )
+    res.raise_for_status()
+    return res.json()
+
+
+def _conn_times(conn: dict) -> tuple[datetime | None, datetime | None]:
+    """(departure, arrival) of a whole connection, as the app reads them."""
+    abschnitte = conn["verbindung"]["verbindungsAbschnitte"]
+    dep = arr = None
+    for a in abschnitte:
+        if a.get("abgangsDatum") and dep is None:
+            dep = datetime.fromisoformat(a["abgangsDatum"])
+    for a in reversed(abschnitte):
+        if a.get("ankunftsDatum"):
+            arr = datetime.fromisoformat(a["ankunftsDatum"])
+            break
+    return dep, arr
+
+
+def check_vendo_arrival_deadline() -> str:
+    """
+    "Ich muss um 09:48 da sein" (Termin-Modus): an ANKUNFT search must return
+    connections that get in BY the requested time, and `frueherContext` must page
+    to ones that get in EARLIER — that is the whole mechanism behind the buffer
+    filter (`utils/arrival_buffer.dart`, `setMinBufferMinutes`). If the backend
+    ever answered an arrival wish with a departure window, every buffer shown in
+    the app would be wrong, and the "mind. X min Puffer" filter would page
+    backwards forever.
+    """
+    deadline = (datetime.now().astimezone() + timedelta(hours=8)).replace(
+        second=0, microsecond=0)
+    data = _arrival_search(KIEL_LOC, BERLIN_LOC, deadline)
+    conns = data.get("verbindungen") or []
+    if not conns:
+        raise CheckError("arrival search returned no connections")
+
+    arrivals = [a for _, a in map(_conn_times, conns) if a]
+    if not arrivals:
+        raise CheckError("no connection carries a final ankunftsDatum")
+    in_time = [a for a in arrivals if a <= deadline]
+    if not in_time:
+        raise CheckError(
+            f"every connection arrives AFTER the requested {deadline:%H:%M} "
+            f"(earliest {min(arrivals):%H:%M}) — arrival wish ignored?")
+    # The tight-answer premise the feature exists for: DB's own best answer sits
+    # just before the deadline, so the app has to offer the earlier ones itself.
+    latest = max(in_time)
+    buffer_min = int((deadline - latest).total_seconds() // 60)
+
+    tok = data.get("frueherContext")
+    if not tok:
+        raise CheckError("no frueherContext on an arrival search — the buffer "
+                         "filter could not widen its window")
+    earlier = _arrival_search(KIEL_LOC, BERLIN_LOC, deadline, context=tok)
+    e_arrivals = [a for _, a in map(_conn_times, earlier.get("verbindungen") or [])
+                  if a]
+    if not e_arrivals:
+        raise CheckError("frueherContext page carries no arrivals")
+    if min(e_arrivals) >= min(arrivals):
+        raise CheckError(
+            f"earlier page is not earlier (base {min(arrivals):%H:%M}, "
+            f"page {min(e_arrivals):%H:%M}) — more buffer unreachable")
+    gained = int((min(arrivals) - min(e_arrivals)).total_seconds() // 60)
+    return (f"ANKUNFT honoured: {len(in_time)}/{len(arrivals)} arrive by "
+            f"{deadline:%H:%M} (tightest leaves {buffer_min} min); "
+            f"frueher adds {gained} min more buffer")
+
+
+def check_vendo_stopover_split() -> str:
+    """
+    "Aufenthalt einplanen" end to end (`utils/stopover_plan.dart`): two
+    INDEPENDENT arrival searches joined at a hub — hub→goal by the appointment,
+    then home→hub by "that train leaves minus the stay". The point is a gap DB's
+    own chained search would never offer, so this asserts the gap really comes
+    out the far end.
+    """
+    stay = timedelta(minutes=60)
+    deadline = (datetime.now().astimezone() + timedelta(hours=10)).replace(
+        second=0, microsecond=0)
+
+    # Leg 2: Hamburg → Berlin, nailed to the appointment.
+    second = _arrival_search(HAMBURG_LOC, BERLIN_LOC, deadline)
+    candidates = [
+        (d, a) for d, a in map(_conn_times, second.get("verbindungen") or [])
+        if d and a and a <= deadline
+    ]
+    if not candidates:
+        raise CheckError("no Hamburg→Berlin connection arrives by "
+                         f"{deadline:%H:%M}")
+    hub_dep, hub_arr = max(candidates, key=lambda t: t[0])
+
+    # Leg 1: Kiel → Hamburg, has to be in an hour before that train goes.
+    target = hub_dep - stay
+    first = _arrival_search(KIEL_LOC, HAMBURG_LOC, target)
+    stays = [
+        hub_dep - a
+        for _, a in map(_conn_times, first.get("verbindungen") or [])
+        if a and a <= hub_dep
+    ]
+    if not stays:
+        raise CheckError(f"no Kiel→Hamburg connection lands before "
+                         f"{hub_dep:%H:%M}")
+    qualifying = [s for s in stays if s >= stay]
+    if not qualifying:
+        raise CheckError(
+            f"no Kiel→Hamburg arrival leaves the wanted 60 min at the hub "
+            f"(best {max(stays)}) — an ANKUNFT search for {target:%H:%M} "
+            f"returned only later trains")
+    best = max(qualifying)
+    return (f"split ok: Berlin by {deadline:%H:%M} → Hamburg dep "
+            f"{hub_dep:%H:%M} (in {hub_arr:%H:%M}); "
+            f"{len(qualifying)} Kiel→Hamburg option(s) with ≥60 min stay "
+            f"(up to {int(best.total_seconds() // 60)} min)")
+
+
 def check_vendo_journey_pagination() -> str:
     """
     Earlier/later buttons: the journey response carries frueherContext/
@@ -3056,6 +3202,9 @@ CHECKS = [
     ("vendo walking route (#21)", check_vendo_calculateroute, False),
     ("vendo party search (pax/bike/dog/SBA)", check_vendo_journey_party, False),
     ("vendo journey pagination (context)", check_vendo_journey_pagination, False),
+    ("vendo arrival deadline + buffer (Termin)",
+     check_vendo_arrival_deadline, False),
+    ("vendo stopover split (Aufenthalt)", check_vendo_stopover_split, False),
     ("vendo weitere abfahrten (segment)", check_vendo_weitere_abfahrten, False),
     ("vendo share journey (teilen vbid)", check_vendo_share, False),
     ("vendo train polyline (zuglauf)", check_vendo_train_polyline, False),

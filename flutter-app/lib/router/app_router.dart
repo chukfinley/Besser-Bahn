@@ -13,6 +13,7 @@ import '../screens/profile/ticket_detail_screen.dart';
 import '../screens/connection_search/connection_detail_screen.dart' show TicketRef;
 import '../screens/connection_search/connection_search_screen.dart';
 import '../screens/connection_search/best_price_screen.dart';
+import '../screens/connection_search/stopover_plan_screen.dart';
 import '../screens/station_map/station_map_screen.dart';
 import '../screens/connection_search/connection_detail_screen.dart';
 import '../models/journey.dart';
@@ -223,6 +224,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           journeys: (state.extra as List<Journey>?) ?? const [],
           dTicketMode: state.uri.queryParameters['dticket'] == '1',
         ),
+      ),
+      // Trip deliberately broken in two at a hub, with a stay in between: the
+      // plan lives in `stopoverPlanProvider`, set before this is pushed (same
+      // pattern as the station map), so the route needs no `extra`.
+      GoRoute(
+        path: '/stopover-plan',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const StopoverPlanScreen(),
       ),
       // Bestpreis calendar: what this trip costs across the whole day (#21).
       GoRoute(

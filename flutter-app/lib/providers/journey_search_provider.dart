@@ -3,12 +3,23 @@ import '../models/station.dart';
 import '../core/app_log.dart';
 import '../models/journey.dart';
 import '../models/search_options.dart';
+import '../utils/arrival_buffer.dart';
 import '../utils/journey_highlights.dart';
 import 'prediction_provider.dart';
 import 'service_providers.dart';
 import 'settings_provider.dart';
 
-enum JourneySortMode { departure, arrival, duration, transfers, reliability }
+enum JourneySortMode {
+  departure,
+  arrival,
+  duration,
+  transfers,
+  reliability,
+
+  /// Most slack before the appointment first. Only meaningful with a deadline
+  /// (an arrival search) — see [JourneySearchState.deadline].
+  buffer,
+}
 
 /// Coarse transport categories for the multimodal filter. Each maps to the
 /// Vendo `VerkehrsmittelModel` values sent with the search, so the backend
@@ -70,6 +81,17 @@ class JourneySearchState {
   /// part of the search the rider steers (#19).
   final SearchOptions options;
 
+  /// Minimum slack the rider wants in front of the appointment, in minutes.
+  /// Null = "egal". Only has meaning together with [deadline].
+  ///
+  /// A pure client-side filter, deliberately: DB has no "arrive at least N
+  /// minutes early" parameter, and shifting the requested time instead would
+  /// throw away the very connections the rider might still accept. The window
+  /// the arrival search returns already reaches back before the deadline, and
+  /// [JourneySearchNotifier.setMinBufferMinutes] pages further back when the
+  /// filter comes up empty.
+  final int? minBufferMinutes;
+
   /// Bumped once per [JourneySearchNotifier.search] that lands results.
   /// Deliberately NOT touched by "Früher"/"Später", which also replace
   /// [result] — the search form folds itself away on a fresh search, and a
@@ -89,6 +111,7 @@ class JourneySearchState {
     this.transferProfileRelaxed = false,
     this.options = const SearchOptions(),
     this.resultSerial = 0,
+    this.minBufferMinutes,
     Set<ProductCategory>? products,
   }) : products = products ?? ProductCategory.values.toSet();
 
@@ -96,6 +119,11 @@ class JourneySearchState {
   /// time — "arrive now" is nonsense, so "Jetzt" (no time) always means
   /// departure regardless of the toggle's last value.
   bool get useArrival => dateTime != null && isArrival;
+
+  /// The time the rider has to be there by, when they searched by arrival —
+  /// "muss um 09:48 da sein". Every connection in the list is then also judged
+  /// by the slack it leaves in front of it, not only by how long it takes.
+  DateTime? get deadline => useArrival ? dateTime : null;
 
   JourneySearchState copyWith({
     Station? from,
@@ -111,7 +139,9 @@ class JourneySearchState {
     bool? transferProfileRelaxed,
     SearchOptions? options,
     int? resultSerial,
+    int? minBufferMinutes,
     bool clearDateTime = false,
+    bool clearMinBufferMinutes = false,
   }) {
     return JourneySearchState(
       from: from ?? this.from,
@@ -129,7 +159,18 @@ class JourneySearchState {
           transferProfileRelaxed ?? this.transferProfileRelaxed,
       options: options ?? this.options,
       resultSerial: resultSerial ?? this.resultSerial,
+      minBufferMinutes: clearMinBufferMinutes
+          ? null
+          : (minBufferMinutes ?? this.minBufferMinutes),
     );
+  }
+
+  /// Whether the buffer filter is hiding connections that exist. Drives the
+  /// notice on the list: a filter that empties it must never read as "DB has
+  /// nothing".
+  int get hiddenByBufferCount {
+    final all = result?.journeys.length ?? 0;
+    return all - sortedJourneys.length;
   }
 
   List<Journey> get sortedJourneys {
@@ -137,7 +178,16 @@ class JourneySearchState {
     // No client-side product filter: the backend already searched for exactly
     // the selected modes. Re-filtering here would drop connections it
     // deliberately returned (e.g. a feeder bus on an otherwise regional trip).
-    final journeys = result!.journeys.toList();
+    var journeys = result!.journeys.toList();
+    // The one client-side filter there is: "mind. X min Puffer". Applied before
+    // sorting so every mode below shows the same set.
+    final deadline = this.deadline;
+    if (deadline != null) {
+      journeys = withMinBuffer(journeys, deadline, minBufferMinutes);
+      if (sortMode == JourneySortMode.buffer) {
+        return sortedByBuffer(journeys, deadline);
+      }
+    }
     switch (sortMode) {
       case JourneySortMode.departure:
         journeys.sort((a, b) =>
@@ -156,6 +206,13 @@ class JourneySearchState {
         // starts from this (departure-ordered) list.
         journeys.sort((a, b) =>
             (a.departure ?? DateTime(0)).compareTo(b.departure ?? DateTime(0)));
+      case JourneySortMode.buffer:
+        // Only reachable without a deadline (the case above returns) — e.g. the
+        // rider picked "Puffer" and then switched back to a departure search.
+        // Falls back to departure order instead of pretending to rank slack
+        // there is no appointment to measure against.
+        journeys.sort((a, b) =>
+            (a.departure ?? DateTime(0)).compareTo(b.departure ?? DateTime(0)));
     }
     return journeys;
   }
@@ -171,11 +228,53 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
   void setIsArrival(bool val) => state = state.copyWith(isArrival: val);
 
   /// Back to "Jetzt": clear the chosen time and fall back to departure (an
-  /// arrival search only makes sense with a fixed time).
-  void resetToNow() =>
-      state = state.copyWith(clearDateTime: true, isArrival: false);
+  /// arrival search only makes sense with a fixed time). The buffer filter goes
+  /// with it — without a deadline there is nothing to have slack in front of,
+  /// and a filter left set would silently narrow the next search.
+  void resetToNow() => state = state.copyWith(
+        clearDateTime: true,
+        isArrival: false,
+        clearMinBufferMinutes: true,
+      );
   void setSortMode(JourneySortMode mode) =>
       state = state.copyWith(sortMode: mode);
+
+  /// "Ich will mindestens X min Luft vor dem Termin."
+  ///
+  /// Pure filter, so it does not re-run the search — but it does page the window
+  /// backwards when nothing in it qualifies. An arrival search hands back the
+  /// connections closest to the deadline, so asking for an hour of slack can
+  /// easily hide all of them while the ones that qualify sit one "Früher" away.
+  /// Doing that by hand is the work the rider came here to avoid.
+  Future<void> setMinBufferMinutes(int? minutes) async {
+    if (minutes == state.minBufferMinutes) return;
+    state = state.copyWith(
+      minBufferMinutes: minutes,
+      clearMinBufferMinutes: minutes == null,
+    );
+    await _pageBackToBuffer();
+  }
+
+  /// How many extra windows [setMinBufferMinutes] will pull in before giving up.
+  /// Each is a request; three covers the realistic jump (from "arrives 09:39" to
+  /// "arrives an hour earlier") without turning one tap into a crawl through the
+  /// timetable.
+  static const int maxBufferPages = 3;
+
+  Future<void> _pageBackToBuffer() async {
+    if (state.deadline == null || state.minBufferMinutes == null) return;
+    for (var i = 0; i < maxBufferPages; i++) {
+      if (state.result == null) return;
+      // Something matches — the rider has a list, stop spending requests.
+      if (state.sortedJourneys.isNotEmpty) return;
+      if (state.result!.earlierRef == null) return;
+      final before = state.result!.journeys.length;
+      await loadEarlier();
+      // The window didn't grow: this end of the timetable is exhausted (or the
+      // page failed), and looping again would just repeat the same request.
+      if ((state.result?.journeys.length ?? 0) <= before) return;
+    }
+  }
 
   /// Toggle a transport category in the multimodal filter. Never lets the user
   /// deselect the last category (that would hide everything) — re-enabling all

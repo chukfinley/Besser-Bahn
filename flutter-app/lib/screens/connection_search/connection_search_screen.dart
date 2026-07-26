@@ -8,6 +8,7 @@ import '../../models/library_models.dart';
 import '../../providers/journey_search_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../utils/arrival_buffer.dart';
 import '../../vendor/chuk_ui/chuk_squircle.dart';
 import '../../widgets/app_nav_bar.dart';
 import '../../widgets/glass_panel.dart';
@@ -209,6 +210,14 @@ class _ConnectionSearchScreenState
                   'Zuverlässigkeit',
                   state.sortMode,
                 ),
+                // Ranking by slack needs something to have slack before — only
+                // an arrival search has that.
+                if (state.deadline != null)
+                  _sortItem(
+                    JourneySortMode.buffer,
+                    'Puffer vor Termin',
+                    state.sortMode,
+                  ),
               ],
             ),
         ],
@@ -275,6 +284,11 @@ class _ConnectionSearchScreenState
             ),
           ),
         ),
+
+        // "Muss um 09:48 da sein" — the appointment bar. Tied to the deadline,
+        // not to a result: it belongs to the question being asked, so it is
+        // there to set *before* the first search too.
+        if (state.deadline != null) _bufferBar(context, state, notifier),
 
         // The filter and the notices belong to a result, so they arrive with
         // one. Kept in the header rather than in the list: they are chrome for
@@ -665,6 +679,40 @@ class _ConnectionSearchScreenState
     // prediction model re-orders it as scores arrive.
     final journeys = ref.watch(reliabilitySortedJourneysProvider);
     if (journeys.isEmpty) {
+      // The buffer filter emptied a list that has connections in it — say that,
+      // and say which tap widens it. "Keine Verbindungen" would be a lie, and
+      // the chip that caused it sits right above this text.
+      if (state.minBufferMinutes != null && state.hiddenByBufferCount > 0) {
+        return below(
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Keine Verbindung mit mindestens '
+                  '${state.minBufferMinutes} min Puffer vor '
+                  '${DateFormat('HH:mm').format(state.deadline!)} — '
+                  '${state.hiddenByBufferCount} knappere gibt es. '
+                  'Kleineren Puffer wählen, oder weiter zurück suchen.',
+                  textAlign: TextAlign.center,
+                ),
+                // The list is gone, and with it the "Früher" button at its top —
+                // so the way to keep looking has to be offered right here.
+                if (state.result?.earlierRef != null) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed:
+                        state.isLoading ? null : notifier.loadEarlier,
+                    icon: const Icon(Icons.keyboard_arrow_up, size: 18),
+                    label: const Text('Früher suchen'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      }
       return below(
         Padding(
           padding: const EdgeInsets.all(24),
@@ -781,6 +829,76 @@ class _ConnectionSearchScreenState
     );
   }
 
+  /// The appointment bar, shown whenever the search has a deadline ("An
+  /// 09:48"): what time the rider has to be there, and how much air they want in
+  /// front of it.
+  ///
+  /// DB answers an arrival search with the tightest connection that still makes
+  /// it — 09:39 for 09:48. That is a correct answer and a poor plan: nine
+  /// minutes is no margin, and waiting longer costs this rider nothing. So the
+  /// minimum lives here as one tap, and the cards below say what each connection
+  /// leaves.
+  Widget _bufferBar(
+    BuildContext context,
+    JourneySearchState state,
+    JourneySearchNotifier notifier,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.event_available, size: 15, color: scheme.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Da sein um '
+                    '${DateFormat('HH:mm').format(state.deadline!)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: ChoiceChip(
+                label: const Text('Puffer egal'),
+                selected: state.minBufferMinutes == null,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                onSelected: (_) => notifier.setMinBufferMinutes(null),
+              ),
+            ),
+            for (final m in kBufferChoices)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: ChoiceChip(
+                  label: Text(m >= 60 ? '≥ ${m ~/ 60} h' : '≥ $m min'),
+                  selected: state.minBufferMinutes == m,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  // Tapping the active one again means "egal" — otherwise the
+                  // only way back is hunting for the first chip.
+                  onSelected: (sel) =>
+                      notifier.setMinBufferMinutes(sel ? m : null),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Horizontal multimodal filter: one chip per transport category. The search
   /// already returns all modes; tapping a chip hides/shows that mode locally.
   Widget _productFilterBar(
@@ -874,7 +992,9 @@ class _ConnectionSearchScreenState
           else
             const SizedBox(width: 18),
           const SizedBox(width: 8),
-          Text(label),
+          // Flexible, not bare: "Puffer vor Termin" plus the check mark is wider
+          // than the menu on a 400 px screen, and a popup item cannot scroll.
+          Flexible(child: Text(label, softWrap: false, overflow: TextOverflow.fade)),
         ],
       ),
     );

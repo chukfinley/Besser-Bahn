@@ -24,6 +24,7 @@ import '../../providers/service_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/split_ticket_provider.dart';
 import '../../providers/station_map_provider.dart';
+import '../../providers/stopover_plan_provider.dart';
 import '../../services/db_api_service.dart';
 import '../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
@@ -356,10 +357,35 @@ class _ConnectionDetailScreenState
               tooltip: 'Andere Fahrten für diese Strecke suchen',
               onPressed: () => _showAlternatives(context, ref),
             ),
-          IconButton(
+          // Two ways to break this trip up: by ticket (cheaper) or by time (a
+          // deliberate stay at a hub). Folded into one "aufteilen" menu — the
+          // AppBar has no room for a fifth icon, and they belong together.
+          PopupMenuButton<int>(
             icon: const Icon(Icons.call_split),
-            tooltip: 'Split-Ticket suchen',
-            onPressed: () => _openSplitTicket(context, ref),
+            tooltip: 'Reise aufteilen',
+            onSelected: (v) => v == 0
+                ? _openSplitTicket(context, ref)
+                : _openStopoverPlan(context),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 0,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.call_split),
+                  title: Text('Split-Ticket suchen'),
+                  subtitle: Text('Preis aufteilen'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 1,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.free_breakfast_outlined),
+                  title: Text('Aufenthalt einplanen'),
+                  subtitle: Text('Früher fahren, Zeit dazwischen'),
+                ),
+              ),
+            ],
           ),
           // "Reise überwachen" — per-trip live tracking, only offered once the
           // trip is saved locally (there's nothing to track otherwise, and the
@@ -762,6 +788,102 @@ class _ConnectionDetailScreenState
     n.search();
   }
 
+  /// Break this trip in two at [hub] (asked for if not given) and plan the two
+  /// halves independently — see [StopoverPlanScreen].
+  ///
+  /// The appointment starts as this connection's own arrival: it is the time the
+  /// rider already accepted by opening it, and the plan screen lets them push it
+  /// later ("eigentlich muss ich erst um 09:48 da sein").
+  Future<void> _openStopoverPlan(BuildContext context, {Station? hub}) async {
+    final from = journey.origin;
+    final to = journey.destination;
+    final deadline = journey.arrival ?? journey.plannedArrival;
+    if (from == null || to == null || deadline == null) {
+      _snack('Für diese Verbindung fehlen Start, Ziel oder Ankunft.');
+      return;
+    }
+    final chosen = hub ?? await _pickStopoverHub(context);
+    if (chosen == null || !context.mounted) return;
+    ref.read(stopoverPlanProvider.notifier).start(StopoverPlanArgs(
+          from: from,
+          hub: chosen,
+          to: to,
+          deadline: deadline,
+        ));
+    context.push('/stopover-plan');
+  }
+
+  /// Where the trip could be broken: the changes first (a hub you already stand
+  /// in), then every intermediate stop — a direct train has no change but plenty
+  /// of places to get off, wait, and take a later one.
+  Future<Station?> _pickStopoverHub(BuildContext context) async {
+    final origin = journey.origin;
+    final destination = journey.destination;
+    final candidates = <String, Station>{};
+    void offer(Station s) {
+      if (s.name.isEmpty || s.vendoLocationId.isEmpty) return;
+      if (s.id == origin?.id || s.id == destination?.id) return;
+      candidates.putIfAbsent(s.id.isNotEmpty ? s.id : s.name, () => s);
+    }
+
+    final transitLegs = journey.legs.where((l) => !l.isWalking).toList();
+    // Changes first, in travel order.
+    for (final leg in transitLegs.take(transitLegs.length - 1)) {
+      offer(leg.destination);
+    }
+    final transferCount = candidates.length;
+    for (final leg in transitLegs) {
+      for (final stop in leg.stopovers) {
+        // A stop the train drops, or won't let you off at, is not a hub.
+        if (stop.cancelled || stop.noAlighting) continue;
+        offer(stop.stop);
+      }
+    }
+
+    if (candidates.isEmpty) {
+      _snack('Keine Zwischenhalte bekannt — Verbindung erst öffnen/laden.');
+      return null;
+    }
+
+    final list = candidates.values.toList();
+    return showModalBottomSheet<Station>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Text('Wo willst du Zeit verbringen?',
+                  style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                'Die Reise wird dort geteilt: hin so früh du willst, weiter '
+                'genau so, dass du rechtzeitig ankommst.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+            for (final (i, station) in list.indexed)
+              ListTile(
+                leading: Icon(i < transferCount
+                    ? Icons.swap_calls
+                    : Icons.pause_circle_outline),
+                title: Text(station.name),
+                subtitle:
+                    Text(i < transferCount ? 'Umstieg' : 'Zwischenhalt'),
+                onTap: () => Navigator.of(context).pop(station),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _openSplitTicket(BuildContext context, WidgetRef ref) {
     // Same candidate list the bulk comparison uses, so both price identically.
     // This screen additionally has the leg's full train run cached, which is
@@ -1108,6 +1230,7 @@ class _ConnectionDetailScreenState
       headColor: color,
       detail: detail,
       warn: warn,
+      trailing: _stopoverButton(context, leg.origin),
       onTap: leg.origin.name.isEmpty
           ? null
           : () => _openTransferMap(
@@ -1249,6 +1372,7 @@ class _ConnectionDetailScreenState
       headColor: color,
       detail: gleisText,
       warn: warn,
+      trailing: _stopoverButton(context, station),
       onTap: station.name.isEmpty
           ? null
           : () => _openTransferMap(
@@ -1297,6 +1421,7 @@ class _ConnectionDetailScreenState
     String? detail,
     String? warn,
     VoidCallback? onTap,
+    Widget? trailing,
   }) {
     final theme = Theme.of(context);
     return Container(
@@ -1376,10 +1501,26 @@ class _ConnectionDetailScreenState
                 Icon(Icons.map_outlined,
                     size: 18, color: theme.colorScheme.primary),
               ],
+              if (trailing != null) trailing,
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// "Hier Aufenthalt einplanen" on a change: the hub is already named on this
+  /// row, so the plan is one tap away instead of a station picked out of a list.
+  Widget _stopoverButton(BuildContext context, Station station) {
+    return IconButton(
+      icon: const Icon(Icons.free_breakfast_outlined, size: 18),
+      tooltip: 'Hier Aufenthalt einplanen — früher fahren, Zeit dazwischen',
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      onPressed: station.name.isEmpty
+          ? null
+          : () => _openStopoverPlan(context, hub: station),
     );
   }
 }

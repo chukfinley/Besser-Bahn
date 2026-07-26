@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../models/journey.dart';
 import '../../../models/trip.dart';
 import '../../../providers/journey_search_provider.dart';
+import '../../../utils/arrival_buffer.dart';
 import '../../../utils/journey_highlights.dart';
 import '../../../core/extensions.dart';
 import '../../../core/share_text.dart';
@@ -52,6 +53,17 @@ class JourneyCard extends ConsumerWidget {
             .map((e) => e.key)
             .toList()
         : const <JourneyHighlight>[];
+
+    // "Muss um 09:48 da sein": how much air this connection leaves in front of
+    // the appointment. Only in a result list, and only when the search *is* an
+    // arrival search — the same card stands in for a saved trip or a booked
+    // ticket elsewhere, where the search's deadline says nothing about it.
+    final (deadline, minBuffer) = fromResults
+        ? ref.watch(journeySearchProvider
+            .select((s) => (s.deadline, s.minBufferMinutes)))
+        : (null, null);
+    final buffer =
+        deadline == null ? null : journeyBuffer(journey, deadline);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -148,12 +160,15 @@ class JourneyCard extends ConsumerWidget {
                     ),
                   ),
 
-                  // Arrival
+                  // Arrival — with the slack before the appointment under it,
+                  // where the number it is measured against already stands.
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       _timeWithDelay(context, journey.plannedArrival,
                           journey.legs.lastOrNull?.arrivalDelay),
+                      if (buffer != null)
+                        _BufferChip(buffer: buffer, minMinutes: minBuffer),
                     ],
                   ),
                 ],
@@ -232,6 +247,58 @@ class JourneyCard extends ConsumerWidget {
     );
   }
 
+}
+
+/// How much time this connection leaves before the appointment the rider
+/// searched for ("An 09:48"). Sits under the arrival time, so the slack and the
+/// number it is measured against read as one thing.
+///
+/// The colour is the whole point: DB's own answer to an arrival search is the
+/// tightest connection that still makes it, and it is supposed to look tight.
+class _BufferChip extends StatelessWidget {
+  const _BufferChip({required this.buffer, this.minMinutes});
+
+  final Duration buffer;
+
+  /// The rider's own minimum, if they set one — under it counts as tight for
+  /// them even when it clears the default threshold.
+  final int? minMinutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tone = bufferTone(buffer, minMinutes: minMinutes);
+    final color = switch (tone) {
+      BufferTone.missed => AppColors.dbRed,
+      BufferTone.tight => AppColors.warning,
+      BufferTone.comfortable => scheme.onSurfaceVariant,
+      BufferTone.generous => AppColors.onTime,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            tone == BufferTone.missed
+                ? Icons.event_busy
+                : Icons.hourglass_bottom,
+            size: 11,
+            color: color,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            bufferLabel(buffer),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Full-width red (cancelled) / amber (partial) strip warning that this

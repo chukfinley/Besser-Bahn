@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/reisende.dart';
 import '../models/split_ticket.dart';
 import '../services/db_api_service.dart';
 import '../services/notification_service.dart';
@@ -115,8 +116,15 @@ class SplitTicketNotifier extends Notifier<SplitTicketState> {
     final settings = ref.read(settingsProvider);
     final dbApi = ref.read(dbApiServiceProvider);
     final vendo = ref.read(vendoServiceProvider);
+    // Derive the fallback (DB web API) payload from the actual search party so
+    // Halbtax / Vorteilscard / SBA are not silently dropped when Vendo fails.
+    final primaryTraveler = settings.searchParty.travelers
+        .firstWhere((t) => t.typ.isPerson,
+            orElse: () => const Traveler(typ: TravelerType.erwachsener));
     final travellers = DbApiService.createTravellerPayload(
-      bahnCard: settings.bahnCard,
+      bahnCard: primaryTraveler.bahnCard,
+      weitere: primaryTraveler.weitere,
+      sba: primaryTraveler.sba,
     );
     // Price segments for the SAME party the search uses (age/type/BahnCard), so
     // youth/child fares match the DB app instead of always pricing an adult —
@@ -152,7 +160,7 @@ class SplitTicketNotifier extends Notifier<SplitTicketState> {
         reisende: partyReisende,
         travellers: travellers,
         deutschlandTicket: settings.hasDeutschlandTicket,
-        firstClass: settings.bahnCard.isFirstClass,
+        firstClass: settings.searchParty.firstClass,
         apiDelayMs: settings.apiDelayMs,
         // A newer analyze() (or cancel()) supersedes this run.
         isCancelled: () => myGen != _gen || state.isCancelled,

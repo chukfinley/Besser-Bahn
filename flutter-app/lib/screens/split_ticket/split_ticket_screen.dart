@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/journey.dart';
+import '../../models/reisende.dart';
 import '../../models/split_ticket.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/split_ticket_provider.dart';
@@ -13,6 +14,7 @@ import '../../services/db_api_service.dart';
 import '../../utils/split_stops.dart';
 import '../../widgets/ui/message_card.dart';
 import '../../theme/app_colors.dart';
+import '../connection_search/widgets/reisende_sheet.dart';
 
 /// Split-ticket analysis viewer + entry point.
 ///
@@ -386,12 +388,20 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
     );
   }
 
-  /// Show the search assumptions so the price is unambiguous: which BahnCard
-  /// and whether a Deutschland-Ticket was applied (both from Einstellungen).
+  /// Show the search assumptions so the price is unambiguous: which BahnCard,
+  /// weitere Ermäßigungen (Halbtax, Vorteilscard, …), SBA, and whether a
+  /// Deutschland-Ticket was applied (all from Einstellungen).
   Widget _buildAssumptions(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final s = ref.watch(settingsProvider);
-    final hasBC = s.bahnCard != BahnCardType.none;
+    final primaryTraveler = s.searchParty.travelers
+        .firstWhere((t) => t.typ.isPerson,
+            orElse: () => const Traveler(typ: TravelerType.erwachsener));
+    final hasBC = primaryTraveler.bahnCard != Reduction.none;
+    final hasWeitere = primaryTraveler.weitere != Reduction.none;
+    final hasSba = primaryTraveler.sba != SbaOption.none;
+    final isDTicket = s.hasDeutschlandTicket;
+
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Padding(
@@ -405,41 +415,81 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                     size: 16, color: theme.colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Text('Preise gelten für', style: theme.textTheme.titleSmall),
+                const Spacer(),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: const Icon(Icons.edit, size: 14),
+                  label: const Text('Ändern', style: TextStyle(fontSize: 12)),
+                  onPressed: () async {
+                    final newParty = await showReisendeSheet(context, s.searchParty);
+                    if (newParty == null) return;
+                    ref.read(settingsProvider.notifier).setSearchParty(newParty);
+
+                    // Re-run the active analysis with the updated party
+                    if (journey != null) {
+                      final stops = splitStopsFromJourney(journey!);
+                      final dep = journey!.plannedDeparture ?? journey!.departure;
+                      final date = dep != null ? dep.toIso8601String().split('T').first : '';
+                      ref.read(splitTicketProvider.notifier).analyze(
+                        stops: stops,
+                        date: date,
+                        directPrice: journey!.price?.amount ?? 0,
+                        routeLabel: '${journey!.origin?.name ?? ''} → ${journey!.destination?.name ?? ''}',
+                        jobKey: 'rerun:${DateTime.now().millisecondsSinceEpoch}',
+                      );
+                    }
+                  },
+                ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Wrap(
               spacing: 6,
               runSpacing: 4,
               children: [
                 Chip(
                   avatar: Icon(
-                      hasBC ? Icons.credit_card : Icons.credit_card_off,
-                      size: 16),
-                  label: Text(hasBC ? s.bahnCard.label : 'ohne BahnCard'),
+                      hasBC ? Icons.check_circle : Icons.credit_card_off,
+                      size: 16,
+                      color: hasBC ? AppColors.onTime : null),
+                  label: Text(hasBC ? primaryTraveler.bahnCard.label : 'ohne BahnCard'),
+                  backgroundColor: hasBC ? AppColors.onTime.withAlpha(20) : null,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
+                if (hasWeitere)
+                  Chip(
+                    avatar: const Icon(Icons.check_circle, size: 16, color: AppColors.onTime),
+                    label: Text(primaryTraveler.weitere.label),
+                    backgroundColor: AppColors.onTime.withAlpha(20),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                if (hasSba)
+                  Chip(
+                    avatar: const Icon(Icons.check_circle, size: 16, color: AppColors.onTime),
+                    label: Text(primaryTraveler.sba.label),
+                    backgroundColor: AppColors.onTime.withAlpha(20),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
                 Chip(
                   avatar: Icon(
-                      s.hasDeutschlandTicket
-                          ? Icons.check_circle
-                          : Icons.cancel,
+                      isDTicket ? Icons.check_circle : Icons.cancel,
                       size: 16,
-                      color: s.hasDeutschlandTicket ? AppColors.onTime : null),
-                  label: Text(s.hasDeutschlandTicket
+                      color: isDTicket ? AppColors.onTime : null),
+                  label: Text(isDTicket
                       ? 'mit Deutschland-Ticket'
                       : 'ohne Deutschland-Ticket'),
+                  backgroundColor: isDTicket ? AppColors.onTime.withAlpha(20) : null,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'In den Einstellungen änderbar.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),

@@ -170,15 +170,20 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 
   void setBahnCard(BahnCardType card) {
-    // Setting "my" card re-seeds the party to a single adult with that card —
-    // the simple settings path for users who never open the advanced sheet. But
-    // once the party has been customised, leave it alone (#43): just carry the
-    // new card into the existing party.
+    final cardReduction = Reduction.byKey(card.vendoErmaessigung);
+    final travelers = state.searchParty.travelers.map((t) {
+      if (t.typ.isPerson) {
+        return t.copyWith(bahnCard: cardReduction);
+      }
+      return t;
+    }).toList();
+
     state = state.copyWith(
       bahnCard: card,
-      searchParty: state.partyCustomized
-          ? state.searchParty
-          : SearchParty.fromSettings(card, state.hasDeutschlandTicket),
+      searchParty: state.searchParty.copyWith(
+        firstClass: card.isFirstClass,
+        travelers: travelers,
+      ),
     );
     _save();
   }
@@ -187,6 +192,20 @@ class SettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(
       hasDeutschlandTicket: value,
       searchParty: state.searchParty.copyWith(deutschlandTicket: value),
+    );
+    _save();
+  }
+
+  void setWeitereReduction(Reduction reduction) {
+    final travelers = state.searchParty.travelers.map((t) {
+      if (t.typ.isPerson) {
+        return t.copyWith(weitere: reduction);
+      }
+      return t;
+    }).toList();
+
+    state = state.copyWith(
+      searchParty: state.searchParty.copyWith(travelers: travelers),
     );
     _save();
   }

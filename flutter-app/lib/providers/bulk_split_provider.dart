@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../models/journey.dart';
+import '../models/reisende.dart';
 import '../models/split_ticket.dart';
 import '../services/db_api_service.dart';
 import '../utils/split_engine.dart';
@@ -142,8 +143,14 @@ class BulkSplitNotifier extends Notifier<BulkSplitState> {
     final engine = SplitEngine(
         ref.read(vendoServiceProvider), ref.read(dbApiServiceProvider));
     final reisende = settings.searchParty.toReisendeJson();
-    final travellers =
-        DbApiService.createTravellerPayload(bahnCard: settings.bahnCard);
+    final primaryTraveler = settings.searchParty.travelers
+        .firstWhere((t) => t.typ.isPerson,
+            orElse: () => const Traveler(typ: TravelerType.erwachsener));
+    final travellers = DbApiService.createTravellerPayload(
+      bahnCard: primaryTraveler.bahnCard,
+      weitere: primaryTraveler.weitere,
+      sba: primaryTraveler.sba,
+    );
 
     final rows = <BulkSplitRow>[];
     for (final j in journeys) {

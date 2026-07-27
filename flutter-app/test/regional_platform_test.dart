@@ -137,6 +137,131 @@ String _locMatch() => _ok({
     });
 
 void main() {
+  // The breaker is static — a backend marked dead in one test would silently
+  // skip it in the next.
+  setUp(RegionalTransitService.resetCircuitBreaker);
+
+  group('never blocks the Reiseplan', () {
+    const kielHbf = Station(
+      id: '699275',
+      name: 'Hauptbahnhof, Kiel',
+      latitude: 54.315502,
+      longitude: 10.13069,
+    );
+    // A second stop 130 m away — the same authority (NAH.SH), but a different
+    // cache key, so it is the breaker and not the per-stop cache that decides
+    // whether it gets asked.
+    const kielSued = Station(
+      id: '699280',
+      name: 'Hauptbahnhof Süd, Kiel',
+      latitude: 54.31434,
+      longitude: 10.13069,
+    );
+    DateTime at(int h, int m) => DateTime(2026, 7, 27, h, m);
+
+    /// A service whose stop lookup always succeeds but whose departure board
+    /// fails the given way. Splitting the two matters: a failed *lookup* is
+    /// cached as "no such stop here" on its own, which would mask whether the
+    /// breaker did anything — the board is where "backend down" has to bite.
+    ({RegionalTransitService service, int Function() boardCalls}) failingBoard(
+      Future<http.Response> Function() onBoard,
+    ) {
+      var boardCalls = 0;
+      final client = MockClient((req) async {
+        final body =
+            json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
+        final svc = (body['svcReqL'] as List).first as Map<String, dynamic>;
+        if (svc['meth'] == 'LocMatch') {
+          // A distinct station per queried name, at that stop's own coordinate,
+          // so two nearby stops don't collapse onto one board (which the board
+          // cache would then serve, hiding whether the breaker fired).
+          final input = (svc['req'] as Map)['input'] as Map;
+          final name = ((input['loc'] as Map)['name'] as String);
+          final sued = name.contains('Süd');
+          return http.Response.bytes(
+            utf8.encode(_ok({
+              'match': {
+                'locL': [
+                  {
+                    'extId': sued ? '9049080' : '9049076',
+                    'name': name.replaceAll('?', ''),
+                    'crd': {
+                      'y': sued ? 54314340 : 54315502,
+                      'x': 10130690,
+                    },
+                  },
+                ],
+              },
+            })),
+            200,
+          );
+        }
+        boardCalls++;
+        return onBoard();
+      });
+      return (
+        service: RegionalTransitService(client: client),
+        boardCalls: () => boardCalls,
+      );
+    }
+
+    Future<PlatformCorrection?> ask(RegionalTransitService s, Station stop) =>
+        s.platformCorrection(
+          stop: stop,
+          line: 'Bus 22',
+          towards: 'Suchsdorf',
+          plannedDeparture: at(9, 39),
+          product: 'bus',
+        );
+
+    test('a 5xx takes the backend out of rotation — the next leg is instant',
+        () async {
+      final h = failingBoard(() async => http.Response('boom', 502));
+
+      expect(await ask(h.service, kielHbf), isNull);
+      expect(h.boardCalls(), 1);
+
+      // A different stop, same authority: the dead backend is skipped before
+      // any request goes out.
+      expect(await ask(h.service, kielSued), isNull);
+      expect(h.boardCalls(), 1, reason: 'breaker skipped the dead backend');
+    });
+
+    test('a timeout also trips the breaker, not just an error status', () async {
+      final h = failingBoard(
+          () async => throw Exception('SocketException: timeout'));
+
+      expect(await ask(h.service, kielHbf), isNull);
+      expect(h.boardCalls(), 1);
+      expect(await ask(h.service, kielSued), isNull);
+      expect(h.boardCalls(), 1,
+          reason: 'an unreachable endpoint is skipped after the first failure');
+    });
+
+    test('a 4xx does NOT trip the breaker — it is this call being wrong, not '
+        'the endpoint being down', () async {
+      final h = failingBoard(() async => http.Response('bad request', 400));
+
+      await ask(h.service, kielHbf);
+      expect(h.boardCalls(), 1);
+      await ask(h.service, kielSued);
+      expect(h.boardCalls(), 2,
+          reason: 'the backend is alive, so the next stop still asks it');
+    });
+
+    test('resetCircuitBreaker lets a recovered backend back in', () async {
+      final h = failingBoard(() async => http.Response('boom', 500));
+      await ask(h.service, kielHbf);
+      expect(h.boardCalls(), 1);
+      await ask(h.service, kielSued);
+      expect(h.boardCalls(), 1); // skipped
+
+      RegionalTransitService.resetCircuitBreaker();
+      await ask(h.service, kielSued);
+      expect(h.boardCalls(), 2, reason: 'tried again after recovery');
+    });
+  });
+
   group('reading the board', () {
     test('a moved bay comes through as planned → live', () {
       final moved = _parsed().where((d) => d.moved).toList();

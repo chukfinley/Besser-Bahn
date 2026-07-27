@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../core/app_log.dart';
@@ -56,7 +57,54 @@ class RegionalTransitService {
   static const _protocolVersion = '1.34';
   static const _clientVersion = '4000100';
 
-  static const _timeout = Duration(seconds: 8);
+  /// One request. Short on purpose: this is an *extra* on top of DB, so a slow
+  /// backend must give up quickly rather than hold a "loading" state — the
+  /// Reiseplan already shows DB's platform and only swaps it if a correction
+  /// actually arrives.
+  static const _timeout = Duration(seconds: 6);
+
+  /// Whole-question budget across all the backends tried for one leg. Even if
+  /// the first two stall until their own timeouts, the third is never started
+  /// past this — better no correction than a spinner that outlives the glance.
+  static const _budget = Duration(seconds: 9);
+
+  /// How long a backend that just failed is skipped. A dead endpoint (DNS gone,
+  /// 500s, timing out) must not cost every following leg another timeout — the
+  /// first failure takes it out of rotation for a while, so the rest of the
+  /// Reiseplan stays instant.
+  static const _deadFor = Duration(minutes: 5);
+
+  /// User-Agent per backend, so a request looks like the authority's own app
+  /// rather than a Dart HTTP client. The identifying part is already the real
+  /// `client`/`aid`; this only keeps us out of the "unknown scraper" bucket.
+  static const _userAgent =
+      'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
+      '(KHTML, like Gecko) Version/4.0 Chrome/126.0.0.0 Mobile Safari/537.36';
+
+  /// Profiles that just failed, and when they may be tried again. Static: the
+  /// breaker is about the endpoint, not about one service instance.
+  static final Map<String, DateTime> _deadUntil = {};
+
+  static bool _isDead(RegionalProfile p) {
+    final until = _deadUntil[p.id];
+    if (until == null) return false;
+    if (DateTime.now().isAfter(until)) {
+      _deadUntil.remove(p.id);
+      return false;
+    }
+    return true;
+  }
+
+  static void _markDead(RegionalProfile p) {
+    _deadUntil[p.id] = DateTime.now().add(_deadFor);
+    AppLog.log('${p.id} als tot markiert für ${_deadFor.inMinutes} min',
+        tag: 'regional');
+  }
+
+  /// Clear the circuit breaker — the static dead-list survives between tests
+  /// otherwise, and a backend marked dead in one would silently skip the next.
+  @visibleForTesting
+  static void resetCircuitBreaker() => _deadUntil.clear();
 
   /// Whether any regional authority might know [stop]. Stops without
   /// coordinates are not guessed at — no answer beats a wrong region's answer.
@@ -103,13 +151,20 @@ class RegionalTransitService {
       final res = await _client
           .post(
             Uri.parse(profile.endpoint),
-            headers: const {'Content-Type': 'application/json'},
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'User-Agent': _userAgent,
+            },
             body: utf8.encode(json.encode(body)),
           )
           .timeout(_timeout);
       if (res.statusCode != 200) {
         AppLog.log('${profile.id} $method HTTP ${res.statusCode}',
             tag: 'regional');
+        // A 5xx / gateway error is the endpoint being down, not this one call
+        // being wrong — take it out of rotation so the next leg is instant.
+        if (res.statusCode >= 500) _markDead(profile);
         return null;
       }
       final data =
@@ -122,7 +177,10 @@ class RegionalTransitService {
       }
       return svc['res'] as Map<String, dynamic>?;
     } catch (e) {
+      // Timeout, DNS failure, connection refused — the endpoint is unreachable,
+      // so stop trying it for a while instead of eating a timeout per leg.
       AppLog.log('${profile.id} $method failed: $e', tag: 'regional');
+      _markDead(profile);
       return null;
     }
   }
@@ -270,14 +328,17 @@ class RegionalTransitService {
     try {
       final res = await _client.get(uri, headers: const {
         'Accept': 'application/json',
+        'User-Agent': _userAgent,
       }).timeout(_timeout);
       if (res.statusCode != 200) {
         AppLog.log('${profile.id} $path HTTP ${res.statusCode}', tag: 'regional');
+        if (res.statusCode >= 500) _markDead(profile);
         return null;
       }
       return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       AppLog.log('${profile.id} $path failed: $e', tag: 'regional');
+      _markDead(profile);
       return null;
     }
   }
@@ -448,7 +509,18 @@ class RegionalTransitService {
     // Most local authority first: a city network carries bay-level detail its
     // state-wide neighbour does not. The first one that both knows the stop and
     // has this departure answers; the rest are never asked.
+    //
+    // Bounded twice over — a dead backend is skipped outright (the breaker),
+    // and the whole loop stops at [_budget] so a couple of slow ones can't add
+    // up to a spinner that outlives the glance.
+    final deadline = DateTime.now().add(_budget);
     for (final profile in regionalProfilesFor(lat, lon)) {
+      if (_isDead(profile)) continue;
+      if (DateTime.now().isAfter(deadline)) {
+        AppLog.log('regional budget aufgebraucht, Rest übersprungen',
+            tag: 'regional');
+        break;
+      }
       final extId = profile.backend == RegionalBackend.efa
           ? await _efaStopId(profile, stop)
           : await _locationIdFor(profile, stop);

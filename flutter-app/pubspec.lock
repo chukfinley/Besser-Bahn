@@ -576,6 +576,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  live_update:
+    dependency: "direct main"
+    description:
+      path: "packages/live_update"
+      relative: true
+    source: path
+    version: "1.0.0"
   logging:
     dependency: transitive
     description:

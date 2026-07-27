@@ -18,6 +18,8 @@ dependencies:
   share_plus: ^13.1.0            # system share sheet for "Reise teilen" links
   flutter_map: ^8.3.0
   latlong2: ^0.9.1
+  live_update:
+    path: packages/live_update
   libre_location: ^0.4.1        # GMS-free GPS ("Mein Standort"); pure AOSP LocationManager
   intl: ^0.20.2
   shared_preferences: ^2.3.4

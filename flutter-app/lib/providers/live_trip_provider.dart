@@ -9,6 +9,7 @@ import '../models/journey.dart';
 import '../models/library_models.dart';
 import '../models/transfer_profile.dart';
 import '../models/trip.dart';
+import '../services/live_update_service.dart';
 import '../services/notification_service.dart';
 import 'library_provider.dart';
 import 'service_providers.dart';
@@ -115,12 +116,18 @@ class LiveTripTracker extends Notifier<LiveTripState>
       _timer?.cancel();
       _lastAlert.clear();
       if (state.activeKey != null) {
+        // No trip is running any more — the Live Update promises to be current,
+        // so it goes with it.
+        unawaited(LiveUpdateService.hide());
         state = const LiveTripState();
       }
       return;
     }
     if (active.key != state.activeKey) {
       _lastAlert.clear();
+      // A different trip: a Live Update dismissed on the previous one must not
+      // suppress this one.
+      LiveUpdateService.reset();
       state = LiveTripState(activeKey: active.key);
     }
     _poll(); // immediate, then self-arms
@@ -156,6 +163,11 @@ class LiveTripTracker extends Notifier<LiveTripState>
     _polling = true;
     try {
       await _refreshAndAlert(journey.journey);
+      // The Live Update rides along with the poll: same data, same cadence, and
+      // it is the thing the rider actually looks at while travelling. Where the
+      // device won't promote it this is a no-op and the alerts above stay the
+      // only channel.
+      unawaited(LiveUpdateService.show(journey.journey));
     } catch (e) {
       AppLog.log('live poll failed ($e)', tag: 'live');
     } finally {

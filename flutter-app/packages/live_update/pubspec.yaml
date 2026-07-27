@@ -1,0 +1,27 @@
+name: live_update
+description: >
+  Android 16 "Live Updates" (promoted ongoing notifications) for the running
+  trip — the status-bar chip navigation and rideshare apps get.
+
+  A local plugin package rather than app-level Kotlin on purpose: only a
+  registered Flutter plugin is added to EVERY engine, including the headless one
+  the background trip tracker runs in. App-level code registered in MainActivity
+  would be missing exactly there — phone in a pocket, UI gone, which is when the
+  live trip matters most.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.41.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.chuk.betterbahn.liveupdate
+        pluginClass: LiveUpdatePlugin

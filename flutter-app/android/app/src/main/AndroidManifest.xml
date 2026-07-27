@@ -15,6 +15,10 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- "Split-Ticket-Analyse fertig" notification (Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Live Updates (Android 16 QPR1+): promotes the running trip to a status
+         bar chip that stays expanded on the lock screen. Install-time, no
+         prompt; without it the notification posts but is never promoted. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <!-- Trip reminders: schedule exact wall-clock alarms ("30 Min vorher") and
          re-arm them after a reboot. USE_EXACT_ALARM is the non-revocable grant
          for an app whose reminders are a core function; SCHEDULE_EXACT_ALARM is

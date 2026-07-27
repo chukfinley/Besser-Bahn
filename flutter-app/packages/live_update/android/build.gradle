@@ -1,0 +1,71 @@
+group = "dev.chuk.betterbahn.liveupdate"
+version = "1.0"
+
+buildscript {
+    ext.kotlin_version = "2.1.0"
+    repositories { google(); mavenCentral() }
+    dependencies {
+        classpath "com.android.tools.build:gradle:8.7.3"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+rootProject.allprojects {
+    repositories { google(); mavenCentral() }
+}
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+
+android {
+    namespace = "dev.chuk.betterbahn.liveupdate"
+    // Live Updates are an Android 16 API; the library must compile against it.
+    // Not 37: the Android 17 additions are reached by reflection (see Api37.kt)
+    // so that building this app never needs an SDK platform the reproducible
+    // IzzyOnDroid build does not pin.
+    compileSdk = 36
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+        test.java.srcDirs += "src/test/kotlin"
+    }
+    defaultConfig { minSdk = 24 }
+
+    testOptions {
+        // Robolectric renders against the merged resources of this library and
+        // androidx.core; without them the NotificationCompat builders blow up on
+        // the first RemoteViews it inflates.
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            it.systemProperty "robolectric.logging", "stdout"
+            // From Android 16 on, bringing up the platform touches
+            // ApplicationSharedMemory, and Robolectric services that through
+            // jdk.internal.access.SharedSecrets. On a JDK 17+ module path that
+            // is a hard failure ("perhaps JRE has changed?") until java.base
+            // hands the internals out.
+            it.jvmArgs(
+                "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.nio=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+            )
+        }
+    }
+}
+
+dependencies {
+    // NotificationCompat.ProgressStyle + setRequestPromotedOngoing.
+    implementation "androidx.core:core:1.18.0"
+
+    // Unit tests only — these never reach the app module or the APK.
+    testImplementation "junit:junit:4.13.2"
+    // 4.17 is the first release with an android-all for API 37, which is what
+    // makes the Android 17 tier testable at all on a machine with no device.
+    testImplementation "org.robolectric:robolectric:4.17-beta-2"
+}

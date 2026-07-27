@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../core/constants.dart';
+import '../models/reisende.dart';
 import '../models/split_ticket.dart';
 
 /// Service for Deutsche Bahn internal web API (bahn.de)
@@ -118,19 +119,58 @@ class DbApiService {
     }
   }
 
-  /// Create traveller payload for API
+  /// Create traveller payload for the bahn.de web API (DB fallback path).
+  ///
+  /// Accepts [bahnCard] (BahnCard reduction), [weitere] (foreign
+  /// railcards like Halbtax / Vorteilscard / NL-40), and [sba]
+  /// (Schwerbehindertenausweis) so the fallback matches the Vendo primary path.
   static List<Map<String, dynamic>> createTravellerPayload({
-    BahnCardType bahnCard = BahnCardType.none,
+    dynamic bahnCard = Reduction.none,
+    Reduction weitere = Reduction.none,   // e.g. Halbtax, Vorteilscard, NL-40
+    SbaOption sba = SbaOption.none,       // Schwerbehindertenausweis
   }) {
+    final ermaessigungen = <Map<String, dynamic>>[];
+
+    final card = bahnCard is BahnCardType
+        ? Reduction.byKey(bahnCard.vendoErmaessigung)
+        : (bahnCard is Reduction ? bahnCard : Reduction.none);
+
+    // BahnCard (primary DB card)
+    if (card != Reduction.none) {
+      final parts = card.vendoKey.split(' ');
+      ermaessigungen.add({
+        'art': parts[0],
+        'klasse': parts.length > 1 ? parts[1] : 'KLASSENLOS',
+      });
+    } else {
+      ermaessigungen.add({
+        'art': 'KEINE_ERMAESSIGUNG',
+        'klasse': 'KLASSENLOS',
+      });
+    }
+
+    // Weitere Ermäßigungen (foreign railcards: Halbtax, Vorteilscard, NL-40, …)
+    if (weitere != Reduction.none) {
+      final parts = weitere.vendoKey.split(' ');
+      ermaessigungen.add({
+        'art': parts[0],
+        'klasse': parts.length > 1 ? parts[1] : 'KLASSENLOS',
+      });
+    }
+
+    // Schwerbehindertenausweis
+    if (sba != SbaOption.none) {
+      final parts = sba.vendoKey.split(' ');
+      ermaessigungen.add({
+        'art': parts[0],
+        'klasse': parts.length > 1 ? parts[1] : 'KLASSENLOS',
+      });
+    }
+
     return [
       {
         'typ': 'ERWACHSENER',
-        'ermaessigungen': [
-          {
-            'art': bahnCard.apiValue,
-            'klasse': bahnCard.classValue,
-          }
-        ],
+        'ermaessigungen': ermaessigungen,
         'alter': [],
         'anzahl': 1,
       }
@@ -253,7 +293,9 @@ class DbApiService {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return null;
     final url = _urlRe.firstMatch(trimmed)?.group(0) ?? trimmed;
-    final travellers = createTravellerPayload(bahnCard: bahnCard);
+    final travellers = createTravellerPayload(
+      bahnCard: Reduction.byKey(bahnCard.vendoErmaessigung),
+    );
 
     Map<String, dynamic>? data;
     final vbid = _extractVbid(url) ?? _extractVbid(trimmed);

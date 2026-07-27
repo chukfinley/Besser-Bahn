@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants.dart';
 import '../../core/offline_package.dart';
+import '../../models/reisende.dart';
 import '../../models/split_ticket.dart';
 import '../../models/transfer_profile.dart';
 import '../../models/traewelling_models.dart';
@@ -284,6 +285,34 @@ class SettingsScreen extends ConsumerWidget {
                     }).toList(),
                   ),
                 ),
+                const Divider(height: 1),
+
+                // Weitere Ermäßigungen (Halbtax, Vorteilscard, etc.)
+                Builder(builder: (context) {
+                  final primaryTraveler = settings.searchParty.travelers
+                      .firstWhere((t) => t.typ.isPerson,
+                          orElse: () => const Traveler(typ: TravelerType.erwachsener));
+                  return ListTile(
+                    leading: const Icon(Icons.discount_outlined),
+                    title: const Text('Weitere Ermäßigung'),
+                    subtitle: const Text('Halbtax, Vorteilscard, NL-40 etc.'),
+                    trailing: DropdownButton<Reduction>(
+                      value: primaryTraveler.weitere,
+                      underline: const SizedBox(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          notifier.setWeitereReduction(v);
+                        }
+                      },
+                      items: Reduction.weitereOptions.map((r) {
+                        return DropdownMenuItem(
+                          value: r,
+                          child: Text(r.label, style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }),
                 const Divider(height: 1),
 
                 // Deutschland-Ticket

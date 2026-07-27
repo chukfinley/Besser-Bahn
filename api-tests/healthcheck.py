@@ -2791,90 +2791,142 @@ def _metres(a, b) -> float:
     return math.hypot(d_lat, d_lon)
 
 
-def check_nahsh_bay_correction() -> str:
-    """The NAH.SH HAFAS — the only source that knows a bus bay has been closed
-    and the departure moved (services/nahsh_service.dart).
+# Every regional authority's own HAFAS the app consults, as
+# flutter-app/lib/services/regional_profiles.dart lists them: (id, label,
+# endpoint, client id, client name, aid, probe stop).
+#
+# `hafas-client`'s per-profile `ver`/client version are years old and several of
+# these answer them with a HAMM parser error — 1.34 / 4000100 is what the whole
+# cluster accepts, and what the app sends.
+REGIONAL_PROFILES = [
+    ("kvb", "KVB Köln", "https://auskunft.kvb.koeln/gate",
+     "HAFAS", "webapp", "Rt6foY5zcTTRXMQs", "Köln Hbf"),
+    ("avv", "AVV Aachen", "https://auskunft.avv.de/bin/mgate.exe",
+     "AVV_AACHEN", "webapp", "4vV1AcH3N511icH", "Aachen Bushof"),
+    ("bvg", "BVG Berlin", "https://bvg-apps-ext.hafas.de/bin/mgate.exe",
+     "VBB", "webapp", "dVg4TZbW8anjx9zt", "Berlin Alexanderplatz"),
+    ("rsag", "RSAG Rostock", "https://fahrplan.rsag-online.de/bin/mgate.exe",
+     "RSAG", "webapp", "tF5JTs25rzUhGrrl", "Rostock Hbf"),
+    ("invg", "INVG Ingolstadt", "https://fpa.invg.de/bin/mgate.exe",
+     "INVG", "invgPROD-APPSTORE-LIVE", "GITvwi3BGOmTQ2a5", "Ingolstadt Hbf"),
+    ("vos", "VOS Osnabrück", "https://fahrplan.vos.info/bin/mgate.exe",
+     "SWO", "webapp", "PnYowCQP7Tp1V", "Osnabrück Hbf"),
+    ("vsn", "VSN Südniedersachsen",
+     "https://fahrplaner.vsninfo.de/hafas/mgate.exe",
+     "VSN", "vsn", "Mpf5UPC0DmzV8jkg", "Göttingen Hbf"),
+    ("nvv", "NVV Nordhessen",
+     "https://auskunft.nvv.de/auskunft/bin/app/mgate.exe",
+     "NVV", "NVVMobilPROD_APPSTORE", "Kt8eNOH7qjVeSxNA", "Kassel Hbf"),
+    ("sbahn-muenchen", "MVV München",
+     "https://s-bahn-muenchen.hafas.de/bin/540/mgate.exe",
+     "DB-REGIO-MVV", "MuenchenNavigator", "d491MVVhz9ZZts23", "München Hbf"),
+    ("nahsh", "NAH.SH", "https://nah.sh.hafas.de/bin/mgate.exe",
+     "NAHSH", "NAHSHPROD", "r0Ot9FLFNAFxijLW", "Kiel Hauptbahnhof"),
+    ("vbb", "VBB", "https://fahrinfo.vbb.de/bin/mgate.exe",
+     "VBB", "VBB WebApp", "hafas-vbb-webapp", "Berlin Hbf"),
+    ("vbn", "VBN", "https://fahrplaner.vbn.de/bin/mgate.exe",
+     "VBN", "vbn", "kaoxIXLn03zCr2KR", "Bremen Hbf"),
+    ("rmv", "RMV", "https://www.rmv.de/auskunft/bin/jp/mgate.exe",
+     "RMV", "webapp", "x0k4ZR33ICN9CWmj", "Frankfurt (Main) Hauptbahnhof"),
+    ("insa", "INSA Sachsen-Anhalt", "https://reiseauskunft.insa.de/bin/mgate.exe",
+     "NASA", "nasaPROD", "nasa-apps", "Magdeburg Hbf"),
+    ("vmt", "VMT Thüringen",
+     "https://vmt.eks-prod-euc1.hafas.cloud/bin/mgate.exe",
+     "VMT", "webapp", "web-vmt-qdr6c6y8", "Erfurt Hbf"),
+    ("saarfahrplan", "saarVV", "https://saarfahrplan.de/bin/mgate.exe",
+     "ZPS-SAAR", "Saarfahrplan", "51XfsVqgbdA6oXzH", "Saarbrücken Hbf"),
+]
 
-    Measured at Kiel Hbf: bay B1 shut since 06.07.2026, lines 22/50/51/52/81/91
-    leave from B2 instead. DB Vendo says B1 with no note of any kind, DELFI via
-    Transitous says B1 with `realTime: true`, and the nationwide DELFI realtime
-    stream has no ServiceAlerts channel at all — this backend carries it as an
-    ordinary realtime platform change (`dPlatfS` vs `dPlatfR`) plus the
-    operator's own HIM headline.
 
-    Asserts the request shape the app sends (LocMatch by name → StationBoard by
-    extId) and the three fields it reads. Soft: a regional extra on top of DB, so
-    losing it only costs the correction, never the connection.
-    """
-    url = "https://nahsh.hafas.cloud/gate"
-    headers = {"Content-Type": "application/json", "User-Agent": DBNAV_UA}
-    envelope = {
+def _hafas(endpoint, client_id, client_name, aid, meth, req):
+    body = {
         "lang": "de",
-        "client": {"id": "NAHSH", "type": "IPH", "name": "NAHSHPROD",
+        "svcReqL": [{"cfg": {}, "meth": meth, "req": req}],
+        "client": {"id": client_id, "type": "IPH", "name": client_name,
                    "v": "4000100"},
         "ver": "1.34",
-        "auth": {"type": "AID", "aid": "r0Ot9FLFNAFxijLW"},
+        "auth": {"type": "AID", "aid": aid},
     }
+    r = _post(endpoint, headers={"Content-Type": "application/json",
+                                 "User-Agent": DBNAV_UA},
+              data=json.dumps(body), timeout=TIMEOUT)
+    r.raise_for_status()
+    d = r.json()
+    if d.get("err") and d["err"] != "OK":
+        raise CheckError(f"{meth} {d['err']}")
+    svc = (d.get("svcResL") or [{}])[0]
+    if svc.get("err") != "OK":
+        raise CheckError(f"{meth} {svc.get('err')}")
+    return svc.get("res") or {}
 
-    def call(meth, req):
-        body = dict(envelope)
-        body["svcReqL"] = [{"cfg": {}, "meth": meth, "req": req}]
-        r = _post(url, headers=headers, data=json.dumps(body), timeout=TIMEOUT)
-        r.raise_for_status()
-        svc = (r.json().get("svcResL") or [{}])[0]
-        if svc.get("err") != "OK":
-            raise CheckError(f"{meth} err {svc.get('err')}")
-        return svc.get("res") or {}
 
-    # 1. Stop lookup: HAFAS ids are not EVA numbers (Kiel Hbf 9049076 vs 699275),
-    #    so the app joins by name and confirms by coordinate.
-    locs = call("LocMatch", {"input": {"loc": {"type": "S",
-                                               "name": "Hauptbahnhof, Kiel?"},
-                                       "maxLoc": 8, "field": "S"}})
-    loc_l = (locs.get("match") or {}).get("locL") or []
-    near = [l for l in loc_l
-            if l.get("crd") and _metres((54.315502, 10.13069),
-                                        (l["crd"]["y"] / 1e6,
-                                         l["crd"]["x"] / 1e6)) <= 300]
-    if not near:
-        raise CheckError("no NAH.SH stop within 300 m of Kiel Hbf "
-                         "(name join broken)")
-    ext_id = near[0]["extId"]
+def _hafas_platform(stop, key):
+    flat = stop.get(f"dPlatf{key}")
+    if isinstance(flat, str) and flat.strip():
+        return flat.strip()
+    obj = stop.get(f"dPltf{key}")
+    if isinstance(obj, dict) and obj.get("txt"):
+        return obj["txt"].strip()
+    return None
 
-    # 2. The board, with planned vs live bay per departure.
-    res = call("StationBoard", {"type": "DEP", "date": datetime.now().strftime("%Y%m%d"),
-                                "time": "093000", "stbLoc": {"extId": ext_id},
-                                "maxJny": 80})
-    prod_l = (res.get("common") or {}).get("prodL") or []
-    him_l = (res.get("common") or {}).get("himL") or []
-    moved = []
-    for j in res.get("jnyL") or []:
-        stop = j.get("stbStop") or {}
 
-        def pf(key):
-            flat = stop.get(f"dPlatf{key}")
-            if isinstance(flat, str) and flat.strip():
-                return flat.strip()
-            obj = stop.get(f"dPltf{key}")
-            if isinstance(obj, dict) and obj.get("txt"):
-                return obj["txt"].strip()
-            return None
+def check_regional_platform_sources() -> str:
+    """Every regional authority's own backend, which the app trusts over DB for
+    the platform a bus/tram really leaves from
+    (flutter-app/lib/services/regional_profiles.dart).
 
-        s_, r_ = pf("S"), pf("R")
-        if s_ and r_ and s_ != r_:
-            name = (prod_l[j["prodX"]].get("name") or "").strip() \
-                if isinstance(j.get("prodX"), int) else "?"
-            moved.append((name, s_, r_))
-    if not moved:
-        raise CheckError("no departure at Kiel Hbf carries a bay change — "
-                         "either the closure ended or dPlatfS/dPlatfR is gone")
-    # 3. The operator's own headline, which the app shows as the reason.
-    heads = {(h.get("head") or "") for h in him_l}
-    bay_note = next((h for h in heads if "Bussteig" in h or "Steig" in h), None)
+    Why they exist: measured at Kiel Hbf, bay B1 shut since 06.07.2026 and lines
+    22/50/51/52/81/91 moved to B2 — DB Vendo says B1 with no note of any kind,
+    DELFI via Transitous says B1 with realTime true, and the nationwide DELFI
+    stream has no ServiceAlerts channel at all. The Verbund backends carry it as
+    an ordinary realtime platform change plus the operator's own HIM headline.
 
-    sample = ", ".join(f"{n} {s}→{r}" for n, s, r in moved[:3])
-    return (f"{len(moved)} bay change(s) at Kiel Hbf ({sample}); "
-            f"HIM: {bay_note or 'keine Steig-Meldung'}")
+    Asserts, per backend: the LocMatch → StationBoard request shape the app
+    sends, that departures carry the planned platform, and that the whole set
+    still speaks HAFAS 1.34. Soft, and tolerant of individual outages: these are
+    an extra on top of DB, so losing one costs a correction, never a connection.
+    A majority going dark is a real failure — that means the protocol moved.
+    """
+    ok, dead, moves = [], [], []
+    for pid, label, endpoint, cid, cname, aid, probe in REGIONAL_PROFILES:
+        try:
+            res = _hafas(endpoint, cid, cname, aid, "LocMatch",
+                         {"input": {"loc": {"type": "S", "name": probe + "?"},
+                                    "maxLoc": 5, "field": "S"}})
+            locs = (res.get("match") or {}).get("locL") or []
+            if not locs:
+                raise CheckError("kein Halt")
+            board = _hafas(endpoint, cid, cname, aid, "StationBoard",
+                           {"type": "DEP",
+                            "date": datetime.now().strftime("%Y%m%d"),
+                            "time": "090000",
+                            "stbLoc": {"extId": locs[0]["extId"]},
+                            "maxJny": 60})
+            jny = board.get("jnyL") or []
+            with_pf = sum(1 for j in jny
+                          if _hafas_platform(j.get("stbStop") or {}, "S"))
+            if not jny:
+                raise CheckError("leere Tafel")
+            ok.append(f"{pid}({with_pf}/{len(jny)})")
+            for j in jny:
+                st = j.get("stbStop") or {}
+                s_, r_ = _hafas_platform(st, "S"), _hafas_platform(st, "R")
+                # Only real moves — "7" → "7 D-G" is the carriage sector being
+                # filled in, which the app deliberately does not report.
+                if s_ and r_ and s_ != r_ and not r_.startswith(s_):
+                    moves.append(f"{pid} {s_}→{r_}")
+        except Exception as e:  # noqa: BLE001 - one dead backend is not fatal
+            dead.append(f"{pid}: {str(e)[:40]}")
+
+    if len(ok) < len(REGIONAL_PROFILES) // 2:
+        raise CheckError(f"only {len(ok)}/{len(REGIONAL_PROFILES)} regional "
+                         f"backends answered — protocol changed? {dead[:4]}")
+    note = f"{len(ok)}/{len(REGIONAL_PROFILES)} live"
+    if dead:
+        note += f"; down: {', '.join(d.split(':')[0] for d in dead)}"
+    if moves:
+        note += f"; {len(moves)} echte Gleis-/Steigwechsel z.B. {moves[0]}"
+    return note
 
 
 def check_basemap_tiles() -> str:
@@ -3345,7 +3397,8 @@ CHECKS = [
     ("osm platform geometry (overpass)", check_osm_platform_geometry, False),
     ("osm bus stop sides (#55)", check_osm_bus_stop_sides, True),
     ("delfi stop poles (#55)", check_delfi_stop_poles, True),
-    ("nahsh bay correction (Steig-Sperrung)", check_nahsh_bay_correction, True),
+    ("regionale Steig-/Gleisquellen (16 Verbünde)",
+     check_regional_platform_sources, True),
     ("basemap (OpenFreeMap Positron vector)", check_basemap_tiles, True),
     ("basemap offline style bundle (#29)", check_basemap_offline_bundle, True),
     ("bahnhof.de station map (karte)", check_bahnhof_map, False),

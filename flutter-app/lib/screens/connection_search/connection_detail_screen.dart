@@ -23,12 +23,12 @@ import '../../providers/journey_search_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/split_ticket_provider.dart';
-import '../../providers/nahsh_provider.dart';
+import '../../providers/regional_transit_provider.dart';
 import '../../providers/station_map_provider.dart';
 import '../../providers/stopover_plan_provider.dart';
 import '../../services/db_api_service.dart';
-import '../../services/nahsh_service.dart'
-    show NahShService, PlatformCorrection;
+import '../../services/regional_transit_service.dart'
+    show RegionalTransitService, PlatformCorrection;
 import '../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ui/message_card.dart';
@@ -1190,11 +1190,26 @@ class _ConnectionDetailScreenState
     return ref.watch(bayCorrectionProvider(query)).asData?.value;
   }
 
+  /// "(statt 6)" for DB's own platform change, "(VBB statt 6 — DB sagt 6)" when
+  /// a regional authority is the one contradicting DB.
+  ///
+  /// The rider gets told which backend says what rather than a single value
+  /// swapped underneath them: the two disagree because DB has not been told, and
+  /// a bay you can check against the sign beats a number with no provenance.
+  String _insteadOf(String previous, PlatformCorrection? moved) {
+    if (moved == null) return ' (statt $previous)';
+    // Both agreed on what was planned, they only disagree on today — naming
+    // DB's value again would just repeat the number already on the line.
+    if (moved.planned == previous) return ' (${moved.source} statt $previous)';
+    return ' (${moved.source} statt $previous — DB sagt ${moved.planned})';
+  }
+
   /// What the thing you stand on is called here: a bus/tram has a Steig, a
   /// train a Gleis. Same field in the data, different word on the sign — and at
   /// a bus station "Gleis B1" reads like a mistake.
   String _platformWord(JourneyLeg? a, JourneyLeg? b) {
-    bool bus(JourneyLeg? l) => NahShService.coversProduct(l?.line?.product);
+    bool bus(JourneyLeg? l) =>
+        RegionalTransitService.coversProduct(l?.line?.product);
     return (bus(a) || bus(b)) ? 'Steig' : 'Gleis';
   }
 
@@ -1243,14 +1258,15 @@ class _ConnectionDetailScreenState
     final depG = next != null ? _livePlatformAtDeparture(next) : null;
     final wasG = next != null ? _changedFromPlatform(next, depG) : null;
     final word = _platformWord(prev, next);
+    // Who says so, and why. Naming the source is the point when two backends
+    // disagree: "B2 (NAH.SH statt B1, DB sagt B1)" is checkable, a silently
+    // swapped bay is not — and the note is the operator's own reason.
+    final movedBay = next != null ? _movedBay(next) : null;
     final gleise = (arrG != null || depG != null)
         ? '$word ${arrG ?? '?'} → $word ${depG ?? '?'}'
-            '${wasG != null ? ' (statt $wasG)' : ''}'
+            '${wasG != null ? _insteadOf(wasG, movedBay) : ''}'
         : null;
-    // Why the bay moved, in the operator's own words ("Sperrung Bussteig B1 am
-    // Hauptbahnhof") — without it "(statt B1)" looks like a glitch.
-    final moved = next != null ? _movedBay(next)?.note : null;
-    final detail = [?gleise, ?moved, _walkDetail(leg)].join(' · ');
+    final detail = [?gleise, ?movedBay?.note, _walkDetail(leg)].join(' · ');
 
     return _transferTile(
       context,
@@ -1389,11 +1405,11 @@ class _ConnectionDetailScreenState
     // "Gleis 4 → Gleis 5" reads like a hike; DB knows 4 and 5 are two sides of
     // one island platform and says so.
     final word = _platformWord(prev, next);
-    final movedNote = _movedBay(next)?.note;
+    final movedInfo = _movedBay(next);
     final gleisText = (arrGleis != null || depGleis != null)
         ? '$word ${arrGleis ?? '?'} → $word ${depGleis ?? '?'}'
-            '${wasGleis != null ? ' (statt $wasGleis)' : ''}'
-            '${movedNote != null ? ' · $movedNote' : ''}'
+            '${wasGleis != null ? _insteadOf(wasGleis, movedInfo) : ''}'
+            '${movedInfo?.note != null ? ' · ${movedInfo!.note}' : ''}'
             '${samePlatform ? ' · gleicher Bahnsteig' : ''}'
         : (samePlatform ? 'gleicher Bahnsteig' : null);
 

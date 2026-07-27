@@ -2,9 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/journey.dart';
 import '../models/station.dart';
-import '../services/nahsh_service.dart';
+import '../services/regional_transit_service.dart';
 
-final nahShServiceProvider = Provider<NahShService>((ref) => NahShService());
+final regionalTransitServiceProvider =
+    Provider<RegionalTransitService>((ref) => RegionalTransitService());
 
 /// One "which bay does this bus really leave from" question.
 class BayQuery {
@@ -20,7 +21,12 @@ class BayQuery {
     this.line,
     this.towards,
     this.product,
+    this.dbPlatform,
   });
+
+  /// What DB itself says the platform is — kept so a disagreement can be shown
+  /// as one ("NAH.SH: B2 · DB: B1") instead of silently replacing a value.
+  final String? dbPlatform;
 
   /// The question a journey leg asks at its own origin.
   static BayQuery? forLeg(JourneyLeg leg) {
@@ -32,13 +38,15 @@ class BayQuery {
       towards: leg.direction ?? leg.destination.name,
       plannedDeparture: planned,
       product: leg.line?.product,
+      dbPlatform: leg.departurePlatform ?? leg.plannedDeparturePlatform,
     );
   }
 
   /// Whether it is worth asking at all — the cheap gates, so a Reiseplan full of
   /// ICEs anywhere but Schleswig-Holstein fires no requests.
   bool get worthAsking =>
-      NahShService.coversProduct(product) && NahShService.servesStop(stop);
+      RegionalTransitService.coversProduct(product) &&
+      RegionalTransitService.servesStop(stop);
 
   @override
   bool operator ==(Object other) =>
@@ -47,11 +55,12 @@ class BayQuery {
       other.line == line &&
       other.towards == towards &&
       other.plannedDeparture == plannedDeparture &&
-      other.product == product;
+      other.product == product &&
+      other.dbPlatform == dbPlatform;
 
   @override
   int get hashCode =>
-      Object.hash(stop.id, line, towards, plannedDeparture, product);
+      Object.hash(stop.id, line, towards, plannedDeparture, product, dbPlatform);
 }
 
 /// The bay a bus has been moved to, or null when it has not been (which is the
@@ -66,12 +75,13 @@ final bayCorrectionProvider =
     // Hold the answer for the life of the screen rather than re-asking on every
     // rebuild; the board behind it is cached per quarter hour anyway.
     ref.keepAlive();
-    return ref.read(nahShServiceProvider).platformCorrection(
+    return ref.read(regionalTransitServiceProvider).platformCorrection(
           stop: query.stop,
           line: query.line,
           towards: query.towards,
           plannedDeparture: query.plannedDeparture,
           product: query.product,
+          dbPlatform: query.dbPlatform,
         );
   },
 );

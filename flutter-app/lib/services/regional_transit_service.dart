@@ -5,10 +5,16 @@ import 'package:http/http.dart' as http;
 
 import '../core/app_log.dart';
 import '../models/station.dart';
+import 'regional_profiles.dart';
 
-/// A bay that has moved: what the timetable says, where the bus really goes from
-/// today, and — when the backend says so — why.
-typedef PlatformCorrection = ({String planned, String live, String? note});
+/// A platform that has moved: what DB's timetable says, where the vehicle really
+/// goes from today, which authority said so, and — when it said so — why.
+typedef PlatformCorrection = ({
+  String planned,
+  String live,
+  String? note,
+  String source,
+});
 
 /// The NAH.SH HAFAS — the Schleswig-Holstein transport authority's own backend,
 /// used for ONE thing: the bay a bus actually leaves from when it has been moved.
@@ -38,36 +44,26 @@ typedef PlatformCorrection = ({String planned, String live, String? note});
 /// out. It is asked only about buses and trams (for trains DB's own `ezGleis` is
 /// authoritative and nationwide), and every failure is silent — without an
 /// answer the app shows exactly what it showed before.
-class NahShService {
-  NahShService({http.Client? client}) : _client = client ?? http.Client();
+class RegionalTransitService {
+  RegionalTransitService({http.Client? client})
+      : _client = client ?? http.Client();
 
   final http.Client _client;
 
-  static const _endpoint = 'https://nahsh.hafas.cloud/gate';
-
-  /// The HAFAS client identity the NAH.SH app uses. Same values `hafas-client`'s
-  /// public `nahsh` profile carries.
-  static const _client_ = {
-    'id': 'NAHSH',
-    'type': 'IPH',
-    'name': 'NAHSHPROD',
-    'v': '4000100',
-  };
-  static const _auth = {'type': 'AID', 'aid': 'r0Ot9FLFNAFxijLW'};
+  /// HAFAS protocol version and client build the whole cluster accepts today.
+  /// `hafas-client`'s per-profile values are years old and several backends
+  /// answer them with a `HAMM` parser error.
+  static const _protocolVersion = '1.34';
+  static const _clientVersion = '4000100';
 
   static const _timeout = Duration(seconds: 8);
 
-  /// Schleswig-Holstein plus a margin. A free gate: outside it this backend has
-  /// nothing, and asking would only cost a request and a stall.
-  static const _minLat = 53.30, _maxLat = 55.10;
-  static const _minLon = 7.80, _maxLon = 11.40;
-
-  /// Whether this backend can possibly know [stop]. Stops without coordinates
-  /// are not guessed at — no answer beats a wrong region's answer.
+  /// Whether any regional authority might know [stop]. Stops without
+  /// coordinates are not guessed at — no answer beats a wrong region's answer.
   static bool servesStop(Station stop) {
     final lat = stop.latitude, lon = stop.longitude;
     if (lat == null || lon == null) return false;
-    return lat >= _minLat && lat <= _maxLat && lon >= _minLon && lon <= _maxLon;
+    return regionalProfilesFor(lat, lon).isNotEmpty;
   }
 
   /// The products worth asking about. Trains are DB's own turf — it publishes
@@ -84,42 +80,49 @@ class NahShService {
 
   /// Departure boards, keyed by HAFAS id + 15-minute bucket. One board answers
   /// every leg at that stop.
-  final Map<String, List<NahShDeparture>> _boards = {};
-  final Map<String, Future<List<NahShDeparture>>> _boardsInflight = {};
+  final Map<String, List<RegionalDeparture>> _boards = {};
+  final Map<String, Future<List<RegionalDeparture>>> _boardsInflight = {};
 
-  Future<Map<String, dynamic>?> _call(String method, Map<String, dynamic> req) async {
+  Future<Map<String, dynamic>?> _call(
+      RegionalProfile profile, String method, Map<String, dynamic> req) async {
     final body = {
       'lang': 'de',
       'svcReqL': [
         {'cfg': const <String, dynamic>{}, 'meth': method, 'req': req},
       ],
-      'client': _client_,
-      'ver': '1.34',
-      'auth': _auth,
+      'client': {
+        'id': profile.clientId,
+        'type': profile.clientType,
+        if (profile.clientName != null) 'name': profile.clientName,
+        'v': _clientVersion,
+      },
+      'ver': _protocolVersion,
+      'auth': {'type': 'AID', 'aid': profile.aid},
     };
     try {
       final res = await _client
           .post(
-            Uri.parse(_endpoint),
+            Uri.parse(profile.endpoint),
             headers: const {'Content-Type': 'application/json'},
             body: utf8.encode(json.encode(body)),
           )
           .timeout(_timeout);
       if (res.statusCode != 200) {
-        AppLog.log('nahsh $method HTTP ${res.statusCode}', tag: 'nahsh');
+        AppLog.log('${profile.id} $method HTTP ${res.statusCode}',
+            tag: 'regional');
         return null;
       }
       final data =
           json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       final svc = (data['svcResL'] as List<dynamic>?)?.firstOrNull;
       if (svc is! Map<String, dynamic> || svc['err'] != 'OK') {
-        AppLog.log('nahsh $method err ${svc is Map ? svc['err'] : '?'}',
-            tag: 'nahsh');
+        AppLog.log('${profile.id} $method err ${svc is Map ? svc['err'] : '?'}',
+            tag: 'regional');
         return null;
       }
       return svc['res'] as Map<String, dynamic>?;
     } catch (e) {
-      AppLog.log('nahsh $method failed: $e', tag: 'nahsh');
+      AppLog.log('${profile.id} $method failed: $e', tag: 'regional');
       return null;
     }
   }
@@ -129,14 +132,15 @@ class NahShService {
   /// HAFAS ids are not DB's EVA numbers (Kiel Hbf: 9049076 vs 699275), so the
   /// join is over the name — and then checked against the coordinate, because a
   /// name alone matches "Kiel Hbf/Kaistraße" just as happily.
-  Future<String?> _locationIdFor(Station stop) {
-    final key = stop.id.isNotEmpty ? stop.id : stop.name;
+  Future<String?> _locationIdFor(RegionalProfile profile, Station stop) {
+    final key = '${profile.id}/${stop.id.isNotEmpty ? stop.id : stop.name}';
     if (_locations.containsKey(key)) return Future.value(_locations[key]);
-    return _locationsInflight[key] ??= _resolveLocation(key, stop);
+    return _locationsInflight[key] ??= _resolveLocation(profile, key, stop);
   }
 
-  Future<String?> _resolveLocation(String key, Station stop) async {
-    final res = await _call('LocMatch', {
+  Future<String?> _resolveLocation(
+      RegionalProfile profile, String key, Station stop) async {
+    final res = await _call(profile, 'LocMatch', {
       'input': {
         'loc': {'type': 'S', 'name': '${stop.name}?'},
         'maxLoc': 8,
@@ -165,28 +169,29 @@ class NahShService {
     // 300 m: the same stop as seen by two datasets, never the next one along.
     final resolved = bestMetres <= 300 ? best : null;
     AppLog.log(
-        'nahsh loc "${stop.name}" → ${resolved ?? 'kein Treffer'}'
+        '${profile.id} loc "${stop.name}" → ${resolved ?? 'kein Treffer'}'
         '${resolved != null ? ' (${bestMetres.round()} m)' : ''}',
-        tag: 'nahsh');
+        tag: 'regional');
     _locations[key] = resolved;
     _locationsInflight.remove(key);
     return resolved;
   }
 
   /// The departure board at [extId] around [around].
-  Future<List<NahShDeparture>> _board(String extId, DateTime around) {
+  Future<List<RegionalDeparture>> _board(
+      RegionalProfile profile, String extId, DateTime around) {
     final bucket = around.millisecondsSinceEpoch ~/ (15 * 60 * 1000);
-    final key = '$extId@$bucket';
+    final key = '${profile.id}/$extId@$bucket';
     final cached = _boards[key];
     if (cached != null) return Future.value(cached);
-    return _boardsInflight[key] ??= _fetchBoard(key, extId, around);
+    return _boardsInflight[key] ??= _fetchBoard(profile, key, extId, around);
   }
 
-  Future<List<NahShDeparture>> _fetchBoard(
-      String key, String extId, DateTime around) async {
+  Future<List<RegionalDeparture>> _fetchBoard(
+      RegionalProfile profile, String key, String extId, DateTime around) async {
     // Start the board a few minutes early so a bus running late is still on it.
     final from = around.subtract(const Duration(minutes: 5));
-    final res = await _call('StationBoard', {
+    final res = await _call(profile, 'StationBoard', {
       'type': 'DEP',
       'date': _date(from),
       'time': _time(from),
@@ -194,15 +199,15 @@ class NahShService {
       'maxJny': 80,
     });
     final list = parseBoard(res);
-    AppLog.log('nahsh board $extId: ${list.length} departures, '
-        '${list.where((d) => d.moved).length} moved', tag: 'nahsh');
+    AppLog.log('${profile.id} board $extId: ${list.length} departures, '
+        '${list.where((d) => d.moved).length} moved', tag: 'regional');
     _boards[key] = list;
     _boardsInflight.remove(key);
     return list;
   }
 
   /// HAFAS `StationBoard` response → departures. Exposed for tests.
-  static List<NahShDeparture> parseBoard(Map<String, dynamic>? res) {
+  static List<RegionalDeparture> parseBoard(Map<String, dynamic>? res) {
     if (res == null) return const [];
     final common = res['common'];
     final prodRaw = common is Map<String, dynamic> ? common['prodL'] : null;
@@ -210,7 +215,7 @@ class NahShService {
     final himRaw = common is Map<String, dynamic> ? common['himL'] : null;
     final himL = himRaw is List<dynamic> ? himRaw : const [];
     final jnyRaw = res['jnyL'];
-    final out = <NahShDeparture>[];
+    final out = <RegionalDeparture>[];
     for (final j in (jnyRaw is List<dynamic> ? jnyRaw : const [])
         .whereType<Map<String, dynamic>>()) {
       final stop = j['stbStop'] as Map<String, dynamic>?;
@@ -219,7 +224,7 @@ class NahShService {
       final prod = (prodX is int && prodX >= 0 && prodX < prodL.length)
           ? prodL[prodX] as Map<String, dynamic>?
           : null;
-      out.add(NahShDeparture(
+      out.add(RegionalDeparture(
         line: (prod?['name'] as String? ?? '').trim(),
         direction: (j['dirTxt'] as String? ?? '').trim(),
         plannedTime: _hhmmss(stop['dTimeS'] as String?),
@@ -275,18 +280,31 @@ class NahShService {
     required String? towards,
     required DateTime plannedDeparture,
     String? product,
+    String? dbPlatform,
   }) async {
-    if (!servesStop(stop)) return null;
+    final lat = stop.latitude, lon = stop.longitude;
+    if (lat == null || lon == null) return null;
     if (product != null && !coversProduct(product)) return null;
-    final extId = await _locationIdFor(stop);
-    if (extId == null) return null;
-    final board = await _board(extId, plannedDeparture);
-    return matchDeparture(
-      board,
-      line: line,
-      towards: towards,
-      plannedDeparture: plannedDeparture,
-    );
+
+    // Most local authority first: a city network carries bay-level detail its
+    // state-wide neighbour does not. The first one that both knows the stop and
+    // has this departure answers; the rest are never asked.
+    for (final profile in regionalProfilesFor(lat, lon)) {
+      final extId = await _locationIdFor(profile, stop);
+      if (extId == null) continue;
+      final board = await _board(profile, extId, plannedDeparture);
+      if (board.isEmpty) continue;
+      final hit = matchDeparture(
+        board,
+        line: line,
+        towards: towards,
+        plannedDeparture: plannedDeparture,
+        source: profile.label,
+        dbPlatform: dbPlatform,
+      );
+      if (hit != null) return hit;
+    }
+    return null;
   }
 
   /// The correction for one ride out of a board. Exposed for tests, which is
@@ -296,17 +314,19 @@ class NahShService {
   /// destination as a tiebreak — a stop can have the same line leaving in two
   /// directions from two bays within the same minute.
   static PlatformCorrection? matchDeparture(
-    List<NahShDeparture> board, {
+    List<RegionalDeparture> board, {
     String? line,
     String? towards,
     required DateTime plannedDeparture,
     Duration tolerance = const Duration(minutes: 2),
+    String source = 'Verbund',
+    String? dbPlatform,
   }) {
     final wantedLine = _lineKey(line);
     final wantedTo = _placeKey(towards);
     final minutes = plannedDeparture.hour * 60 + plannedDeparture.minute;
 
-    final candidates = <NahShDeparture>[];
+    final candidates = <RegionalDeparture>[];
     for (final d in board) {
       if (!d.moved) continue;
       final t = d.plannedTime;
@@ -330,19 +350,19 @@ class NahShService {
           .toList();
       // Nothing in this direction moved — which is an answer: no correction.
       if (byDirection.length != 1) return null;
-      return _correctionOf(byDirection.first);
+      return _correctionOf(byDirection.first, source, dbPlatform);
     }
 
     // Ambiguity is failure: sending a rider to the wrong bay is worse than
     // leaving the timetable's answer alone.
     if (candidates.length != 1) return null;
-    return _correctionOf(candidates.first);
+    return _correctionOf(candidates.first, source, dbPlatform);
   }
 
   /// The message that names the bay the bus left, when there is one — at Kiel
   /// Hbf "Sperrung Bussteig B1 am Hauptbahnhof", which is the difference between
   /// "why is it B2 now" and a bare change.
-  static String? _bestNote(NahShDeparture d) {
+  static String? _bestNote(RegionalDeparture d) {
     final bay = d.plannedPlatform?.toLowerCase();
     if (bay != null) {
       for (final n in d.notes) {
@@ -352,10 +372,15 @@ class NahShService {
     return d.notes.isEmpty ? null : d.notes.first;
   }
 
-  static PlatformCorrection _correctionOf(NahShDeparture d) => (
-        planned: d.plannedPlatform!,
+  static PlatformCorrection _correctionOf(
+          RegionalDeparture d, String source, String? dbPlatform) =>
+      (
+        // What DB itself says, when we know it — that is the value the rider
+        // sees everywhere else in the app, and the one this contradicts.
+        planned: dbPlatform ?? d.plannedPlatform!,
         live: d.livePlatform!,
         note: _bestNote(d),
+        source: source,
       );
 
   /// Whether a board entry heads where the rider does. Prefix either way, since
@@ -409,7 +434,7 @@ class NahShService {
 }
 
 /// One departure off the NAH.SH board.
-class NahShDeparture {
+class RegionalDeparture {
   final String line;
   final String direction;
 
@@ -422,7 +447,7 @@ class NahShDeparture {
   /// Headlines of the operator's disruption messages for this departure.
   final List<String> notes;
 
-  const NahShDeparture({
+  const RegionalDeparture({
     required this.line,
     required this.direction,
     required this.plannedTime,
@@ -431,9 +456,40 @@ class NahShDeparture {
     this.notes = const [],
   });
 
-  /// This departure has been moved to a different bay.
-  bool get moved =>
-      plannedPlatform != null &&
-      livePlatform != null &&
-      plannedPlatform != livePlatform;
+  /// This departure has been moved to a different platform — a real move, not
+  /// the same one described more precisely.
+  ///
+  /// Some backends "change" `7` to `7 D-G` or `11` to `11 B-C`: that is the
+  /// carriage sector being filled in, and at Köln Hbf it accounts for 31 of 76
+  /// departures. Reporting those as a platform change would bury the one that
+  /// really moved in noise the rider must then ignore.
+  bool get moved {
+    final planned = plannedPlatform, live = livePlatform;
+    if (planned == null || live == null || planned == live) return false;
+    return !_sameTrack(planned, live);
+  }
+
+  /// Whether two platform strings name the same track, one just with sectors.
+  static bool _sameTrack(String a, String b) {
+    final ta = _trackOf(a), tb = _trackOf(b);
+    return ta.isNotEmpty && ta == tb;
+  }
+
+  /// The track part of a platform label: "7 D-G" → "7", "11 B-C" → "11",
+  /// "5 Süd" → "5SÜD" (a different platform, not a sector), "6a" → "6A".
+  static String _trackOf(String s) {
+    final t = s.trim().toUpperCase();
+    // Leading number plus a letter STUCK to it ("6a", "3a") — a letter after a
+    // space is a sector ("7 D"), which is a different thing entirely.
+    final m = RegExp(r'^(\d+[A-Z]?)\b').firstMatch(t);
+    if (m == null) return t.replaceAll(RegExp(r'\s+'), '');
+    final head = m.group(1)!.replaceAll(RegExp(r'\s+'), '');
+    final rest = t.substring(m.end).trim();
+    // Sector suffixes are letters and ranges of them: "D-G", "B-C", "A".
+    if (rest.isEmpty || RegExp(r'^[A-Z](\s*-\s*[A-Z])?$').hasMatch(rest)) {
+      return head;
+    }
+    // Anything else ("Süd", "Ost") names a different platform.
+    return '$head${rest.replaceAll(RegExp(r'\s+'), '')}';
+  }
 }

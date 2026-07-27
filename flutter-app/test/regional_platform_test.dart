@@ -1,12 +1,13 @@
 import 'dart:convert';
 
 import 'package:besser_bahn/models/station.dart';
-import 'package:besser_bahn/services/nahsh_service.dart';
+import 'package:besser_bahn/services/regional_profiles.dart';
+import 'package:besser_bahn/services/regional_transit_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-/// "Welcher Steig wirklich?" — the one question the NAH.SH backend is asked.
+/// "Welcher Steig wirklich?" — the one question the regional backends are asked.
 ///
 /// The case it exists for, measured at Kiel Hbf on 27.07.2026: bay B1 has been
 /// closed since 6 July and lines 22/50/51/52/81/91 leave from B2, while DB Vendo
@@ -89,12 +90,12 @@ Map<String, dynamic> _board() => {
       ],
     };
 
-List<NahShDeparture> _parsed() => NahShService.parseBoard(_board());
+List<RegionalDeparture> _parsed() => RegionalTransitService.parseBoard(_board());
 
 DateTime _at(int h, int m) => DateTime(2026, 7, 27, h, m);
 
 /// A service whose HAFAS answers come from [handler], counting requests.
-({NahShService service, List<String> methods}) _service(
+({RegionalTransitService service, List<String> methods}) _service(
   String Function(String method, Map<String, dynamic> req) handler,
 ) {
   final methods = <String>[];
@@ -108,7 +109,7 @@ DateTime _at(int h, int m) => DateTime(2026, 7, 27, h, m);
       200,
     );
   });
-  return (service: NahShService(client: client), methods: methods);
+  return (service: RegionalTransitService(client: client), methods: methods);
 }
 
 String _ok(Map<String, dynamic> res) =>
@@ -156,32 +157,90 @@ void main() {
       expect(re.livePlatform, '6a');
     });
 
+    test('a sector being filled in is not a platform change', () {
+      // Köln Hbf reports 31 of 76 departures as "7 → 7 D-G" or "11 → 11 B-C":
+      // the carriage sector, not a move. Showing those would bury the one
+      // departure that really moved.
+      const noise = [
+        RegionalDeparture(
+            line: 'RE12',
+            direction: 'Köln Messe/Deutz',
+            plannedTime: 540,
+            plannedPlatform: '7',
+            livePlatform: '7 D-G'),
+        RegionalDeparture(
+            line: 'S11',
+            direction: 'Bergisch Gladbach',
+            plannedTime: 540,
+            plannedPlatform: '11',
+            livePlatform: '11 B-C'),
+        RegionalDeparture(
+            line: 'RB27',
+            direction: 'Koblenz',
+            plannedTime: 540,
+            plannedPlatform: '6a',
+            livePlatform: '6a C'),
+      ];
+      expect(noise.every((d) => d.moved), isFalse);
+      expect(noise.any((d) => d.moved), isFalse);
+    });
+
+    test('a real move is still a move, sectors or not', () {
+      const real = [
+        RegionalDeparture(
+            line: 'Bus 22',
+            direction: 'Suchsdorf',
+            plannedTime: 579,
+            plannedPlatform: 'B1',
+            livePlatform: 'B2'),
+        RegionalDeparture(
+            line: 'RB75',
+            direction: 'Bad Bentheim',
+            plannedTime: 540,
+            // "5 Süd" is a different platform, not a sector of 5.
+            plannedPlatform: '5 Süd',
+            livePlatform: '5'),
+        RegionalDeparture(
+            line: 'RE1',
+            direction: 'Magdeburg',
+            plannedTime: 540,
+            plannedPlatform: '6',
+            livePlatform: '9'),
+      ];
+      expect(real.every((d) => d.moved), isTrue);
+    });
+
     test('junk in, empty list out', () {
-      expect(NahShService.parseBoard(null), isEmpty);
-      expect(NahShService.parseBoard({'jnyL': 'nope'}), isEmpty);
+      expect(RegionalTransitService.parseBoard(null), isEmpty);
+      expect(RegionalTransitService.parseBoard({'jnyL': 'nope'}), isEmpty);
     });
   });
 
   group('matching the rider\'s own departure', () {
     test('the 09:39 to Suchsdorf really goes from B2', () {
-      final hit = NahShService.matchDeparture(_parsed(),
-          line: 'Bus 22', towards: 'Suchsdorf', plannedDeparture: _at(9, 39));
+      final hit = RegionalTransitService.matchDeparture(_parsed(),
+          line: 'Bus 22',
+          towards: 'Suchsdorf',
+          plannedDeparture: _at(9, 39),
+          source: 'NAH.SH',
+          dbPlatform: 'B1');
 
       expect(hit, isNotNull);
       expect(hit!.planned, 'B1');
       expect(hit.live, 'B2');
+      expect(hit.source, 'NAH.SH', reason: 'the rider is told who says so');
     });
 
     test('the operator\'s own reason comes along — and the message that names '
         'the closed bay wins over the other one hung on the same ride', () {
-      final hit = NahShService.matchDeparture(_parsed(),
+      final hit = RegionalTransitService.matchDeparture(_parsed(),
           line: 'Bus 22', towards: 'Suchsdorf', plannedDeparture: _at(9, 39));
 
       expect(hit!.note, 'Sperrung Bussteig B1 am Hauptbahnhof');
     });
 
     test('no message, no invented explanation', () {
-      final hit = NahShService.matchDeparture(_parsed(),
+      final hit = RegionalTransitService.matchDeparture(_parsed(),
           line: 'Bus 81', towards: 'Suchsdorf', plannedDeparture: _at(9, 43));
 
       expect(hit!.live, 'B2');
@@ -192,7 +251,7 @@ void main() {
         () {
       // The board says dTimeR 09:43 for this ride; both sides only ever agree
       // on the scheduled 09:39.
-      final hit = NahShService.matchDeparture(_parsed(),
+      final hit = RegionalTransitService.matchDeparture(_parsed(),
           line: '22', towards: 'Suchsdorf', plannedDeparture: _at(9, 39));
       expect(hit?.live, 'B2');
     });
@@ -200,7 +259,7 @@ void main() {
     test('"Bus 22" and "22" are the same line', () {
       for (final spelling in ['Bus 22', '22', 'bus 22']) {
         expect(
-          NahShService.matchDeparture(_parsed(),
+          RegionalTransitService.matchDeparture(_parsed(),
               line: spelling,
               towards: 'Suchsdorf',
               plannedDeparture: _at(9, 39))?.live,
@@ -215,7 +274,7 @@ void main() {
       // towards Suchsdorf at 09:39 from B2. Asking about the wrong one must not
       // hand back the other one's bay.
       expect(
-        NahShService.matchDeparture(_parsed(),
+        RegionalTransitService.matchDeparture(_parsed(),
             line: 'Bus 22',
             towards: 'Schwentinental',
             plannedDeparture: _at(9, 38)),
@@ -226,7 +285,7 @@ void main() {
 
     test('a different line at the same minute is not our ride', () {
       expect(
-        NahShService.matchDeparture(_parsed(),
+        RegionalTransitService.matchDeparture(_parsed(),
             line: 'Bus 42', towards: 'Suchsdorf', plannedDeparture: _at(9, 43)),
         isNull,
       );
@@ -234,7 +293,7 @@ void main() {
 
     test('a departure the board does not have is no answer', () {
       expect(
-        NahShService.matchDeparture(_parsed(),
+        RegionalTransitService.matchDeparture(_parsed(),
             line: 'Bus 22', towards: 'Suchsdorf', plannedDeparture: _at(11, 39)),
         isNull,
       );
@@ -243,13 +302,13 @@ void main() {
     test('ambiguity is failure — two moved candidates, no direction to split '
         'them, nothing is claimed', () {
       final twins = [
-        const NahShDeparture(
+        const RegionalDeparture(
             line: 'Bus 22',
             direction: 'Suchsdorf',
             plannedTime: 9 * 60 + 39,
             plannedPlatform: 'B1',
             livePlatform: 'B2'),
-        const NahShDeparture(
+        const RegionalDeparture(
             line: 'Bus 22',
             direction: 'Suchsdorf',
             plannedTime: 9 * 60 + 39,
@@ -257,7 +316,7 @@ void main() {
             livePlatform: 'A1'),
       ];
       expect(
-        NahShService.matchDeparture(twins,
+        RegionalTransitService.matchDeparture(twins,
             line: 'Bus 22', towards: 'Suchsdorf', plannedDeparture: _at(9, 39)),
         isNull,
       );
@@ -265,13 +324,13 @@ void main() {
 
     test('a minute either way still matches, five minutes do not', () {
       expect(
-          NahShService.matchDeparture(_parsed(),
+          RegionalTransitService.matchDeparture(_parsed(),
               line: 'Bus 22',
               towards: 'Suchsdorf',
               plannedDeparture: _at(9, 40))?.live,
           'B2');
       expect(
-          NahShService.matchDeparture(_parsed(),
+          RegionalTransitService.matchDeparture(_parsed(),
               line: 'Bus 22',
               towards: 'Suchsdorf',
               plannedDeparture: _at(9, 45)),
@@ -280,41 +339,75 @@ void main() {
   });
 
   group('when we do not even ask', () {
-    test('outside Schleswig-Holstein', () {
+    test('outside every regional network', () {
+      // Freiburg: the Rhein-Neckar backend `hafas-client` still lists no longer
+      // resolves at all, so Baden-Württemberg has no live authority here — and
+      // an area with none must cost no request.
+      const freiburg = Station(
+          id: '8000107',
+          name: 'Freiburg(Breisgau) Hbf',
+          latitude: 47.997,
+          longitude: 7.841);
+      expect(RegionalTransitService.servesStop(freiburg), isFalse);
+    });
+
+    test('inside one, it is asked — Kiel and München alike', () {
       const muenchen = Station(
           id: '8000261',
           name: 'München Hbf',
           latitude: 48.140229,
           longitude: 11.558339);
-      expect(NahShService.servesStop(muenchen), isFalse);
-      expect(NahShService.servesStop(_kielHbf), isTrue);
+      expect(RegionalTransitService.servesStop(_kielHbf), isTrue);
+      expect(RegionalTransitService.servesStop(muenchen), isTrue);
+    });
+
+    test('the most local authority is asked first', () {
+      // Köln is inside the KVB city network; Kiel only has the state-wide one.
+      expect(regionalProfilesFor(50.9413, 6.9583).first.id, 'kvb');
+      expect(regionalProfilesFor(54.3155, 10.1307).first.id, 'nahsh');
+      // Berlin: the city operator before the state-wide association.
+      expect(regionalProfilesFor(52.5250, 13.3694).map((p) => p.id).toList(),
+          ['bvg', 'vbb']);
+      expect(regionalProfilesFor(47.997, 7.841), isEmpty);
+    });
+
+    test('every profile is reachable and uniquely keyed', () {
+      final ids = kRegionalProfiles.map((p) => p.id).toList();
+      expect(ids.toSet().length, ids.length, reason: 'duplicate profile id');
+      for (final p in kRegionalProfiles) {
+        expect(p.endpoint, startsWith('https://'), reason: p.id);
+        expect(p.aid, isNotEmpty, reason: p.id);
+        expect(p.label, isNotEmpty, reason: p.id);
+        expect(p.minLat, lessThan(p.maxLat), reason: p.id);
+        expect(p.minLon, lessThan(p.maxLon), reason: p.id);
+      }
     });
 
     test('a stop without coordinates is not guessed at', () {
       expect(
-        NahShService.servesStop(const Station(id: '1', name: 'Irgendwo')),
+        RegionalTransitService.servesStop(const Station(id: '1', name: 'Irgendwo')),
         isFalse,
       );
     });
 
     test('trains stay DB\'s business', () {
-      expect(NahShService.coversProduct('bus'), isTrue);
-      expect(NahShService.coversProduct('tram'), isTrue);
-      expect(NahShService.coversProduct('nationalExpress'), isFalse);
-      expect(NahShService.coversProduct('regional'), isFalse);
-      expect(NahShService.coversProduct(null), isFalse);
+      expect(RegionalTransitService.coversProduct('bus'), isTrue);
+      expect(RegionalTransitService.coversProduct('tram'), isTrue);
+      expect(RegionalTransitService.coversProduct('nationalExpress'), isFalse);
+      expect(RegionalTransitService.coversProduct('regional'), isFalse);
+      expect(RegionalTransitService.coversProduct(null), isFalse);
     });
 
     test('an out-of-area stop fires no request at all', () async {
       final h = _service((m, r) => _ok(const {}));
-      const hamburgFar = Station(
-          id: '8000261',
-          name: 'München Hbf',
-          latitude: 48.14,
-          longitude: 11.55);
+      const freiburg = Station(
+          id: '8000107',
+          name: 'Freiburg(Breisgau) Hbf',
+          latitude: 47.997,
+          longitude: 7.841);
 
       final hit = await h.service.platformCorrection(
-        stop: hamburgFar,
+        stop: freiburg,
         line: 'Bus 22',
         towards: 'Suchsdorf',
         plannedDeparture: _at(9, 39),
@@ -426,7 +519,7 @@ void main() {
 
     test('a backend that errors changes nothing', () async {
       final client = MockClient((req) async => http.Response('boom', 500));
-      final service = NahShService(client: client);
+      final service = RegionalTransitService(client: client);
 
       expect(
         await service.platformCorrection(

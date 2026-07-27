@@ -14,8 +14,9 @@ import 'package:latlong2/latlong.dart';
 ///    Wittenberger Passau nobody has tagged one.
 ///  * **DELFI** (the nationwide timetable dataset, via the Transitous/MOTIS
 ///    API) has every pole of every stop with exact coordinates and, per pole,
-///    which line departs there and where it goes. Its own bay codes are
-///    internal numbering ("11") and do NOT match the signs.
+///    which line departs there and where it goes. Its bay codes come from the
+///    stop id's `::` suffix and are *sometimes* the signed code (Kiel Hbf:
+///    `…:49076::B1`), sometimes internal numbering (`::1`).
 ///
 /// So neither alone does it: OSM knows the label the rider is looking for,
 /// DELFI knows the poles and the directions. [mergePoles] joins them.
@@ -75,20 +76,51 @@ double metresBetween(LatLng a, LatLng b) {
   return math.sqrt(dx * dx + dy * dy);
 }
 
-/// Two poles closer than this are the same physical pole seen by two datasets.
-/// Measured at ZOB Kiel: the same bays sit 2–4 m apart between OSM and DELFI,
-/// while neighbouring bays are 18–25 m apart — so 15 m separates them cleanly.
+/// Two *unlabelled* poles closer than this are the same physical pole seen by
+/// two datasets. Only a fallback — where both sides name the bay, [mergePoles]
+/// goes by the code instead.
+///
+/// Distance alone cannot separate them: at Kiel Hbf the two datasets put bay B1
+/// 22 m apart, while DELFI's D2 sits 23 m from OSM's B1. Any radius that joins
+/// the first would join the second, and being off by one bay is the entire
+/// question the map answers.
 const double kSamePoleMetres = 15;
 
 /// Join what OSM and DELFI know about the same stop.
 ///
 /// [signed] carries the codes off the signs (OSM), [scheduled] the complete set
-/// of poles with their departures (DELFI). Poles within [kSamePoleMetres] of
-/// each other are one pole; everything else is kept, because a pole missing
-/// from one source is still a pole the rider can be standing at.
+/// of poles with their departures (DELFI). Everything unmatched is kept: a pole
+/// missing from one source is still a pole the rider can be standing at.
+///
+/// Two rules, in order:
+///
+///  1. **Same signed code → same pole**, however far apart the two datasets put
+///     it. A bay code identifies the bay; the coordinates are each source's
+///     opinion of where its sign stands. Without this, Kiel Hbf drew *two* dots
+///     labelled "B1" 22 m apart and the rider had to pick one.
+///  2. **Otherwise distance.** Codes that differ are no objection here: at Kiel
+///     ZOB the same poles are signed A4/A5/B3 and numbered 1/11/7 internally by
+///     DELFI, 2–4 m apart. Rule 1 has already claimed everything whose code IS
+///     shared, so what reaches this point has no code in common with anything.
 List<StopPole> mergePoles(List<StopPole> signed, List<StopPole> scheduled) {
-  final out = <StopPole>[...signed];
+  final out = <StopPole>[];
+  // The signed side can carry the same bay twice as well (a stop node and a
+  // platform node both tagged local_ref=B1) — one bay, one dot.
+  for (final pole in signed) {
+    final at = _indexOfBay(out, pole.bay);
+    if (at != null) {
+      out[at] = out[at].mergedWith(pole);
+    } else {
+      out.add(pole);
+    }
+  }
+
   for (final pole in scheduled) {
+    final byBay = _indexOfBay(out, pole.bay);
+    if (byBay != null) {
+      out[byBay] = out[byBay].mergedWith(pole);
+      continue;
+    }
     var merged = false;
     for (var i = 0; i < out.length; i++) {
       if (metresBetween(out[i].latLng, pole.latLng) <= kSamePoleMetres) {
@@ -102,6 +134,17 @@ List<StopPole> mergePoles(List<StopPole> signed, List<StopPole> scheduled) {
   // Bay code order ("A1" before "A2" before "B1"), unlabelled last.
   out.sort((a, b) => (a.bay ?? '~~').compareTo(b.bay ?? '~~'));
   return out;
+}
+
+/// Where [bay] already sits in [poles], or null — for an unnamed bay always
+/// null, since "no code" is not a code two poles can share.
+int? _indexOfBay(List<StopPole> poles, String? bay) {
+  final wanted = _normalize(bay);
+  if (wanted == null) return null;
+  for (var i = 0; i < poles.length; i++) {
+    if (_normalize(poles[i].bay) == wanted) return i;
+  }
+  return null;
 }
 
 /// The pole a leg's Gleis refers to, or null when nothing matches.

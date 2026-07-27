@@ -2748,8 +2748,47 @@ def check_delfi_stop_poles() -> str:
         raise CheckError("expected both poles at Wittenberger Passau B202, "
                          f"got {len(passau)}")
 
+    # How far the two datasets disagree about the SAME bay, and how close two
+    # DIFFERENT bays get. `mergePoles` joins by bay code first for exactly this
+    # reason: at Kiel Hbf both sources sign the bays, DELFI puts B1 22 m from
+    # OSM's B1, and its D2 lands 23 m from OSM's B1 — so no distance threshold
+    # can separate them, and the map drew two dots labelled "B1".
+    hbf = {}
+    for s in stops(54.315502, 10.13069, box=200.0):
+        sid = s["stopId"]
+        if "::" in sid:
+            hbf[sid.rsplit("::", 1)[1].upper()] = (s["lat"], s["lon"])
+    osm_hbf = {
+        "B1": (54.315671, 10.131436),
+        "D2": (54.315959, 10.131234),
+    }
+    gaps = {}
+    for bay, at in osm_hbf.items():
+        if bay in hbf:
+            gaps[bay] = _metres(at, hbf[bay])
+    if not gaps:
+        raise CheckError("Kiel Hbf: DELFI no longer signs its bays with the "
+                         "codes on the signs (::B1) — merge-by-bay is blind")
+    # The trap: the nearest DELFI pole to OSM's B1 must be allowed to be a
+    # DIFFERENT bay. If it is, distance alone would mismatch them.
+    nearest_to_b1 = min(
+        ((bay, _metres(osm_hbf["B1"], at)) for bay, at in hbf.items()),
+        key=lambda t: t[1])
+
     return (f"ZOB Kiel {len(zob)} bays, {len(per_pole)} with directions; "
-            f"Wittenberger Passau {len(passau)} poles")
+            f"Wittenberger Passau {len(passau)} poles; "
+            f"Kiel Hbf same-bay gap "
+            f"{', '.join(f'{b} {d:.0f} m' for b, d in gaps.items())} "
+            f"(nearest DELFI pole to OSM B1: {nearest_to_b1[0]} at "
+            f"{nearest_to_b1[1]:.0f} m)")
+
+
+def _metres(a, b) -> float:
+    """Metres between two (lat, lon) pairs — equirectangular, fine at pole
+    distances (mirrors core/stop_poles.dart's metresBetween)."""
+    d_lat = (a[0] - b[0]) * 111320.0
+    d_lon = (a[1] - b[1]) * 111320.0 * math.cos(math.radians(a[0]))
+    return math.hypot(d_lat, d_lon)
 
 
 def check_basemap_tiles() -> str:

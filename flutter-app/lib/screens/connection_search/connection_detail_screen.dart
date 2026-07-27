@@ -93,23 +93,27 @@ class _ConnectionDetailScreenState
   late Journey _journey = widget.journey;
   Journey get journey => _journey;
 
-  /// Bumped on pull-to-refresh — part of each leg section's key, so bumping it
-  /// rebuilds them fresh and re-triggers their trip fetch.
+  /// Bumped on pull-to-refresh. Handed to each leg section as a plain value
+  /// (NOT part of its key), so a refresh nudges the sections to re-fetch in
+  /// place instead of remounting them.
   int _refreshTick = 0;
 
-  /// Pull-to-refresh: drop cached trips for this journey and rebuild the leg
-  /// sections so every leg re-fetches its live data.
+  /// Pull-to-refresh: re-fetch every leg's live data **in the background**,
+  /// leaving what's on screen exactly where it is until fresh data replaces it.
+  ///
+  /// The old version cleared the trip cache and rebuilt the sections from
+  /// scratch — so a refresh in a dead spot (tunnel, Funkloch) wiped the
+  /// timeline to the "details unavailable" fallback and, if the re-fetch then
+  /// failed, left the rider with *less* than before they pulled. Now the cache
+  /// is kept: the sections show their current data throughout and quietly swap
+  /// in the new data leg by leg as it lands, or keep the old if a leg's fetch
+  /// fails. No blank screen, no contradiction between a half-loaded timeline
+  /// and the rest of the view.
   Future<void> _refreshAll() async {
-    for (final leg in journey.legs) {
-      final id = leg.tripId;
-      if (id != null) {
-        _tripCache.remove(id);
-        _coachCache.remove(id);
-      }
-    }
     if (mounted) setState(() => _refreshTick++);
-    // Keep the spinner up briefly while the rebuilt sections kick off fetches.
-    await Future.delayed(const Duration(milliseconds: 600));
+    // Hold the spinner briefly so the pull reads as "doing something"; the
+    // actual fetches run inside the sections and update them as they return.
+    await Future.delayed(const Duration(milliseconds: 700));
   }
 
   /// Take [next] as the itinerary on screen — and, if this trip is saved,
@@ -549,7 +553,11 @@ class _ConnectionDetailScreenState
                     ? _gapMinutes(readyAt, _liveDepartureOf(legs[i]))
                     : null;
                 return _LegSection(
-                  key: ValueKey('leg-$i-${legs[i].tripId}-$_refreshTick'),
+                  // NB no _refreshTick in the key: a pull-to-refresh must NOT
+                  // remount the section (that wipes its shown data); it flows
+                  // in as refreshTick and triggers an in-place silent re-fetch.
+                  key: ValueKey('leg-$i-${legs[i].tripId}'),
+                  refreshTick: _refreshTick,
                   leg: legs[i],
                   index: i,
                   nextTransitLeg: _nextTransitLeg(legs, i),
@@ -1611,10 +1619,16 @@ class _LegSection extends ConsumerStatefulWidget {
   /// Everything the "get off earlier and go another way" rescue needs (#26).
   final EarlierAlightInput? earlierAlight;
 
+  /// Bumped by the parent's pull-to-refresh. A change means "re-fetch your
+  /// live data silently" — the section keeps showing what it has until the new
+  /// data lands, so a refresh never blanks the timeline.
+  final int refreshTick;
+
   const _LegSection({
     super.key,
     required this.leg,
     required this.index,
+    this.refreshTick = 0,
     this.onTripUpdated,
     this.onReplaceLeg,
     this.nextTransitLeg,
@@ -1719,6 +1733,14 @@ class _LegSectionState extends ConsumerState<_LegSection>
         _loading = true;
       });
       _load();
+      return;
+    }
+    // Pull-to-refresh: re-fetch in the background, keeping what's shown. `silent`
+    // is what makes it non-destructive — the current trip stays visible, a
+    // failed fetch leaves it untouched (no blank timeline in a Funkloch).
+    if (widget.refreshTick != old.refreshTick) {
+      final id = widget.leg.tripId;
+      if (id != null) _fetchFresh(id, silent: true);
     }
   }
 

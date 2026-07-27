@@ -2791,6 +2791,92 @@ def _metres(a, b) -> float:
     return math.hypot(d_lat, d_lon)
 
 
+def check_nahsh_bay_correction() -> str:
+    """The NAH.SH HAFAS — the only source that knows a bus bay has been closed
+    and the departure moved (services/nahsh_service.dart).
+
+    Measured at Kiel Hbf: bay B1 shut since 06.07.2026, lines 22/50/51/52/81/91
+    leave from B2 instead. DB Vendo says B1 with no note of any kind, DELFI via
+    Transitous says B1 with `realTime: true`, and the nationwide DELFI realtime
+    stream has no ServiceAlerts channel at all — this backend carries it as an
+    ordinary realtime platform change (`dPlatfS` vs `dPlatfR`) plus the
+    operator's own HIM headline.
+
+    Asserts the request shape the app sends (LocMatch by name → StationBoard by
+    extId) and the three fields it reads. Soft: a regional extra on top of DB, so
+    losing it only costs the correction, never the connection.
+    """
+    url = "https://nahsh.hafas.cloud/gate"
+    headers = {"Content-Type": "application/json", "User-Agent": DBNAV_UA}
+    envelope = {
+        "lang": "de",
+        "client": {"id": "NAHSH", "type": "IPH", "name": "NAHSHPROD",
+                   "v": "4000100"},
+        "ver": "1.34",
+        "auth": {"type": "AID", "aid": "r0Ot9FLFNAFxijLW"},
+    }
+
+    def call(meth, req):
+        body = dict(envelope)
+        body["svcReqL"] = [{"cfg": {}, "meth": meth, "req": req}]
+        r = _post(url, headers=headers, data=json.dumps(body), timeout=TIMEOUT)
+        r.raise_for_status()
+        svc = (r.json().get("svcResL") or [{}])[0]
+        if svc.get("err") != "OK":
+            raise CheckError(f"{meth} err {svc.get('err')}")
+        return svc.get("res") or {}
+
+    # 1. Stop lookup: HAFAS ids are not EVA numbers (Kiel Hbf 9049076 vs 699275),
+    #    so the app joins by name and confirms by coordinate.
+    locs = call("LocMatch", {"input": {"loc": {"type": "S",
+                                               "name": "Hauptbahnhof, Kiel?"},
+                                       "maxLoc": 8, "field": "S"}})
+    loc_l = (locs.get("match") or {}).get("locL") or []
+    near = [l for l in loc_l
+            if l.get("crd") and _metres((54.315502, 10.13069),
+                                        (l["crd"]["y"] / 1e6,
+                                         l["crd"]["x"] / 1e6)) <= 300]
+    if not near:
+        raise CheckError("no NAH.SH stop within 300 m of Kiel Hbf "
+                         "(name join broken)")
+    ext_id = near[0]["extId"]
+
+    # 2. The board, with planned vs live bay per departure.
+    res = call("StationBoard", {"type": "DEP", "date": datetime.now().strftime("%Y%m%d"),
+                                "time": "093000", "stbLoc": {"extId": ext_id},
+                                "maxJny": 80})
+    prod_l = (res.get("common") or {}).get("prodL") or []
+    him_l = (res.get("common") or {}).get("himL") or []
+    moved = []
+    for j in res.get("jnyL") or []:
+        stop = j.get("stbStop") or {}
+
+        def pf(key):
+            flat = stop.get(f"dPlatf{key}")
+            if isinstance(flat, str) and flat.strip():
+                return flat.strip()
+            obj = stop.get(f"dPltf{key}")
+            if isinstance(obj, dict) and obj.get("txt"):
+                return obj["txt"].strip()
+            return None
+
+        s_, r_ = pf("S"), pf("R")
+        if s_ and r_ and s_ != r_:
+            name = (prod_l[j["prodX"]].get("name") or "").strip() \
+                if isinstance(j.get("prodX"), int) else "?"
+            moved.append((name, s_, r_))
+    if not moved:
+        raise CheckError("no departure at Kiel Hbf carries a bay change — "
+                         "either the closure ended or dPlatfS/dPlatfR is gone")
+    # 3. The operator's own headline, which the app shows as the reason.
+    heads = {(h.get("head") or "") for h in him_l}
+    bay_note = next((h for h in heads if "Bussteig" in h or "Steig" in h), None)
+
+    sample = ", ".join(f"{n} {s}→{r}" for n, s, r in moved[:3])
+    return (f"{len(moved)} bay change(s) at Kiel Hbf ({sample}); "
+            f"HIM: {bay_note or 'keine Steig-Meldung'}")
+
+
 def check_basemap_tiles() -> str:
     """Outdoor base map: OpenFreeMap "Positron" VECTOR tiles — the German-labelled
     (local names), keyless, light basemap the app renders under every outdoor map
@@ -3259,6 +3345,7 @@ CHECKS = [
     ("osm platform geometry (overpass)", check_osm_platform_geometry, False),
     ("osm bus stop sides (#55)", check_osm_bus_stop_sides, True),
     ("delfi stop poles (#55)", check_delfi_stop_poles, True),
+    ("nahsh bay correction (Steig-Sperrung)", check_nahsh_bay_correction, True),
     ("basemap (OpenFreeMap Positron vector)", check_basemap_tiles, True),
     ("basemap offline style bundle (#29)", check_basemap_offline_bundle, True),
     ("bahnhof.de station map (karte)", check_bahnhof_map, False),

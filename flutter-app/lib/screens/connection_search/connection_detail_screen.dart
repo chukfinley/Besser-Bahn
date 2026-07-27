@@ -23,9 +23,12 @@ import '../../providers/journey_search_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/split_ticket_provider.dart';
+import '../../providers/nahsh_provider.dart';
 import '../../providers/station_map_provider.dart';
 import '../../providers/stopover_plan_provider.dart';
 import '../../services/db_api_service.dart';
+import '../../services/nahsh_service.dart'
+    show NahShService, PlatformCorrection;
 import '../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ui/message_card.dart';
@@ -1166,16 +1169,41 @@ class _ConnectionDetailScreenState
   }
 
   /// Freshest departure Gleis of [leg] at its origin — see above.
+  ///
+  /// For a bus in Schleswig-Holstein the regional backend gets the last word:
+  /// it is the only source that knows a bay has been closed and the departure
+  /// moved (Kiel Hbf B1 → B2), while DB and DELFI both still say B1. Everywhere
+  /// else, and for every train, this reads exactly as before.
   String? _livePlatformAtDeparture(JourneyLeg leg) {
+    final moved = _movedBay(leg);
+    if (moved != null) return moved.live;
     final trip = leg.tripId != null ? _tripCache[leg.tripId] : null;
     final so = trip != null ? _stopFor(trip, leg.origin) : null;
     return so?.platform ?? leg.departurePlatform;
   }
 
+  /// The bay this bus has been moved to, if any. Watched (not read) so the row
+  /// and the map redraw the moment the answer lands.
+  PlatformCorrection? _movedBay(JourneyLeg leg) {
+    final query = BayQuery.forLeg(leg);
+    if (query == null || !query.worthAsking) return null;
+    return ref.watch(bayCorrectionProvider(query)).asData?.value;
+  }
+
+  /// What the thing you stand on is called here: a bus/tram has a Steig, a
+  /// train a Gleis. Same field in the data, different word on the sign — and at
+  /// a bus station "Gleis B1" reads like a mistake.
+  String _platformWord(JourneyLeg? a, JourneyLeg? b) {
+    bool bus(JourneyLeg? l) => NahShService.coversProduct(l?.line?.product);
+    return (bus(a) || bus(b)) ? 'Steig' : 'Gleis';
+  }
+
   /// The planned Gleis this leg leaves from, when it differs from the live one
   /// — i.e. there was a Gleiswechsel and we can name what it used to be.
   String? _changedFromPlatform(JourneyLeg leg, String? live) {
-    final planned = leg.plannedDeparturePlatform ?? leg.departurePlatform;
+    final planned = _movedBay(leg)?.planned ??
+        leg.plannedDeparturePlatform ??
+        leg.departurePlatform;
     if (live == null || planned == null || planned == live) return null;
     return planned;
   }
@@ -1214,11 +1242,15 @@ class _ConnectionDetailScreenState
     final arrG = prev != null ? _livePlatformAtArrival(prev) : null;
     final depG = next != null ? _livePlatformAtDeparture(next) : null;
     final wasG = next != null ? _changedFromPlatform(next, depG) : null;
+    final word = _platformWord(prev, next);
     final gleise = (arrG != null || depG != null)
-        ? 'Gleis ${arrG ?? '?'} → Gleis ${depG ?? '?'}'
+        ? '$word ${arrG ?? '?'} → $word ${depG ?? '?'}'
             '${wasG != null ? ' (statt $wasG)' : ''}'
         : null;
-    final detail = [?gleise, _walkDetail(leg)].join(' · ');
+    // Why the bay moved, in the operator's own words ("Sperrung Bussteig B1 am
+    // Hauptbahnhof") — without it "(statt B1)" looks like a glitch.
+    final moved = next != null ? _movedBay(next)?.note : null;
+    final detail = [?gleise, ?moved, _walkDetail(leg)].join(' · ');
 
     return _transferTile(
       context,
@@ -1356,9 +1388,12 @@ class _ConnectionDetailScreenState
 
     // "Gleis 4 → Gleis 5" reads like a hike; DB knows 4 and 5 are two sides of
     // one island platform and says so.
+    final word = _platformWord(prev, next);
+    final movedNote = _movedBay(next)?.note;
     final gleisText = (arrGleis != null || depGleis != null)
-        ? 'Gleis ${arrGleis ?? '?'} → Gleis ${depGleis ?? '?'}'
+        ? '$word ${arrGleis ?? '?'} → $word ${depGleis ?? '?'}'
             '${wasGleis != null ? ' (statt $wasGleis)' : ''}'
+            '${movedNote != null ? ' · $movedNote' : ''}'
             '${samePlatform ? ' · gleicher Bahnsteig' : ''}'
         : (samePlatform ? 'gleicher Bahnsteig' : null);
 

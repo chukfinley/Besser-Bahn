@@ -125,52 +125,33 @@ class DbApiService {
   /// railcards like Halbtax / Vorteilscard / NL-40), and [sba]
   /// (Schwerbehindertenausweis) so the fallback matches the Vendo primary path.
   static List<Map<String, dynamic>> createTravellerPayload({
-    dynamic bahnCard = Reduction.none,
-    Reduction weitere = Reduction.none,   // e.g. Halbtax, Vorteilscard, NL-40
-    SbaOption sba = SbaOption.none,       // Schwerbehindertenausweis
+    Reduction bahnCard = Reduction.none,
+    Reduction weitere = Reduction.none, // e.g. Halbtax, Vorteilscard, NL-40
+    SbaOption sba = SbaOption.none, // Schwerbehindertenausweis
   }) {
-    final ermaessigungen = <Map<String, dynamic>>[];
-
-    final card = bahnCard is BahnCardType
-        ? Reduction.byKey(bahnCard.vendoErmaessigung)
-        : (bahnCard is Reduction ? bahnCard : Reduction.none);
-
-    // BahnCard (primary DB card)
-    if (card != Reduction.none) {
-      final parts = card.vendoKey.split(' ');
-      ermaessigungen.add({
-        'art': parts[0],
+    // Every reduction is stored as the Vendo key "ART KLASSE"
+    // ("BAHNCARD25 KLASSE_2", "HALBTAXABO KLASSENLOS") — the web API wants the
+    // two halves as separate fields.
+    Map<String, dynamic> entry(String vendoKey) {
+      final parts = vendoKey.split(' ');
+      return {
+        'art': parts.first,
         'klasse': parts.length > 1 ? parts[1] : 'KLASSENLOS',
-      });
-    } else {
-      ermaessigungen.add({
-        'art': 'KEINE_ERMAESSIGUNG',
-        'klasse': 'KLASSENLOS',
-      });
-    }
-
-    // Weitere Ermäßigungen (foreign railcards: Halbtax, Vorteilscard, NL-40, …)
-    if (weitere != Reduction.none) {
-      final parts = weitere.vendoKey.split(' ');
-      ermaessigungen.add({
-        'art': parts[0],
-        'klasse': parts.length > 1 ? parts[1] : 'KLASSENLOS',
-      });
-    }
-
-    // Schwerbehindertenausweis
-    if (sba != SbaOption.none) {
-      final parts = sba.vendoKey.split(' ');
-      ermaessigungen.add({
-        'art': parts[0],
-        'klasse': parts.length > 1 ? parts[1] : 'KLASSENLOS',
-      });
+      };
     }
 
     return [
       {
         'typ': 'ERWACHSENER',
-        'ermaessigungen': ermaessigungen,
+        'ermaessigungen': [
+          // Always exactly one BahnCard entry, "none" included: the web API
+          // treats an empty list as a malformed traveller, not as "no card".
+          entry(bahnCard == Reduction.none
+              ? 'KEINE_ERMAESSIGUNG KLASSENLOS'
+              : bahnCard.vendoKey),
+          if (weitere != Reduction.none) entry(weitere.vendoKey),
+          if (sba != SbaOption.none) entry(sba.vendoKey),
+        ],
         'alter': [],
         'anzahl': 1,
       }

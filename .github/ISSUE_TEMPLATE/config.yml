@@ -1,0 +1,15 @@
+# Blank issues stay OFF on purpose: the two forms exist to get version and
+# install source up front. Without those, triage starts with a round of
+# questions and a "geht bei mir" — with them, most reports can be checked
+# against the changelog in seconds.
+blank_issues_enabled: false
+contact_links:
+  - name: 🚉 Falsche Fahrplan-, Preis- oder Gleisdaten
+    url: https://www.bahn.de/service/kontakt
+    about: >
+      Die App zeigt, was die Deutsche Bahn liefert. Stimmen Zug, Preis oder
+      Gleis in der DB-Navigator-App genauso wenig, hilft nur die DB selbst —
+      weicht die App dagegen VOM DB Navigator ab, ist das ein Bug: bitte melden.
+  - name: 📖 Bauen, signieren, reproduzierbarer Build
+    url: https://github.com/chukfinley/Besser-Bahn/blob/main/BUILDING.md
+    about: Flutter-/JDK-Versionen und der IzzyOnDroid-RB-Prozess stehen in BUILDING.md.

@@ -1,0 +1,57 @@
+name: 💡 Idee / Funktionswunsch
+description: Etwas fehlt oder könnte besser sein
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideen sind willkommen. Version und Quelle bitte trotzdem angeben — oft
+        gibt es die Funktion längst, nur nicht in der installierten Version.
+
+  - type: input
+    id: version
+    attributes:
+      label: App-Version
+      description: In der App unter **Einstellungen → ganz oben („Version 2.2.0")**.
+      placeholder: "2.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Woher installiert?
+      options:
+        - IzzyOnDroid / F-Droid
+        - GitHub Release (APK direkt geladen)
+        - Obtainium
+        - Selbst gebaut (aus dem Quellcode)
+        - Entwickler-/Testversion (Debug-Build, PR-Branch)
+        - Weiß ich nicht mehr
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem hast du?
+      description: >
+        Bitte die Situation beschreiben, nicht nur die Lösung — oft gibt es einen
+        einfacheren Weg als den zuerst gedachten.
+      placeholder: >
+        Ich muss um 09:48 beim Zahnarzt sein. Die Suche gibt mir immer nur den
+        knappsten Zug, dabei wäre mir Wartezeit lieber.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Wie könnte es aussehen?
+      placeholder: 'Ein Filter „mind. 30 min Puffer" in der Ankunftssuche.'
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Machst du es aktuell irgendwie anders? (optional)
+      placeholder: "Ich suche von Hand eine Stunde früher."

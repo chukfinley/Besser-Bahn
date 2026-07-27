@@ -169,6 +169,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await prefs.setBool('partyCustomized', state.partyCustomized);
   }
 
+  /// "My BahnCard" from the simple settings path: carried into the party
+  /// in place (#75), so a Halbtax, an SBA or a second traveller set in the
+  /// advanced sheet survives changing the card — re-seeding the whole party
+  /// used to wipe them.
   void setBahnCard(BahnCardType card) {
     final cardReduction = Reduction.byKey(card.vendoErmaessigung);
     final travelers = state.searchParty.travelers.map((t) {
@@ -181,7 +185,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(
       bahnCard: card,
       searchParty: state.searchParty.copyWith(
-        firstClass: card.isFirstClass,
+        // A 1st-class card implies 1st class; a 2nd-class one must NOT demote a
+        // rider who deliberately chose 1st in the party sheet. Class is the
+        // party's answer, and switching cards is not a statement about it.
+        firstClass: card.isFirstClass || state.searchParty.firstClass,
         travelers: travelers,
       ),
     );

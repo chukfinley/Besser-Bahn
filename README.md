@@ -108,6 +108,19 @@ Ich besitze weder einen Mac noch ein iOS-Gerät, um die App für iOS zu
 kompilieren. Wenn du die App erfolgreich für iOS bauen kannst, melde dich gerne —
 ich stelle die iOS-Version dann offiziell hier bereit.
 
+## Fehler melden
+
+[Neues Issue anlegen](https://github.com/chukfinley/Besser-Bahn/issues/new/choose)
+— es gibt zwei Formulare (Fehler / Idee), beide fragen **App-Version** und
+**Installationsquelle** ab. Beides ist Pflicht, und zwar aus einem praktischen
+Grund: die Version steht in der App unter **Einstellungen → ganz oben**, und die
+Quelle entscheidet, wie alt dein Stand ist (IzzyOnDroid liegt oft ein paar Tage
+hinter einem GitHub-Release). Mit beidem lässt sich in Sekunden sehen, ob der
+Fehler längst behoben ist — ohne beginnt jede Meldung mit einer Rückfrage.
+
+Hilft zusätzlich sehr: **Einstellungen → Debug-Log → Teilen** (enthält die
+Live-API-Aufrufe; Tokens werden nicht geloggt).
+
 ## Wie es funktioniert
 
 Die App nutzt **keine offizielle Endkunden-API** der Deutschen Bahn. Stattdessen

@@ -1,0 +1,98 @@
+name: 🐞 Fehler melden
+description: Etwas funktioniert nicht wie erwartet
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke, dass du dir die Mühe machst!
+
+        **Wichtig:** Version und Installationsquelle sind Pflicht. Ohne sie
+        können wir nicht sehen, ob der Fehler längst behoben ist oder nur eine
+        bestimmte Version betrifft — und fragen dann erst mal nach, statt zu fixen.
+
+  - type: input
+    id: version
+    attributes:
+      label: App-Version
+      description: >
+        Steht in der App unter **Einstellungen → ganz oben („Version 2.2.0")**.
+        Bitte exakt so abschreiben, inkl. Build-Nummer falls angezeigt.
+      placeholder: "2.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Woher installiert?
+      description: >
+        Verschiedene Quellen sind unterschiedlich aktuell — IzzyOnDroid hinkt
+        einem GitHub-Release oft ein paar Tage hinterher.
+      options:
+        - IzzyOnDroid / F-Droid
+        - GitHub Release (APK direkt geladen)
+        - Obtainium
+        - Selbst gebaut (aus dem Quellcode)
+        - Entwickler-/Testversion (Debug-Build, PR-Branch)
+        - Weiß ich nicht mehr
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Gerät & Android-Version
+      placeholder: "Pixel 7a, Android 15 (GrapheneOS)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Was passiert?
+      description: Was hast du erwartet, was ist stattdessen passiert?
+      placeholder: |
+        Erwartet: Nach dem Tippen auf „Suchen" kommen Verbindungen.
+        Stattdessen: Es dreht sich ewig, dann „Fehler: …".
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. Suche Kiel Hbf → München Hbf
+        2. Auf „An" umstellen, 09:48 wählen
+        3. Suchen tippen
+    validations:
+      required: true
+
+  - type: input
+    id: route
+    attributes:
+      label: Betroffene Verbindung / Station (falls es darum geht)
+      description: >
+        Strecke, Zug und Datum. Fahrplandaten ändern sich täglich — ohne das
+        lässt sich ein Anzeigefehler oft gar nicht nachstellen.
+      placeholder: "RE 72 Kiel Hbf → Hamburg Hbf, 27.07.2026, 08:39"
+
+  - type: checkboxes
+    id: account
+    attributes:
+      label: Kontext
+      options:
+        - label: Ich war mit meinem DB-Konto angemeldet
+        - label: Ich habe ein Deutschland-Ticket in den Einstellungen aktiviert
+        - label: Ich nutze eine BahnCard / weitere Ermäßigung
+        - label: Der Fehler tritt reproduzierbar auf (nicht nur einmal)
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional, hilft sehr)
+      description: >
+        **Einstellungen → Debug-Log → Teilen**. Bitte vorher überfliegen: das Log
+        kann Stationsnamen und Reisedaten enthalten. Tokens werden nicht geloggt.
+      render: text

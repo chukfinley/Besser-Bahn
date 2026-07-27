@@ -338,17 +338,124 @@ void main() {
     });
   });
 
+  group('EFA / Mentz — the states HAFAS never covered', () {
+    /// Essen Hbf as VRR really returns it (fields verbatim, 27.07.2026).
+    Map<String, dynamic> efaBoard() => {
+          'stopEvents': [
+            {
+              'departureTimePlanned': '2026-07-27T08:44:00Z',
+              'departureTimeEstimated': '2026-07-27T09:08:00Z',
+              'isRealtimeControlled': true,
+              'transportation': {
+                'name': 'Regionalzug RB 33',
+                'number': 'RB 33',
+                'destination': {'name': 'Essen Steele S'},
+              },
+              'location': {
+                'properties': {
+                  'platform': '11',
+                  'platformName': '11',
+                  'plannedPlatformName': '11',
+                },
+              },
+            },
+            {
+              'departureTimePlanned': '2026-07-27T09:00:00Z',
+              'transportation': {
+                'number': 'S 9',
+                'destination': {'name': 'Wuppertal Hbf'},
+              },
+              'infos': [
+                {
+                  'subtitle': 'Gleiswechsel wegen Bauarbeiten',
+                  'content': 'lange Fassung',
+                },
+              ],
+              'location': {
+                'properties': {
+                  'platformName': '5',
+                  'plannedPlatformName': '2',
+                },
+              },
+            },
+          ],
+        };
+
+    test('planned and live platform come through under EFA\'s own names', () {
+      final board = RegionalTransitService.parseEfaBoard(efaBoard());
+
+      expect(board, hasLength(2));
+      expect(board.first.moved, isFalse, reason: '11 → 11 is no change');
+      expect(board.last.plannedPlatform, '2');
+      expect(board.last.livePlatform, '5');
+      expect(board.last.moved, isTrue);
+    });
+
+    test('UTC timestamps are matched in local time', () {
+      final board = RegionalTransitService.parseEfaBoard(efaBoard());
+      // 09:00Z is 11:00 in Berlin summer time — matching on the raw UTC hour
+      // would look up a departure two hours off.
+      final local = DateTime.utc(2026, 7, 27, 9).toLocal();
+      expect(board.last.plannedTime, local.hour * 60 + local.minute);
+    });
+
+    test('the operator\'s note rides along, headline first', () {
+      final board = RegionalTransitService.parseEfaBoard(efaBoard());
+      expect(board.last.notes, ['Gleiswechsel wegen Bauarbeiten']);
+    });
+
+    test('matching works the same as for HAFAS', () {
+      final board = RegionalTransitService.parseEfaBoard(efaBoard());
+      final local = DateTime.utc(2026, 7, 27, 9).toLocal();
+
+      final hit = RegionalTransitService.matchDeparture(
+        board,
+        line: 'S 9',
+        towards: 'Wuppertal Hbf',
+        plannedDeparture: local,
+        source: 'VRR',
+        dbPlatform: '2',
+      );
+
+      expect(hit?.live, '5');
+      expect(hit?.source, 'VRR');
+      expect(hit?.note, 'Gleiswechsel wegen Bauarbeiten');
+    });
+
+    test('junk in, empty list out', () {
+      expect(RegionalTransitService.parseEfaBoard(null), isEmpty);
+      expect(RegionalTransitService.parseEfaBoard({'stopEvents': 'nope'}),
+          isEmpty);
+    });
+
+    test('the states that had nothing now have someone', () {
+      // Stuttgart, München, Essen, Dresden, Mannheim — all HAFAS-less before.
+      for (final at in [
+        (48.7838, 9.1817, 'vvs'), // Stuttgart Hbf
+        (48.1402, 11.5583, 'mvv'), // München Hbf
+        (51.4514, 7.0132, 'vrr'), // Essen Hbf
+        (51.0404, 13.7325, 'vvo'), // Dresden Hbf
+        (49.4794, 8.4690, 'vrn'), // Mannheim Hbf
+        (47.9970, 7.8410, 'efa-bw'), // Freiburg
+      ]) {
+        final first = regionalProfilesFor(at.$1, at.$2);
+        expect(first, isNotEmpty, reason: 'nothing covers ${at.$3}');
+        expect(first.first.id, at.$3);
+      }
+    });
+  });
+
   group('when we do not even ask', () {
     test('outside every regional network', () {
-      // Freiburg: the Rhein-Neckar backend `hafas-client` still lists no longer
-      // resolves at all, so Baden-Württemberg has no live authority here — and
-      // an area with none must cost no request.
-      const freiburg = Station(
-          id: '8000107',
-          name: 'Freiburg(Breisgau) Hbf',
-          latitude: 47.997,
-          longitude: 7.841);
-      expect(RegionalTransitService.servesStop(freiburg), isFalse);
+      // Trier: western Rhineland-Palatinate has no live authority of its own —
+      // saarVV stops short of it, VRN and RMV start east of it. An area with
+      // none must cost no request.
+      const trier = Station(
+          id: '8000129',
+          name: 'Trier Hbf',
+          latitude: 49.7556,
+          longitude: 6.6892);
+      expect(RegionalTransitService.servesStop(trier), isFalse);
     });
 
     test('inside one, it is asked — Kiel and München alike', () {
@@ -368,7 +475,7 @@ void main() {
       // Berlin: the city operator before the state-wide association.
       expect(regionalProfilesFor(52.5250, 13.3694).map((p) => p.id).toList(),
           ['bvg', 'vbb']);
-      expect(regionalProfilesFor(47.997, 7.841), isEmpty);
+      expect(regionalProfilesFor(49.7556, 6.6892), isEmpty);
     });
 
     test('every profile is reachable and uniquely keyed', () {
@@ -376,8 +483,12 @@ void main() {
       expect(ids.toSet().length, ids.length, reason: 'duplicate profile id');
       for (final p in kRegionalProfiles) {
         expect(p.endpoint, startsWith('https://'), reason: p.id);
-        expect(p.aid, isNotEmpty, reason: p.id);
         expect(p.label, isNotEmpty, reason: p.id);
+        if (p.backend == RegionalBackend.hafas) {
+          // EFA needs no credentials at all — that is the whole difference.
+          expect(p.aid, isNotEmpty, reason: p.id);
+          expect(p.clientId, isNotEmpty, reason: p.id);
+        }
         expect(p.minLat, lessThan(p.maxLat), reason: p.id);
         expect(p.minLon, lessThan(p.maxLon), reason: p.id);
       }
@@ -400,14 +511,14 @@ void main() {
 
     test('an out-of-area stop fires no request at all', () async {
       final h = _service((m, r) => _ok(const {}));
-      const freiburg = Station(
-          id: '8000107',
-          name: 'Freiburg(Breisgau) Hbf',
-          latitude: 47.997,
-          longitude: 7.841);
+      const trier = Station(
+          id: '8000129',
+          name: 'Trier Hbf',
+          latitude: 49.7556,
+          longitude: 6.6892);
 
       final hit = await h.service.platformCorrection(
-        stop: freiburg,
+        stop: trier,
         line: 'Bus 22',
         towards: 'Suchsdorf',
         plannedDeparture: _at(9, 39),

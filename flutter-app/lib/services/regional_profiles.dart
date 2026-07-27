@@ -15,6 +15,22 @@
 /// and `vrn` endpoints no longer resolve at all and are deliberately absent.
 library;
 
+/// Which protocol a regional backend speaks.
+///
+/// Two systems split Germany between them, and the split is not political: the
+/// Verbünde that bought HAFAS (Hacon) run `mgate.exe`, the ones that bought EFA
+/// (Mentz) run `XML_DM_REQUEST`. Both answer the same question — planned
+/// platform vs the one it really leaves from — under different field names, so
+/// everything above this layer sees one shape.
+enum RegionalBackend {
+  /// HAFAS `mgate.exe`: `dPlatfS` (planned) vs `dPlatfR` (live).
+  hafas,
+
+  /// EFA/Mentz `XML_DM_REQUEST` with `outputFormat=rapidJSON`:
+  /// `plannedPlatformName` vs `platformName`.
+  efa,
+}
+
 /// One regional backend.
 class RegionalProfile {
   /// Stable key, also what the log and the healthcheck call it.
@@ -25,7 +41,9 @@ class RegionalProfile {
 
   final String endpoint;
 
-  /// HAFAS client identity. `ver`/`v` are deliberately NOT the values in
+  final RegionalBackend backend;
+
+  /// HAFAS client identity (unused for [RegionalBackend.efa]). `ver`/`v` are deliberately NOT the values in
   /// `hafas-client`'s profiles: those are years old and several backends answer
   /// them with `HAMM` (a parser error) — 1.34/4000100 is what the whole cluster
   /// accepts today.
@@ -47,8 +65,9 @@ class RegionalProfile {
     required this.id,
     required this.label,
     required this.endpoint,
-    required this.clientId,
-    required this.aid,
+    this.backend = RegionalBackend.hafas,
+    this.clientId = '',
+    this.aid = '',
     required this.minLat,
     required this.minLon,
     required this.maxLat,
@@ -211,6 +230,68 @@ const List<RegionalProfile> kRegionalProfiles = [
     clientName: 'webapp',
     aid: 'web-vmt-qdr6c6y8',
     minLat: 50.20, minLon: 9.85, maxLat: 51.65, maxLon: 12.70,
+  ),
+  // ---- EFA / Mentz: the states HAFAS never covered ----------------------
+  //
+  // Verified live on 27.07.2026, all eight answering with planned AND live
+  // platform per departure. Between them they close the gaps that made the
+  // HAFAS-only version blind in Baden-Württemberg, Bayern, NRW, Sachsen and
+  // parts of Rheinland-Pfalz.
+  RegionalProfile(
+    id: 'vvs',
+    label: 'VVS Stuttgart',
+    endpoint: 'https://www3.vvs.de/mngvvs',
+    backend: RegionalBackend.efa,
+    minLat: 48.55, minLon: 8.85, maxLat: 49.10, maxLon: 9.65,
+    priority: 10,
+  ),
+  RegionalProfile(
+    id: 'mvv',
+    label: 'MVV München',
+    endpoint: 'https://efa.mvv-muenchen.de/mobile',
+    backend: RegionalBackend.efa,
+    minLat: 47.85, minLon: 11.00, maxLat: 48.60, maxLon: 12.20,
+    priority: 12,
+  ),
+  RegionalProfile(
+    id: 'vvo',
+    label: 'VVO Dresden',
+    endpoint: 'https://efa.vvo-online.de/VMSSL3',
+    backend: RegionalBackend.efa,
+    minLat: 50.55, minLon: 12.10, maxLat: 51.60, maxLon: 15.05,
+    priority: 20,
+  ),
+  RegionalProfile(
+    id: 'vrr',
+    label: 'VRR',
+    endpoint: 'https://efa.vrr.de/vrr',
+    backend: RegionalBackend.efa,
+    minLat: 50.60, minLon: 5.85, maxLat: 52.55, maxLon: 9.50,
+    priority: 30,
+  ),
+  RegionalProfile(
+    id: 'vrn',
+    label: 'VRN',
+    endpoint: 'https://www.vrn.de/mngvrn',
+    backend: RegionalBackend.efa,
+    minLat: 48.85, minLon: 7.60, maxLat: 50.20, maxLon: 9.60,
+    priority: 30,
+  ),
+  RegionalProfile(
+    id: 'efa-bw',
+    label: 'bwegt',
+    endpoint: 'https://www.efa-bw.de/nvbw',
+    backend: RegionalBackend.efa,
+    minLat: 47.50, minLon: 7.45, maxLat: 49.85, maxLon: 10.55,
+    priority: 40,
+  ),
+  RegionalProfile(
+    id: 'defas',
+    label: 'Bayern-Fahrplan',
+    endpoint: 'https://mobile.defas-fgi.de/beg',
+    backend: RegionalBackend.efa,
+    minLat: 47.25, minLon: 8.95, maxLat: 50.60, maxLon: 13.90,
+    priority: 40,
   ),
   RegionalProfile(
     id: 'saarfahrplan',

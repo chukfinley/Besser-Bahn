@@ -177,6 +177,165 @@ class RegionalTransitService {
     return resolved;
   }
 
+  // ---- EFA / Mentz -------------------------------------------------------
+  //
+  // Same two steps as HAFAS under different names: resolve the stop, then read
+  // its departure board. The board carries `plannedPlatformName` next to
+  // `platformName`, which is exactly the pair this whole service exists for.
+
+  Future<String?> _efaStopId(RegionalProfile profile, Station stop) {
+    final key = '${profile.id}/${stop.id.isNotEmpty ? stop.id : stop.name}';
+    if (_locations.containsKey(key)) return Future.value(_locations[key]);
+    return _locationsInflight[key] ??= _resolveEfaStop(profile, key, stop);
+  }
+
+  Future<String?> _resolveEfaStop(
+      RegionalProfile profile, String key, Station stop) async {
+    final data = await _efaGet(profile, 'XML_STOPFINDER_REQUEST', {
+      'name_sf': stop.name,
+      'type_sf': 'any',
+      'coordOutputFormat': 'WGS84[DD.ddddd]',
+    });
+    final locs = (data?['locations'] as List<dynamic>?) ?? const [];
+    String? best;
+    var bestMetres = double.infinity;
+    for (final l in locs.whereType<Map<String, dynamic>>()) {
+      final id = l['id'] as String?;
+      if (id == null) continue;
+      final coord = l['coord'];
+      // EFA hands coordinates back as [lat, lon] in WGS84 decimal degrees.
+      if (coord is List && coord.length >= 2) {
+        final lat = (coord[0] as num?)?.toDouble();
+        final lon = (coord[1] as num?)?.toDouble();
+        if (lat != null && lon != null) {
+          final d = _metres(stop.latitude!, stop.longitude!, lat, lon);
+          if (d < bestMetres) {
+            bestMetres = d;
+            best = id;
+          }
+          continue;
+        }
+      }
+      // No coordinate: only acceptable if nothing better turns up.
+      if (best == null) best = id;
+    }
+    final resolved = (bestMetres <= 300 || bestMetres == double.infinity)
+        ? best
+        : null;
+    AppLog.log('${profile.id} efa stop "${stop.name}" → ${resolved ?? 'nichts'}',
+        tag: 'regional');
+    _locations[key] = resolved;
+    _locationsInflight.remove(key);
+    return resolved;
+  }
+
+  Future<List<RegionalDeparture>> _efaBoard(
+      RegionalProfile profile, String stopId, DateTime around) {
+    final bucket = around.millisecondsSinceEpoch ~/ (15 * 60 * 1000);
+    final key = '${profile.id}/$stopId@$bucket';
+    final cached = _boards[key];
+    if (cached != null) return Future.value(cached);
+    return _boardsInflight[key] ??= _fetchEfaBoard(profile, key, stopId, around);
+  }
+
+  Future<List<RegionalDeparture>> _fetchEfaBoard(RegionalProfile profile,
+      String key, String stopId, DateTime around) async {
+    final from = around.subtract(const Duration(minutes: 5));
+    final data = await _efaGet(profile, 'XML_DM_REQUEST', {
+      'name_dm': stopId,
+      'type_dm': 'stop',
+      'mode': 'direct',
+      'useRealtime': '1',
+      'limit': '60',
+      'itdDate': '${from.year}${_two(from.month)}${_two(from.day)}',
+      'itdTime': '${_two(from.hour)}${_two(from.minute)}',
+    });
+    final list = parseEfaBoard(data);
+    AppLog.log('${profile.id} efa board $stopId: ${list.length} departures, '
+        '${list.where((d) => d.moved).length} moved', tag: 'regional');
+    _boards[key] = list;
+    _boardsInflight.remove(key);
+    return list;
+  }
+
+  Future<Map<String, dynamic>?> _efaGet(
+      RegionalProfile profile, String path, Map<String, String> params) async {
+    final uri = Uri.parse('${profile.endpoint}/$path').replace(
+      queryParameters: {
+        'outputFormat': 'rapidJSON',
+        'version': '10.2.10.139',
+        ...params,
+      },
+    );
+    try {
+      final res = await _client.get(uri, headers: const {
+        'Accept': 'application/json',
+      }).timeout(_timeout);
+      if (res.statusCode != 200) {
+        AppLog.log('${profile.id} $path HTTP ${res.statusCode}', tag: 'regional');
+        return null;
+      }
+      return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      AppLog.log('${profile.id} $path failed: $e', tag: 'regional');
+      return null;
+    }
+  }
+
+  /// EFA `XML_DM_REQUEST` (rapidJSON) → departures. Exposed for tests.
+  static List<RegionalDeparture> parseEfaBoard(Map<String, dynamic>? data) {
+    if (data == null) return const [];
+    final events = data['stopEvents'];
+    if (events is! List) return const [];
+    final out = <RegionalDeparture>[];
+    for (final e in events.whereType<Map<String, dynamic>>()) {
+      final loc = e['location'];
+      final props = loc is Map<String, dynamic> ? loc['properties'] : null;
+      final p = props is Map<String, dynamic> ? props : const {};
+      final transport = e['transportation'];
+      final t = transport is Map<String, dynamic> ? transport : const {};
+      final dest = t['destination'];
+      final planned = DateTime.tryParse(e['departureTimePlanned'] as String? ?? '');
+      out.add(RegionalDeparture(
+        line: ((t['number'] ?? t['name']) as String? ?? '').trim(),
+        direction: (dest is Map<String, dynamic>
+                ? dest['name'] as String? ?? ''
+                : '')
+            .trim(),
+        // EFA timestamps are UTC ("…Z"); the board is matched in local time.
+        plannedTime: planned == null
+            ? null
+            : planned.toLocal().hour * 60 + planned.toLocal().minute,
+        plannedPlatform: _efaText(p['plannedPlatformName']) ??
+            _efaText(p['platformName']),
+        livePlatform: _efaText(p['platformName']) ?? _efaText(p['platform']),
+        notes: _efaNotes(e['infos']),
+      ));
+    }
+    return out;
+  }
+
+  static String? _efaText(Object? v) {
+    if (v is! String) return null;
+    final t = v.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  /// The operator's own disruption headlines for a departure.
+  static List<String> _efaNotes(Object? infos) {
+    if (infos is! List) return const [];
+    final out = <String>[];
+    for (final i in infos.whereType<Map<String, dynamic>>()) {
+      final head = _efaText(i['subtitle']) ??
+          _efaText(i['title']) ??
+          _efaText(i['content']);
+      if (head == null || out.contains(head)) continue;
+      // These run long; the row shows a headline, not an essay.
+      out.add(head.length > 120 ? '${head.substring(0, 117)}…' : head);
+    }
+    return out;
+  }
+
   /// The departure board at [extId] around [around].
   Future<List<RegionalDeparture>> _board(
       RegionalProfile profile, String extId, DateTime around) {
@@ -290,9 +449,13 @@ class RegionalTransitService {
     // state-wide neighbour does not. The first one that both knows the stop and
     // has this departure answers; the rest are never asked.
     for (final profile in regionalProfilesFor(lat, lon)) {
-      final extId = await _locationIdFor(profile, stop);
+      final extId = profile.backend == RegionalBackend.efa
+          ? await _efaStopId(profile, stop)
+          : await _locationIdFor(profile, stop);
       if (extId == null) continue;
-      final board = await _board(profile, extId, plannedDeparture);
+      final board = profile.backend == RegionalBackend.efa
+          ? await _efaBoard(profile, extId, plannedDeparture)
+          : await _board(profile, extId, plannedDeparture);
       if (board.isEmpty) continue;
       final hit = matchDeparture(
         board,

@@ -2929,6 +2929,84 @@ def check_regional_platform_sources() -> str:
     return note
 
 
+# EFA/Mentz backends — the states HAFAS never covered. `plannedPlatformName` vs
+# `platformName` is the same planned/live pair HAFAS calls dPlatfS/dPlatfR.
+EFA_PROFILES = [
+    ("vvs", "VVS Stuttgart", "https://www3.vvs.de/mngvvs", "Stuttgart Hauptbahnhof"),
+    ("mvv", "MVV München", "https://efa.mvv-muenchen.de/mobile", "München Hauptbahnhof"),
+    ("vvo", "VVO Dresden", "https://efa.vvo-online.de/VMSSL3", "Dresden Hauptbahnhof"),
+    ("vrr", "VRR", "https://efa.vrr.de/vrr", "Essen Hauptbahnhof"),
+    ("vrn", "VRN", "https://www.vrn.de/mngvrn", "Mannheim Hauptbahnhof"),
+    ("efa-bw", "bwegt", "https://www.efa-bw.de/nvbw", "Stuttgart Hauptbahnhof"),
+    ("defas", "Bayern-Fahrplan", "https://mobile.defas-fgi.de/beg", "München Hauptbahnhof"),
+]
+
+
+def check_efa_platform_sources() -> str:
+    """The EFA/Mentz half of the regional platform sources
+    (flutter-app/lib/services/regional_profiles.dart, RegionalBackend.efa).
+
+    Baden-Württemberg, Bayern, NRW, Sachsen and parts of Rheinland-Pfalz run EFA,
+    not HAFAS — `hafas-client`'s `mobil-nrw` and `vrn` endpoints are dead, and
+    without these the app would be blind in exactly those states. Two steps, the
+    ones the app makes: XML_STOPFINDER_REQUEST → XML_DM_REQUEST, rapidJSON.
+
+    Asserts every backend still answers with departures carrying BOTH
+    `plannedPlatformName` and `platformName` — one value alone cannot say whether
+    a platform moved. Soft, like its HAFAS sibling.
+    """
+    ok, dead, moved = [], [], []
+    for pid, label, base, probe in EFA_PROFILES:
+        try:
+            sf = _get(f"{base}/XML_STOPFINDER_REQUEST",
+                      params={"outputFormat": "rapidJSON", "name_sf": probe,
+                              "type_sf": "any", "version": "10.2.10.139",
+                              "coordOutputFormat": "WGS84[DD.ddddd]"},
+                      headers={"Accept": "application/json",
+                               "User-Agent": DBNAV_UA}, timeout=TIMEOUT)
+            sf.raise_for_status()
+            locs = [l for l in (sf.json().get("locations") or [])
+                    if l.get("type") == "stop"] or (sf.json().get("locations") or [])
+            if not locs:
+                raise CheckError("stopfinder leer")
+            dm = _get(f"{base}/XML_DM_REQUEST",
+                      params={"outputFormat": "rapidJSON", "name_dm": locs[0]["id"],
+                              "type_dm": "stop", "mode": "direct",
+                              "useRealtime": "1", "limit": "30",
+                              "version": "10.2.10.139"},
+                      headers={"Accept": "application/json",
+                               "User-Agent": DBNAV_UA}, timeout=TIMEOUT)
+            dm.raise_for_status()
+            events = dm.json().get("stopEvents") or []
+            if not events:
+                raise CheckError("leere Tafel")
+            both = 0
+            for e in events:
+                props = ((e.get("location") or {}).get("properties") or {})
+                planned = props.get("plannedPlatformName")
+                live = props.get("platformName")
+                if planned and live:
+                    both += 1
+                    if planned != live and not live.startswith(planned):
+                        moved.append(f"{pid} {planned}→{live}")
+            if not both:
+                raise CheckError("kein Halt nennt geplant UND live "
+                                 "(plannedPlatformName weg?)")
+            ok.append(f"{pid}({both}/{len(events)})")
+        except Exception as e:  # noqa: BLE001 — one dead backend is not fatal
+            dead.append(f"{pid}: {str(e)[:40]}")
+
+    if len(ok) < len(EFA_PROFILES) // 2:
+        raise CheckError(f"only {len(ok)}/{len(EFA_PROFILES)} EFA backends "
+                         f"answered — rapidJSON shape changed? {dead[:3]}")
+    note = f"{len(ok)}/{len(EFA_PROFILES)} live ({', '.join(ok)})"
+    if dead:
+        note += f"; down: {', '.join(d.split(':')[0] for d in dead)}"
+    if moved:
+        note += f"; {len(moved)} echte Wechsel z.B. {moved[0]}"
+    return note
+
+
 def check_basemap_tiles() -> str:
     """Outdoor base map: OpenFreeMap "Positron" VECTOR tiles — the German-labelled
     (local names), keyless, light basemap the app renders under every outdoor map
@@ -3397,8 +3475,10 @@ CHECKS = [
     ("osm platform geometry (overpass)", check_osm_platform_geometry, False),
     ("osm bus stop sides (#55)", check_osm_bus_stop_sides, True),
     ("delfi stop poles (#55)", check_delfi_stop_poles, True),
-    ("regionale Steig-/Gleisquellen (16 Verbünde)",
+    ("regionale Steig-/Gleisquellen HAFAS (16 Verbünde)",
      check_regional_platform_sources, True),
+    ("regionale Steig-/Gleisquellen EFA (BW/BY/NRW/SN)",
+     check_efa_platform_sources, True),
     ("basemap (OpenFreeMap Positron vector)", check_basemap_tiles, True),
     ("basemap offline style bundle (#29)", check_basemap_offline_bundle, True),
     ("bahnhof.de station map (karte)", check_bahnhof_map, False),

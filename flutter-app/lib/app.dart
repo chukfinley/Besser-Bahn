@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/app_log.dart';
 import 'core/constants.dart';
 import 'core/missed_connection.dart';
+import 'models/library_models.dart';
 import 'providers/background_trip_provider.dart';
 import 'providers/journey_search_provider.dart';
 import 'providers/library_provider.dart';
@@ -24,6 +26,7 @@ class BessereBahnApp extends ConsumerStatefulWidget {
 
 class _BessereBahnAppState extends ConsumerState<BessereBahnApp> {
   StreamSubscription<MissedConnectionRescue>? _missedSubscription;
+  StreamSubscription<String>? _tripOpenSubscription;
 
   @override
   void initState() {
@@ -31,16 +34,64 @@ class _BessereBahnAppState extends ConsumerState<BessereBahnApp> {
     _missedSubscription = NotificationService.missedRescues.listen((rescue) {
       unawaited(_openMissedAlternatives(rescue, consumePersisted: true));
     });
+    _tripOpenSubscription = NotificationService.tripOpens.listen((key) {
+      unawaited(_openTrip(key, consumePersisted: true));
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final rescue = await NotificationService.takePendingMissedRescue();
       if (rescue != null && mounted) await _openMissedAlternatives(rescue);
+      // A tap that cold-started the app: the response was handled before any
+      // of this existed, so it waited on disk.
+      final tripKey = await NotificationService.takePendingTripKey();
+      if (tripKey != null && mounted) await _openTrip(tripKey);
     });
   }
 
   @override
   void dispose() {
     _missedSubscription?.cancel();
+    _tripOpenSubscription?.cancel();
     super.dispose();
+  }
+
+  /// A trip notification was tapped: show THAT trip's Reiseplan.
+  ///
+  /// "Dein Zug fährt in 30 Min" that merely opens the app puts the rider back
+  /// where they left off — usually the search — and makes them find the trip
+  /// themselves. The Reisen tab is selected first, so Back leads to the trip
+  /// list rather than to whatever screen the app happened to be on.
+  Future<void> _openTrip(String key, {bool consumePersisted = false}) async {
+    // The stream fired, so the persisted copy (written for the cold-start case)
+    // is now stale — drop it before it opens the same trip a second time.
+    if (consumePersisted) await NotificationService.takePendingTripKey();
+    final saved = await _awaitSavedJourney(key);
+    if (!mounted) return;
+    final router = ref.read(appRouterProvider);
+    router.go('/journeys');
+    if (saved == null) {
+      // Deleted, or aged out of the library — the trip list is still a better
+      // answer than the screen the rider happened to be on.
+      AppLog.log('notification trip $key not in library', tag: 'notify');
+      return;
+    }
+    router.push('/connection', extra: saved.journey);
+  }
+
+  /// The saved trip for [key], waiting out the library's async load.
+  ///
+  /// On a cold start this runs while `libraryProvider` is still reading from
+  /// disk, where an empty list means "not yet" rather than "not there" — giving
+  /// up immediately would send every notification tap to an empty trip list.
+  Future<SavedJourney?> _awaitSavedJourney(String key) async {
+    for (var i = 0; i < 20; i++) {
+      final library = ref.read(libraryProvider);
+      if (library.loaded) {
+        return library.journeys.where((j) => j.key == key).firstOrNull;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return null;
+    }
+    return null;
   }
 
   Future<void> _openMissedAlternatives(

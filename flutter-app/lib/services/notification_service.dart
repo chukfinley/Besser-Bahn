@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,6 +33,26 @@ class NotificationService {
   /// Cold starts use [takePendingMissedRescue] instead.
   static Stream<MissedConnectionRescue> get missedRescues =>
       _missedRescues.stream;
+
+  /// Payload marking a notification as belonging to one saved trip
+  /// (`trip:<SavedJourney.key>`). Tapping it must land on THAT trip's
+  /// Reiseplan — "dein Zug fährt gleich" that only opens the app leaves the
+  /// rider to find the trip themselves, which is the one thing they were about
+  /// to do.
+  static const _tripPayloadPrefix = 'trip:';
+  static const _pendingTripKey = 'pending_trip_open_v1';
+  static final _tripOpens = StreamController<String>.broadcast();
+
+  /// Emits the [SavedJourney.key] of a tapped trip notification while the app
+  /// is alive. Cold starts use [takePendingTripKey] instead.
+  static Stream<String> get tripOpens => _tripOpens.stream;
+
+  /// The payload for a trip-scoped notification, or null when the caller has no
+  /// trip to point at (then a tap just opens the app, as before).
+  static String? _tripPayload(String? tripKey) =>
+      (tripKey == null || tripKey.isEmpty)
+          ? null
+          : '$_tripPayloadPrefix$tripKey';
 
   /// Lowest notification id used for *scheduled* trip reminders. Reserved range
   /// so [cancelReminders] can reconcile them without touching the one-shot
@@ -251,6 +272,7 @@ class NotificationService {
     required int id,
     required String title,
     required String body,
+    String? tripKey,
   }) async {
     if (!_ready) await init();
     await _ensurePermission();
@@ -260,6 +282,7 @@ class NotificationService {
         title: title,
         body: body,
         notificationDetails: _tripDetails(),
+        payload: _tripPayload(tripKey),
       );
     } catch (e) {
       AppLog.log('trip alert show failed ($e)', tag: 'notify');
@@ -274,6 +297,7 @@ class NotificationService {
     required int id,
     required String title,
     required String body,
+    String? tripKey,
   }) async {
     if (!_ready) await init();
     await _ensurePermission();
@@ -283,6 +307,7 @@ class NotificationService {
         title: title,
         body: body,
         notificationDetails: _alarmDetails(),
+        payload: _tripPayload(tripKey),
       );
     } catch (e) {
       AppLog.log('exit alarm show failed ($e)', tag: 'notify');
@@ -348,6 +373,7 @@ class NotificationService {
     required DateTime when,
     required String title,
     required String body,
+    String? tripKey,
   }) async {
     if (!_ready) await init();
     final at = tz.TZDateTime.from(when, tz.local);
@@ -358,6 +384,7 @@ class NotificationService {
         title: title,
         body: body,
         scheduledDate: at,
+        payload: _tripPayload(tripKey),
         notificationDetails: _tripDetails(),
         androidScheduleMode: _exactAlarms
             ? AndroidScheduleMode.exactAllowWhileIdle
@@ -379,6 +406,7 @@ class NotificationService {
     required DateTime when,
     required String title,
     required String body,
+    String? tripKey,
   }) async {
     if (!_ready) await init();
     final at = tz.TZDateTime.from(when, tz.local);
@@ -389,6 +417,7 @@ class NotificationService {
         title: title,
         body: body,
         scheduledDate: at,
+        payload: _tripPayload(tripKey),
         notificationDetails: _alarmDetails(),
         androidScheduleMode: _exactAlarms
             ? AndroidScheduleMode.exactAllowWhileIdle
@@ -476,9 +505,33 @@ class NotificationService {
     unawaited(_handleResponse(r));
   }
 
+  /// The tap handler, reachable from tests: it decides what a tap *means*
+  /// (open this trip / arm a rescue / ignore), which is app logic and worth
+  /// pinning — everything around it needs a live OS plugin.
+  @visibleForTesting
+  static Future<void> handleResponseForTest(NotificationResponse response) =>
+      _handleResponse(response);
+
   static Future<void> _handleResponse(NotificationResponse response) async {
     final payload = response.payload;
-    if (payload == null || !payload.startsWith(_missedPayloadPrefix)) return;
+    if (payload == null) return;
+
+    // A trip notification: open THAT trip's Reiseplan, not just the app.
+    if (payload.startsWith(_tripPayloadPrefix)) {
+      // "Stoppen" on the arrival alarm is a dismissal — the rider is silencing
+      // it, not asking to be taken somewhere.
+      if (response.actionId == 'stop_alarm') return;
+      final key = payload.substring(_tripPayloadPrefix.length);
+      if (key.isEmpty) return;
+      // Persisted first: a tap can cold-start the app, and then nothing is
+      // listening yet. [takePendingTripKey] picks it up once the UI is up.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_pendingTripKey, key);
+      _tripOpens.add(key);
+      return;
+    }
+
+    if (!payload.startsWith(_missedPayloadPrefix)) return;
     // Only the explicit "Alternativen suchen" action arms the rescue. A body
     // tap (null/empty actionId — the only interaction iOS offers without the
     // category, and possible on Android too) or the "Nein" action must never
@@ -493,6 +546,17 @@ class NotificationService {
     } catch (e) {
       AppLog.log('missed notification payload invalid ($e)', tag: 'notify');
     }
+  }
+
+  /// Consume a trip-notification tap persisted before the Flutter UI was ready
+  /// (the cold-start case: the tap IS what launched the app).
+  static Future<String?> takePendingTripKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+    final key = prefs.getString(_pendingTripKey);
+    if (key == null) return null;
+    await prefs.remove(_pendingTripKey);
+    return key;
   }
 
   /// Consume a rescue tap persisted before the Flutter UI was ready.

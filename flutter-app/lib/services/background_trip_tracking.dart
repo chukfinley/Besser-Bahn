@@ -455,6 +455,7 @@ class BackgroundTripTracking {
         id: _stableId('position-delay:${plan.journeyKey}:${selected.id}'),
         title: 'Mögliche Verspätung: etwa +$delayBucket Min',
         body: 'Deine Position passt nicht mehr zum Fahrplan. $comparison',
+        tripKey: plan.journeyKey,
       );
       AppLog.log('position inferred +$delayBucket min', tag: 'live');
     }
@@ -469,12 +470,14 @@ class BackgroundTripTracking {
           id: _stableId('position-exit:${plan.journeyKey}:${selected.id}'),
           title: title,
           body: body,
+          tripKey: plan.journeyKey,
         );
       } else {
         await NotificationService.showTripAlert(
           id: _stableId('position-exit:${plan.journeyKey}:${selected.id}'),
           title: title,
           body: body,
+          tripKey: plan.journeyKey,
         );
       }
       AppLog.log(

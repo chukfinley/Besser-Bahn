@@ -66,6 +66,7 @@ class TripReminderScheduler {
           when: r.when,
           title: r.title,
           body: r.body,
+          tripKey: r.tripKey,
         );
       } else {
         await NotificationService.scheduleReminder(
@@ -73,6 +74,7 @@ class TripReminderScheduler {
           when: r.when,
           title: r.title,
           body: r.body,
+          tripKey: r.tripKey,
         );
       }
     }
@@ -100,14 +102,15 @@ class TripReminderScheduler {
     final current = now ?? DateTime.now();
     final reminders = <TripReminder>[];
     for (final saved in upcoming.where((j) => j.watched)) {
-      reminders.addAll(_remindersFor(
+      final own = _remindersFor(
         saved.journey,
         leadMinutes,
         departureReminders: departureReminders,
         transferAlerts: departureReminders && transferAlerts,
         arrivalAlert: arrivalAlert,
         arrivalAlarmSound: arrivalAlarmSound,
-      ));
+      );
+      reminders.addAll([for (final r in own) r.withTripKey(saved.key)]);
     }
     reminders
       ..removeWhere((r) => !r.when.isAfter(current))
@@ -229,10 +232,27 @@ class TripReminder {
   /// Schedule via the loud insistent "Ankunfts-Wecker" instead of a normal
   /// notification.
   final bool alarm;
+
+  /// Which saved trip this ping is about ([SavedJourney.key]) — travels into the
+  /// notification's payload so tapping it opens that trip's Reiseplan instead of
+  /// just the app. Empty while the reminder is being built: the builders work
+  /// from a [Journey], the key belongs to the saved entry around it, so [plan]
+  /// stamps it on with [withTripKey].
+  final String tripKey;
+
   const TripReminder({
     required this.when,
     required this.title,
     required this.body,
     this.alarm = false,
+    this.tripKey = '',
   });
+
+  TripReminder withTripKey(String key) => TripReminder(
+        when: when,
+        title: title,
+        body: body,
+        alarm: alarm,
+        tripKey: key,
+      );
 }

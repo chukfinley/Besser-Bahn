@@ -304,7 +304,13 @@ class LiveTripTracker extends Notifier<LiveTripState>
       {required String title, required String body}) {
     if (_lastAlert[key] == value) return;
     _lastAlert[key] = value;
-    NotificationService.showTripAlert(id: key.hashCode, title: title, body: body);
+    // The alert is about the trip being tracked, so a tap opens its Reiseplan.
+    NotificationService.showTripAlert(
+      id: key.hashCode,
+      title: title,
+      body: body,
+      tripKey: state.activeKey,
+    );
     AppLog.log('live alert: $title — $body', tag: 'live');
   }
 

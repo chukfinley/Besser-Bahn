@@ -27,11 +27,18 @@ class LibraryState {
   final List<SavedTrain> trains;
   final List<SavedJourney> journeys;
 
+  /// Whether the on-disk library has been read yet. Before that an empty list
+  /// means "not loaded", not "nothing saved" — and the difference matters to
+  /// anyone looking a trip up by key right after launch (a notification tap
+  /// cold-starting the app is exactly that case).
+  final bool loaded;
+
   const LibraryState({
     this.stations = const [],
     this.routes = const [],
     this.trains = const [],
     this.journeys = const [],
+    this.loaded = false,
   });
 
   LibraryState copyWith({
@@ -39,12 +46,14 @@ class LibraryState {
     List<SavedRoute>? routes,
     List<SavedTrain>? trains,
     List<SavedJourney>? journeys,
+    bool? loaded,
   }) {
     return LibraryState(
       stations: stations ?? this.stations,
       routes: routes ?? this.routes,
       trains: trains ?? this.trains,
       journeys: journeys ?? this.journeys,
+      loaded: loaded ?? this.loaded,
     );
   }
 
@@ -133,6 +142,7 @@ class LibraryNotifier extends Notifier<LibraryState> {
       routes: decode(_kRoutesKey, SavedRoute.fromJson),
       trains: decode(_kTrainsKey, SavedTrain.fromJson),
       journeys: journeys,
+      loaded: true,
     );
     // Persist the purge so dropped entries don't resurrect next launch.
     if (journeys.length != decode(_kJourneysKey, SavedJourney.fromJson).length) {

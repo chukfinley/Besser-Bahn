@@ -370,6 +370,82 @@ void main() {
 
       expect(hit!.live, 'B2');
       expect(hit.note, isNull);
+      expect(hit.closed, isFalse);
+    });
+
+    test('the destination label does not have to agree between the two backends',
+        () {
+      // DB calls this ride "Rungholtplatz", NAH.SH calls the line "Suchsdorf".
+      // The exact 09:39 minute picks it out; the differing label must not throw
+      // the (moved) departure away.
+      final hit = RegionalTransitService.matchDeparture(_parsed(),
+          line: 'Bus 22',
+          towards: 'Rungholtplatz, Kiel',
+          plannedDeparture: _at(9, 39),
+          dbPlatform: 'B1');
+
+      expect(hit, isNotNull, reason: 'time disambiguates without the label');
+      expect(hit!.live, 'B2');
+    });
+
+    test('a closed planned bay warns even with no live replacement yet — the '
+        'realtime bay only appears near departure, the notice days ahead', () {
+      // 18 h out: dPlatfR is not set (live == planned == B1), but the closure
+      // HIM is already attached. That is exactly the future-trip case.
+      final board = [
+        const RegionalDeparture(
+          line: 'Bus 22',
+          direction: 'Suchsdorf',
+          plannedTime: 9 * 60 + 39,
+          plannedPlatform: 'B1',
+          livePlatform: 'B1', // no realtime override yet
+          notes: ['Sperrung Bussteig B1 am Hauptbahnhof'],
+        ),
+      ];
+      final hit = RegionalTransitService.matchDeparture(board,
+          line: 'Bus 22',
+          towards: 'Rungholtplatz',
+          plannedDeparture: _at(9, 39),
+          dbPlatform: 'B1');
+
+      expect(hit, isNotNull);
+      expect(hit!.closed, isTrue);
+      expect(hit.live, 'B1', reason: 'no replacement known, so no false bay');
+      expect(hit.note, 'Sperrung Bussteig B1 am Hauptbahnhof');
+    });
+
+    test('a closure notice for a DIFFERENT bay does not warn this departure', () {
+      final board = [
+        const RegionalDeparture(
+          line: 'Bus 5',
+          direction: 'Wik',
+          plannedTime: 9 * 60 + 39,
+          plannedPlatform: 'C2',
+          livePlatform: 'C2',
+          notes: ['Sperrung Bussteig B1 am Hauptbahnhof'], // about B1, not C2
+        ),
+      ];
+      final hit = RegionalTransitService.matchDeparture(board,
+          line: 'Bus 5', towards: 'Wik', plannedDeparture: _at(9, 39));
+
+      expect(hit, isNull, reason: 'C2 is not the closed bay');
+    });
+
+    test('an ordinary unmoved departure yields nothing', () {
+      final board = [
+        const RegionalDeparture(
+          line: 'Bus 5',
+          direction: 'Wik',
+          plannedTime: 9 * 60 + 39,
+          plannedPlatform: 'C2',
+          livePlatform: 'C2',
+        ),
+      ];
+      expect(
+        RegionalTransitService.matchDeparture(board,
+            line: 'Bus 5', towards: 'Wik', plannedDeparture: _at(9, 39)),
+        isNull,
+      );
     });
 
     test('matched on the SCHEDULED time — a late bus is still this departure',

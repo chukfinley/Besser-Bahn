@@ -15,6 +15,13 @@ typedef PlatformCorrection = ({
   String live,
   String? note,
   String source,
+
+  /// The planned platform is *closed* (a construction notice names it), even
+  /// though no live replacement is in the feed yet. Then [live] equals
+  /// [planned] and [note] carries the operator's closure text — the app warns
+  /// "Steig B1 gesperrt" rather than sending the rider to a shut bay, and fills
+  /// in the actual replacement once the realtime value appears near departure.
+  bool closed,
 });
 
 /// The NAH.SH HAFAS — the Schleswig-Holstein transport authority's own backend,
@@ -561,37 +568,40 @@ class RegionalTransitService {
     final wantedTo = _placeKey(towards);
     final minutes = plannedDeparture.hour * 60 + plannedDeparture.minute;
 
-    final candidates = <RegionalDeparture>[];
+    // Every same-line departure within tolerance, with its minute distance.
+    // NOT filtered to `moved`: a closed bay with no live replacement yet isn't
+    // "moved", but still carries a warning we want to surface.
+    final near = <({RegionalDeparture d, int diff})>[];
     for (final d in board) {
-      if (!d.moved) continue;
       final t = d.plannedTime;
       if (t == null) continue;
+      if (wantedLine != null && _lineKey(d.line) != wantedLine) continue;
       var diff = (t - minutes).abs();
       // Around midnight the board wraps; 23:58 and 00:01 are three minutes apart.
       if (diff > 720) diff = 1440 - diff;
       if (diff > tolerance.inMinutes) continue;
-      if (wantedLine != null && _lineKey(d.line) != wantedLine) continue;
-      candidates.add(d);
+      near.add((d: d, diff: diff));
     }
-    if (candidates.isEmpty) return null;
+    if (near.isEmpty) return null;
 
-    // The destination is a filter, not just a tiebreak. Line 22 leaves Kiel Hbf
-    // for Schwentinental at 09:38 (bay unchanged) and for Suchsdorf at 09:39
-    // (B1 → B2); a minute of tolerance otherwise hands the Schwentinental rider
-    // the other ride's correction and sends them to the wrong bay.
-    if (wantedTo != null && candidates.any((d) => d.direction.isNotEmpty)) {
-      final byDirection = candidates
-          .where((d) => _directionMatches(d.direction, wantedTo))
-          .toList();
-      // Nothing in this direction moved — which is an answer: no correction.
-      if (byDirection.length != 1) return null;
-      return _correctionOf(byDirection.first, source, dbPlatform);
+    // Time first. An exact-minute departure wins over a neighbour a minute off —
+    // that is what tells "22 → Suchsdorf 09:39" apart from "22 → Schwentinental
+    // 09:38" WITHOUT depending on the destination label agreeing between two
+    // backends: DB calls this ride "Rungholtplatz", NAH.SH calls it "Suchsdorf",
+    // and a direction filter would then throw the right departure away.
+    final best = near.map((e) => e.diff).reduce(math.min);
+    var pool = [for (final e in near) if (e.diff == best) e.d];
+
+    // Only if the exact time still leaves more than one (two lines-22 in the
+    // same minute) does the destination break the tie — and a differing label
+    // then just means "can't tell", never a hard "no".
+    if (pool.length > 1 && wantedTo != null) {
+      final byDir =
+          pool.where((d) => _directionMatches(d.direction, wantedTo)).toList();
+      if (byDir.length == 1) pool = byDir;
     }
-
-    // Ambiguity is failure: sending a rider to the wrong bay is worse than
-    // leaving the timetable's answer alone.
-    if (candidates.length != 1) return null;
-    return _correctionOf(candidates.first, source, dbPlatform);
+    if (pool.length != 1) return null;
+    return _correctionOf(pool.first, source, dbPlatform);
   }
 
   /// The message that names the bay the bus left, when there is one — at Kiel
@@ -607,16 +617,59 @@ class RegionalTransitService {
     return d.notes.isEmpty ? null : d.notes.first;
   }
 
-  static PlatformCorrection _correctionOf(
-          RegionalDeparture d, String source, String? dbPlatform) =>
-      (
+  static PlatformCorrection? _correctionOf(
+      RegionalDeparture d, String source, String? dbPlatform) {
+    if (d.moved) {
+      return (
         // What DB itself says, when we know it — that is the value the rider
         // sees everywhere else in the app, and the one this contradicts.
         planned: dbPlatform ?? d.plannedPlatform!,
         live: d.livePlatform!,
         note: _bestNote(d),
         source: source,
+        closed: false,
       );
+    }
+    // Not moved, but a construction notice names the planned bay as closed.
+    // The realtime replacement only shows up near departure, while this notice
+    // is planned and present days ahead — so we can still warn the rider that
+    // the bay their trip is booked from is shut, even without the new bay yet.
+    final closure = _closureNote(d);
+    if (closure != null) {
+      final planned = dbPlatform ?? d.plannedPlatform;
+      if (planned != null) {
+        return (
+          planned: planned,
+          live: planned,
+          note: closure,
+          source: source,
+          closed: true,
+        );
+      }
+    }
+    return null;
+  }
+
+  /// A notice on [d] that says [d]'s own planned bay is closed, or null. Both
+  /// halves have to hold: a closure word AND the bay's own code named in the
+  /// text, so "Sperrung Bussteig B1" only fires for the departure planned from
+  /// B1, not for every bus at the station.
+  static String? _closureNote(RegionalDeparture d) {
+    final bay = d.plannedPlatform;
+    if (bay == null) return null;
+    final bayRe = RegExp(r'(^|\D)' + RegExp.escape(bay) + r'(\D|$)',
+        caseSensitive: false);
+    for (final n in d.notes) {
+      final low = n.toLowerCase();
+      final closed = low.contains('sperr') ||
+          low.contains('gesperrt') ||
+          low.contains('entfäll') ||
+          low.contains('nicht bedient') ||
+          low.contains('kann nicht');
+      if (closed && bayRe.hasMatch(n)) return n;
+    }
+    return null;
+  }
 
   /// Whether a board entry heads where the rider does. Prefix either way, since
   /// the two sources spell the same place differently often enough

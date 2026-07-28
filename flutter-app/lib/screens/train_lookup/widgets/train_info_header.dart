@@ -154,6 +154,11 @@ class TrainInfoHeader extends StatelessWidget {
                   ),
                 ],
               ),
+              if (trip.occupancy.recommendsReservation) ...[
+                const SizedBox(height: 6),
+                _infoChip(
+                    Icons.event_seat, trip.occupancy.reservationHint),
+              ],
             ],
       ],
     );

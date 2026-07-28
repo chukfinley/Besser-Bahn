@@ -519,6 +519,16 @@ enum OccupancyLevel {
         return 'Sehr hohe Auslastung erwartet';
     }
   }
+
+  /// At high / very high load a seat reservation is worth it — the rider risks
+  /// standing otherwise. Only a hint: DB doesn't publish "reservation
+  /// required", so we never claim it is (#64).
+  bool get recommendsReservation =>
+      this == OccupancyLevel.high || this == OccupancyLevel.veryHigh;
+
+  /// Short chip text for [recommendsReservation]. Empty when not recommended.
+  String get reservationHint =>
+      recommendsReservation ? 'Sitzplatzreservierung empfohlen' : '';
 }
 
 /// Round-trips [OccupancyLevel] through its enum name.

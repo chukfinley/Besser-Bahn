@@ -1,14 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../models/db_account.dart';
 import '../../models/purchased_split.dart';
 import '../../models/travel_stats.dart';
 import '../../providers/account_provider.dart';
+import '../../providers/library_provider.dart';
 import '../../providers/purchased_splits_provider.dart';
 import '../../providers/travel_stats_provider.dart';
 import '../../services/db_account_service.dart';
+import '../../utils/data_export.dart';
 
 /// "Reise­statistik" — lifetime, on-device totals derived from completed saved
 /// trips plus the official current-year CO₂ balance from BahnBonus.
@@ -29,6 +35,20 @@ class TravelStatsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Reisestatistik'),
         actions: [
+          if (!stats.isEmpty || splits.isNotEmpty)
+            PopupMenuButton<String>(
+              tooltip: 'Exportieren',
+              icon: const Icon(Icons.ios_share),
+              onSelected: (v) => _export(context, ref, v),
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                    value: 'csv',
+                    child: Text('Statistik als CSV')),
+                PopupMenuItem(
+                    value: 'geojson',
+                    child: Text('Strecken als GeoJSON')),
+              ],
+            ),
           if (!stats.isEmpty)
             IconButton(
               tooltip: 'Zurücksetzen',
@@ -671,6 +691,40 @@ class TravelStatsScreen extends ConsumerWidget {
   String _km(double km) {
     if (km >= 100) return NumberFormat('#,##0', 'de').format(km.round());
     return NumberFormat('#,##0.0', 'de').format(km);
+  }
+
+  /// Write the chosen export to a temp file and hand it to the system share
+  /// sheet (#72). Purely local data — CSV of the stats or GeoJSON of the routes.
+  Future<void> _export(
+      BuildContext context, WidgetRef ref, String kind) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final stats = ref.read(travelStatsProvider);
+      final splits = ref.read(purchasedSplitsProvider);
+      final String content, name, subject;
+      if (kind == 'geojson') {
+        final journeys = [
+          ...ref.read(libraryProvider).pastJourneys,
+          ...ref.read(libraryProvider).upcomingJourneys,
+        ].map((s) => s.journey).toList();
+        content = journeysToGeoJson(journeys);
+        name = 'besser-bahn-strecken.geojson';
+        subject = 'Gefahrene Strecken (GeoJSON)';
+      } else {
+        content = statsToCsv(stats, splits);
+        name = 'besser-bahn-statistik.csv';
+        subject = 'Reisestatistik (CSV)';
+      }
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$name');
+      await file.writeAsString(content);
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)], subject: subject),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Export fehlgeschlagen: $e')));
+    }
   }
 
   Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {

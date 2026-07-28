@@ -8,6 +8,7 @@ import '../../models/library_models.dart';
 import '../../models/db_ticket.dart';
 import '../../models/travel_stats.dart';
 import '../../providers/account_provider.dart';
+import '../../providers/construction_radar_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/offline_package_provider.dart';
 import '../../providers/service_providers.dart';
@@ -104,6 +105,7 @@ class JourneysScreen extends ConsumerWidget {
                   if (upcoming.isNotEmpty)
                     TripProgressCard(
                         journey: upcoming.first.journey, activeOnly: true),
+                  _constructionRadar(context, ref),
                   if (!stats.isEmpty) _statsTeaser(context, stats),
                   // Official DB tickets (bought on the account) whose trip is
                   // still ahead. No section header — tickets render directly so
@@ -173,6 +175,57 @@ class JourneysScreen extends ConsumerWidget {
     ]..sort((a, b) =>
         (b.end ?? DateTime(0)).compareTo(a.end ?? DateTime(0)));
     return [for (final r in rows) r.child];
+  }
+
+  /// Bauarbeiten-Radar (#62): warns days ahead when a saved route has a planned
+  /// construction / replacement-service disruption on an upcoming day. Self-
+  /// hiding — nothing renders while scanning, on error, or when all clear.
+  Widget _constructionRadar(BuildContext context, WidgetRef ref) {
+    final alerts = ref.watch(constructionRadarProvider);
+    final list = alerts.asData?.value ?? const <ConstructionAlert>[];
+    if (list.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Card(
+        color: theme.colorScheme.tertiaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.construction,
+                      color: theme.colorScheme.onTertiaryContainer, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Bauarbeiten auf deinen Strecken',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                            color: theme.colorScheme.onTertiaryContainer,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              for (final a in list) ...[
+                Text(a.routeLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                        fontWeight: FontWeight.w600)),
+                for (final note in a.notes.take(2))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2, bottom: 6),
+                    child: Text('• $note',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onTertiaryContainer)),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Compact lifetime-stats banner that taps through to the full screen.

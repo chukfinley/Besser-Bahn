@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/db_account.dart';
+import '../../models/purchased_split.dart';
 import '../../models/travel_stats.dart';
 import '../../providers/account_provider.dart';
+import '../../providers/purchased_splits_provider.dart';
 import '../../providers/travel_stats_provider.dart';
 import '../../services/db_account_service.dart';
 
@@ -18,8 +20,10 @@ class TravelStatsScreen extends ConsumerWidget {
     final stats = ref.watch(travelStatsProvider);
     final auth = ref.watch(dbAuthProvider);
     final co2 = ref.watch(bahnbonusCo2Provider);
+    final splits = ref.watch(purchasedSplitsProvider);
     final theme = Theme.of(context);
-    final hasStatsContent = !stats.isEmpty || auth.isLoggedIn;
+    final hasStatsContent =
+        !stats.isEmpty || auth.isLoggedIn || splits.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -79,6 +83,10 @@ class TravelStatsScreen extends ConsumerWidget {
                       ],
                     ),
                   ],
+                  if (splits.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _savedCard(context, ref, splits),
+                  ],
                   const SizedBox(height: 12),
                   _co2Card(context, auth.isLoggedIn, co2, ref),
                   if (!stats.isEmpty) ...[
@@ -96,6 +104,78 @@ class TravelStatsScreen extends ConsumerWidget {
                 ],
               ),
             ),
+    );
+  }
+
+  /// "Gespart"-Zähler (#70): the money the user actually pocketed via bought
+  /// split-tickets. Only confirmed purchases land here.
+  Widget _savedCard(
+      BuildContext context, WidgetRef ref, List<PurchasedSplit> splits) {
+    final theme = Theme.of(context);
+    final total =
+        splits.fold<double>(0, (sum, s) => sum + s.savings);
+    return Card(
+      color: theme.colorScheme.tertiaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.savings,
+                    color: theme.colorScheme.onTertiaryContainer, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Mit Split-Tickets gespart',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onTertiaryContainer),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${total.toStringAsFixed(2)} €',
+              style: theme.textTheme.displaySmall?.copyWith(
+                color: theme.colorScheme.onTertiaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'aus ${splits.length} ${splits.length == 1 ? 'gekauften Split-Ticket' : 'gekauften Split-Tickets'}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onTertiaryContainer),
+            ),
+            const Divider(height: 24),
+            for (int i = 0; i < splits.length && i < 5; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(splits[i].routeLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                              color:
+                                  theme.colorScheme.onTertiaryContainer)),
+                    ),
+                    Text('+${splits[i].savings.toStringAsFixed(2)} €',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                theme.colorScheme.onTertiaryContainer)),
+                  ],
+                ),
+              ),
+            if (splits.length > 5)
+              Text('… und ${splits.length - 5} weitere',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onTertiaryContainer)),
+          ],
+        ),
+      ),
     );
   }
 

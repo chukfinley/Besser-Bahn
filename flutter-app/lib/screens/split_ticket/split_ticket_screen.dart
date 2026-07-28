@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/journey.dart';
+import '../../models/purchased_split.dart';
 import '../../models/reisende.dart';
 import '../../models/split_ticket.dart';
+import '../../providers/purchased_splits_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/split_ticket_provider.dart';
 import '../../providers/settings_provider.dart';
@@ -574,6 +576,10 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                 ),
               ),
             ],
+            if (result.hasSavings) ...[
+              const SizedBox(height: 8),
+              _buildBoughtButton(context, result),
+            ],
             const SizedBox(height: 8),
             Text(
               '${result.combinationsChecked} Kombinationen in '
@@ -583,6 +589,59 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// "Ich habe das gekauft" — records the confirmed saving so it counts toward
+  /// the "Gespart"-Zähler in der Reisestatistik (#70). Only a confirmed purchase
+  /// counts; a merely computed saving never does.
+  Widget _buildBoughtButton(BuildContext context, TicketAnalysisResult result) {
+    final label = ref.watch(splitTicketProvider).routeLabel ??
+        '${journey?.origin?.name ?? ''} → ${journey?.destination?.name ?? ''}';
+    final departureIso = journey?.departure?.toIso8601String();
+    final dedupeKey = '$label|${departureIso ?? ''}';
+    final already =
+        ref.watch(purchasedSplitsProvider.notifier).contains(dedupeKey);
+
+    if (already) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.check_circle, size: 18, color: AppColors.onTime),
+          const SizedBox(width: 6),
+          Text('Als gekauft gezählt',
+              style: TextStyle(
+                  color: AppColors.onTime, fontWeight: FontWeight.w600)),
+        ],
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.savings_outlined),
+        label: const Text('Ich habe dieses Split-Ticket gekauft'),
+        onPressed: () async {
+          await ref.read(purchasedSplitsProvider.notifier).add(
+                PurchasedSplit(
+                  routeLabel: label,
+                  directPrice: result.directPrice,
+                  splitPrice: result.splitPrice,
+                  purchasedAtMs: DateTime.now().millisecondsSinceEpoch,
+                  departureIso: departureIso,
+                ),
+              );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'Gespart: ${result.savings.toStringAsFixed(2)} € — '
+                    'zählt jetzt in der Reisestatistik.'),
+              ),
+            );
+          }
+        },
       ),
     );
   }

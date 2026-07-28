@@ -31,6 +31,21 @@ class TravelStats {
   /// 0 when nothing has been counted yet.
   final int firstTripMs;
 
+  /// How often each "Origin → Destination" route was travelled — powers
+  /// "häufigste Strecken" (#71).
+  final Map<String, int> routeCounts;
+
+  /// How often each transit line was ridden — powers "meistgenutzte Linien"
+  /// (#71). One count per boarded leg.
+  final Map<String, int> lineCounts;
+
+  /// Total transfers across all counted trips (#71).
+  final int connectionsTotal;
+
+  /// Transfers that could not be made (feeder arrived after the onward train
+  /// left, or the onward leg was cancelled). A conservative lower bound (#71).
+  final int connectionsMissed;
+
   const TravelStats({
     this.totalKm = 0,
     this.tripCount = 0,
@@ -39,6 +54,10 @@ class TravelStats {
     this.worstDelayMinutes = 0,
     this.longestTripKm = 0,
     this.firstTripMs = 0,
+    this.routeCounts = const {},
+    this.lineCounts = const {},
+    this.connectionsTotal = 0,
+    this.connectionsMissed = 0,
   });
 
   static const empty = TravelStats();
@@ -52,6 +71,24 @@ class TravelStats {
   double get avgDelayMinutes =>
       tripCount == 0 ? 0 : totalDelayMinutes / tripCount;
 
+  /// Transfers successfully made (total minus missed).
+  int get connectionsMade {
+    final made = connectionsTotal - connectionsMissed;
+    return made > 0 ? made : 0;
+  }
+
+  /// The [n] most-travelled routes, most first, as (label, count).
+  List<MapEntry<String, int>> topRoutes([int n = 3]) => _top(routeCounts, n);
+
+  /// The [n] most-ridden lines, most first, as (label, count).
+  List<MapEntry<String, int>> topLines([int n = 3]) => _top(lineCounts, n);
+
+  static List<MapEntry<String, int>> _top(Map<String, int> m, int n) {
+    final entries = m.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.take(n).toList();
+  }
+
   TravelStats copyWith({
     double? totalKm,
     int? tripCount,
@@ -60,6 +97,10 @@ class TravelStats {
     int? worstDelayMinutes,
     double? longestTripKm,
     int? firstTripMs,
+    Map<String, int>? routeCounts,
+    Map<String, int>? lineCounts,
+    int? connectionsTotal,
+    int? connectionsMissed,
   }) {
     return TravelStats(
       totalKm: totalKm ?? this.totalKm,
@@ -69,6 +110,10 @@ class TravelStats {
       worstDelayMinutes: worstDelayMinutes ?? this.worstDelayMinutes,
       longestTripKm: longestTripKm ?? this.longestTripKm,
       firstTripMs: firstTripMs ?? this.firstTripMs,
+      routeCounts: routeCounts ?? this.routeCounts,
+      lineCounts: lineCounts ?? this.lineCounts,
+      connectionsTotal: connectionsTotal ?? this.connectionsTotal,
+      connectionsMissed: connectionsMissed ?? this.connectionsMissed,
     );
   }
 
@@ -80,6 +125,10 @@ class TravelStats {
         'worstDelayMinutes': worstDelayMinutes,
         'longestTripKm': longestTripKm,
         'firstTripMs': firstTripMs,
+        'routeCounts': routeCounts,
+        'lineCounts': lineCounts,
+        'connectionsTotal': connectionsTotal,
+        'connectionsMissed': connectionsMissed,
       };
 
   factory TravelStats.fromJson(Map<String, dynamic> json) => TravelStats(
@@ -90,5 +139,14 @@ class TravelStats {
         worstDelayMinutes: json['worstDelayMinutes'] as int? ?? 0,
         longestTripKm: (json['longestTripKm'] as num?)?.toDouble() ?? 0,
         firstTripMs: json['firstTripMs'] as int? ?? 0,
+        routeCounts: _intMap(json['routeCounts']),
+        lineCounts: _intMap(json['lineCounts']),
+        connectionsTotal: json['connectionsTotal'] as int? ?? 0,
+        connectionsMissed: json['connectionsMissed'] as int? ?? 0,
       );
+
+  static Map<String, int> _intMap(dynamic raw) {
+    if (raw is! Map) return const {};
+    return raw.map((k, v) => MapEntry(k as String, (v as num).toInt()));
+  }
 }

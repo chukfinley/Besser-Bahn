@@ -159,6 +159,18 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
     final km = TripMetrics.distanceKm(j);
     final delay = TripMetrics.finalArrivalDelayMinutes(j);
     final onTime = delay < TripMetrics.onTimeThresholdMinutes;
+
+    // Jahresrückblick aggregates (#71): accumulate route/line frequency and
+    // the transfer tally into fresh maps (the stored ones are const/immutable).
+    final routes = Map<String, int>.from(s.routeCounts);
+    final route = TripMetrics.routeLabel(j);
+    if (route.isNotEmpty) routes[route] = (routes[route] ?? 0) + 1;
+
+    final lines = Map<String, int>.from(s.lineCounts);
+    for (final line in TripMetrics.linesUsed(j)) {
+      lines[line] = (lines[line] ?? 0) + 1;
+    }
+
     return s.copyWith(
       totalKm: s.totalKm + km,
       tripCount: s.tripCount + 1,
@@ -170,6 +182,10 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
       firstTripMs: s.firstTripMs == 0 || (endMs != 0 && endMs < s.firstTripMs)
           ? endMs
           : s.firstTripMs,
+      routeCounts: routes,
+      lineCounts: lines,
+      connectionsTotal: s.connectionsTotal + TripMetrics.transferCount(j),
+      connectionsMissed: s.connectionsMissed + TripMetrics.missedConnections(j),
     );
   }
 

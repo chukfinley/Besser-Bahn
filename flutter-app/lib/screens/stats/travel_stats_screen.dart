@@ -82,6 +82,44 @@ class TravelStatsScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                    if (stats.connectionsTotal > 0) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _miniStat(
+                              context,
+                              icon: Icons.check_circle_outline,
+                              label: 'Anschlüsse erreicht',
+                              value: '${stats.connectionsMade}',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _miniStat(
+                              context,
+                              icon: Icons.cancel_outlined,
+                              label: 'Anschlüsse verpasst',
+                              value: '${stats.connectionsMissed}',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (stats.topRoutes().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _rankCard(context,
+                          icon: Icons.route,
+                          title: 'Häufigste Strecken',
+                          entries: stats.topRoutes()),
+                    ],
+                    if (stats.topLines().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _rankCard(context,
+                          icon: Icons.directions_transit,
+                          title: 'Meistgenutzte Linien',
+                          entries: stats.topLines()),
+                    ],
                   ],
                   if (splits.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -104,6 +142,48 @@ class TravelStatsScreen extends ConsumerWidget {
                 ],
               ),
             ),
+    );
+  }
+
+  /// Top-N ranking card (häufigste Strecken / meistgenutzte Linien, #71).
+  Widget _rankCard(BuildContext context,
+      {required IconData icon,
+      required String title,
+      required List<MapEntry<String, int>> entries}) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(title, style: theme.textTheme.titleSmall),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final e in entries)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(e.key,
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('${e.value}× ',
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

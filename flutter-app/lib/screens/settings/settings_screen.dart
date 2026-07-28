@@ -327,6 +327,20 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
+          _sectionHeader(context, 'Barrierefreiheit'),
+
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: SwitchListTile(
+              secondary: const Icon(Icons.subject),
+              title: const Text('Einfache Sprache'),
+              subtitle: const Text(
+                  'Störungshinweise in einfacheren Worten anzeigen'),
+              value: settings.plainLanguage,
+              onChanged: (v) => notifier.setPlainLanguage(v),
+            ),
+          ),
+
           _sectionHeader(context, 'Offline'),
 
           const _OfflineStorageCard(),

@@ -34,6 +34,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/ui/message_card.dart';
 import '../../utils/earlier_alight.dart';
 import '../../utils/leg_swap.dart';
+import '../../utils/plain_language.dart';
 import '../../utils/split_stops.dart';
 import '../../widgets/departure_card.dart';
 import '../../widgets/fahrgastrechte_card.dart';
@@ -1056,9 +1057,13 @@ class _ConnectionDetailScreenState
   /// Notes worth keeping in the (collapsed) leg-notes menu. Drops the wing-train
   /// split note — the loud red banner under the boarding stop says it better, so
   /// keeping the text too would just be the clutter we're trying to remove.
-  List<String> _visibleNotes(List<String> notes) => notes
-      .where((n) => !n.toLowerCase().contains('zugteil'))
-      .toList();
+  List<String> _visibleNotes(List<String> notes) {
+    final plain = ref.watch(settingsProvider).plainLanguage;
+    return notes
+        .where((n) => !n.toLowerCase().contains('zugteil'))
+        .map((n) => plainNote(n, enabled: plain))
+        .toList();
+  }
 
   /// When this connection doesn't run, in DB's words (#20, point 8) — e.g.
   /// "nicht 22. Aug bis 4. Sep 2026".

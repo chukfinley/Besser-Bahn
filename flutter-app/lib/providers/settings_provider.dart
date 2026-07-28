@@ -61,6 +61,10 @@ class AppSettings {
   /// to be, everywhere the app judges one (#11, point 7). Local-only.
   final TransferProfile transferProfile;
 
+  /// Rephrase DB's disruption/running notes into plainer German (#74). Off by
+  /// default — the original wording stays unless the rider asks for simpler.
+  final bool plainLanguage;
+
   const AppSettings({
     this.bahnCard = BahnCardType.none,
     this.hasDeutschlandTicket = false,
@@ -77,6 +81,7 @@ class AppSettings {
     this.transferProfile = TransferProfile.normal,
     this.searchParty = const SearchParty(),
     this.partyCustomized = false,
+    this.plainLanguage = false,
   });
 
   AppSettings copyWith({
@@ -95,6 +100,7 @@ class AppSettings {
     TransferProfile? transferProfile,
     SearchParty? searchParty,
     bool? partyCustomized,
+    bool? plainLanguage,
   }) {
     return AppSettings(
       bahnCard: bahnCard ?? this.bahnCard,
@@ -112,6 +118,7 @@ class AppSettings {
       transferProfile: transferProfile ?? this.transferProfile,
       searchParty: searchParty ?? this.searchParty,
       partyCustomized: partyCustomized ?? this.partyCustomized,
+      plainLanguage: plainLanguage ?? this.plainLanguage,
     );
   }
 }
@@ -147,6 +154,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
       searchParty: SearchParty.tryDecode(prefs.getString('searchParty')) ??
           SearchParty.fromSettings(bahnCard, dTicket),
       partyCustomized: prefs.getBool('partyCustomized') ?? false,
+      plainLanguage: prefs.getBool('plainLanguage') ?? false,
     );
   }
 
@@ -167,6 +175,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await prefs.setString('transferProfile', state.transferProfile.name);
     await prefs.setString('searchParty', state.searchParty.encode());
     await prefs.setBool('partyCustomized', state.partyCustomized);
+    await prefs.setBool('plainLanguage', state.plainLanguage);
+  }
+
+  void setPlainLanguage(bool value) {
+    state = state.copyWith(plainLanguage: value);
+    _save();
   }
 
   /// "My BahnCard" from the simple settings path: carried into the party

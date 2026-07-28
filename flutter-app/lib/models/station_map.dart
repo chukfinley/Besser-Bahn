@@ -80,6 +80,49 @@ class PlatformAnchor {
   LatLng get latLng => LatLng(latitude, longitude);
 }
 
+/// A lift or escalator at a station with its current operational status (#73).
+///
+/// From the richer `elevator`/`escalator` arrays bahnhof.de embeds (the same
+/// arrays [PlatformAnchor] is mined from): each entry carries a
+/// `state:{type, explanation}` — DB's own live facility status, merged from
+/// FaSta — plus the served platforms. When `type` isn't `ACTIVE` the lift is
+/// out of service, which is exactly the "Aufzug außer Betrieb" a step-free
+/// rider needs before they pick a connection.
+class StationFacility {
+  /// `ELEVATOR` or `ESCALATOR`.
+  final String type;
+
+  /// Free-text label, e.g. "zu Gleis 7/8 Abschnitt E".
+  final String description;
+
+  /// Raw state type, e.g. `ACTIVE`, `INACTIVE`, `UNKNOWN`.
+  final String stateType;
+
+  /// Human explanation from DB, e.g. "available", "not available".
+  final String? explanation;
+
+  /// Track numbers this facility serves (mined from [description] and the
+  /// `associatedPlatforms` array), e.g. {"7", "8"}.
+  final Set<String> gleise;
+
+  const StationFacility({
+    required this.type,
+    required this.description,
+    required this.stateType,
+    this.explanation,
+    this.gleise = const {},
+  });
+
+  bool get isElevator => type == 'ELEVATOR';
+
+  /// True unless DB reports it working. Anything but an explicit `ACTIVE` is
+  /// treated as impaired — a missing/unknown status is not a promise it works.
+  bool get outOfService => stateType.toUpperCase() != 'ACTIVE';
+
+  /// "Aufzug" / "Rolltreppe" for UI copy.
+  String get germanKind => isElevator ? 'Aufzug' : 'Rolltreppe';
+}
+
 /// Full indoor-map dataset for one station, scraped live from bahnhof.de.
 class StationMap {
   final String slug;
@@ -100,6 +143,9 @@ class StationMap {
   /// group tracks into platform islands and place section markers correctly.
   final List<PlatformAnchor> platformAnchors;
 
+  /// Lifts/escalators with their live operational status (#73).
+  final List<StationFacility> facilities;
+
   const StationMap({
     required this.slug,
     required this.center,
@@ -107,7 +153,19 @@ class StationMap {
     required this.levelInit,
     required this.pois,
     this.platformAnchors = const [],
+    this.facilities = const [],
   });
+
+  /// Out-of-service lifts/escalators — the ones worth warning about (#73).
+  List<StationFacility> get outOfServiceFacilities =>
+      facilities.where((f) => f.outOfService).toList();
+
+  /// Out-of-service facilities that serve any of [gleise] — for a step-free
+  /// warning tied to the platform a rider actually uses.
+  List<StationFacility> outOfServiceForGleise(Set<String> gleise) =>
+      outOfServiceFacilities
+          .where((f) => f.gleise.any(gleise.contains))
+          .toList();
 
   /// POIs on a given floor.
   List<MapPoi> poisOnLevel(String level) =>

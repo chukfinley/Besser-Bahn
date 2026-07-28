@@ -376,7 +376,52 @@ StationMap _parseBody(String slug, String body) {
     levelInit: lvl?.group(2) ?? (levels.isNotEmpty ? levels.first : ''),
     pois: pois,
     platformAnchors: anchors,
+    facilities: _extractFacilities(blob),
   );
+}
+
+/// Lifts/escalators with their live operational status (#73), from the same
+/// `elevator`/`escalator` arrays [_extractAnchors] mines. Each entry has a
+/// `state:{type, explanation}` (DB's FaSta status) plus the served platforms —
+/// so a rider learns "Aufzug zu Gleis 7 außer Betrieb" before travelling.
+List<StationFacility> _extractFacilities(String blob) {
+  final facilities = <StationFacility>[];
+  final pair = RegExp(
+      r'(?:Gleis|Gl\.|Bstg\.?\s*\d*\s*Gl\.?)\s*(\d+)\s*/\s*(\d+)');
+  final single = RegExp(r'(\d+)'); // leading track digits of "5A-C"
+  for (final key in const ['"elevator":[', '"escalator":[']) {
+    final arr = _extractJsonArray(blob, key);
+    if (arr == null) continue;
+    for (final e in arr) {
+      if (e is! Map<String, dynamic>) continue;
+      final desc = (e['description'] as String?)?.trim() ?? '';
+      final state = e['state'] as Map<String, dynamic>?;
+      final stateType = (state?['type'] as String?) ?? 'UNKNOWN';
+      final gleise = <String>{};
+      final m = pair.firstMatch(desc);
+      if (m != null) gleise.addAll([m.group(1)!, m.group(2)!]);
+      final assoc = e['associatedPlatforms'];
+      if (assoc is List) {
+        for (final a in assoc) {
+          final plats = (a is Map ? a['platforms'] : null);
+          if (plats is List) {
+            for (final p in plats) {
+              final s = single.firstMatch('$p');
+              if (s != null) gleise.add(s.group(1)!);
+            }
+          }
+        }
+      }
+      facilities.add(StationFacility(
+        type: (e['type'] as String?) ?? 'ELEVATOR',
+        description: desc,
+        stateType: stateType,
+        explanation: state?['explanation'] as String?,
+        gleise: gleise,
+      ));
+    }
+  }
+  return facilities;
 }
 
 /// Lift/escalator access points that name the Gleise they serve. bahnhof.de

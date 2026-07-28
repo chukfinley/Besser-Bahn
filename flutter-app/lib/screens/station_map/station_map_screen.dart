@@ -228,11 +228,25 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
       return null;
     }
 
+    // Out-of-service lifts/escalators (#73). When a boarding Gleis is
+    // highlighted, warn only about the facilities serving it; otherwise list
+    // the station's out-of-service ones.
+    Widget? facilityNotice() {
+      if (map == null) return null;
+      final gleis = state.highlightGleis ?? state.secondaryGleis;
+      final broken = gleis != null
+          ? map.outOfServiceForGleise({gleis})
+          : map.outOfServiceFacilities;
+      if (broken.isEmpty) return null;
+      return _FacilityWarning(facilities: broken);
+    }
+
     // Embedded (Karte tab): the map fills the whole screen as a background and
     // the search + notices float on glass over it — the same "content runs
     // behind the chrome" idea as the connection search and the nav bar.
     if (widget.embedded) {
       final notice = overlayNotice();
+      final facility = facilityNotice();
       return Scaffold(
         resizeToAvoidBottomInset: false,
         body: Stack(
@@ -266,6 +280,10 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                       const SizedBox(height: 6),
                       GlassPanel(child: notice),
                     ],
+                    if (facility != null) ...[
+                      const SizedBox(height: 6),
+                      GlassPanel(child: facility),
+                    ],
                   ],
                 ),
               ),
@@ -297,6 +315,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
               ),
             ),
           if (overlayNotice() != null) overlayNotice()!,
+          if (facilityNotice() != null) facilityNotice()!,
           Expanded(child: _buildBody(context, state, notifier)),
         ],
       ),
@@ -1446,6 +1465,48 @@ class _BoardingBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Warns about out-of-service lifts/escalators at the station (#73) — the piece
+/// a step-free rider needs before committing to a change here.
+class _FacilityWarning extends StatelessWidget {
+  final List<StationFacility> facilities;
+
+  const _FacilityWarning({required this.facilities});
+
+  String _line(StationFacility f) {
+    final where = f.gleise.isNotEmpty
+        ? ' zu Gleis ${(f.gleise.toList()..sort()).join('/')}'
+        : (f.description.isNotEmpty ? ' (${f.description})' : '');
+    return '${f.germanKind}$where außer Betrieb';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.error;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.elevator, color: color, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final f in facilities.take(3))
+                Text(_line(f),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                        color: color, fontWeight: FontWeight.w600)),
+              if (facilities.length > 3)
+                Text('… und ${facilities.length - 3} weitere',
+                    style: theme.textTheme.bodySmall?.copyWith(color: color)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1952,6 +1952,12 @@ def check_bahnhof_map() -> str:
             raise CheckError(f"RSC stream missing {cat} category")
     if '"elevator":[' not in stream and '"escalator":[' not in stream:
         raise CheckError("RSC stream missing elevator/escalator anchor arrays")
+    # Facility status (#73): the app reads each lift/escalator's live state from
+    # the `state:{type,...}` object in these arrays to warn "Aufzug außer
+    # Betrieb". If that field vanished, the accessibility warning goes silent.
+    if '"state":{"type":"' not in stream:
+        raise CheckError("RSC stream missing facility state.type "
+                         "(elevator/escalator status parsing would break, #73)")
     if '"levelInit"' not in stream:
         raise CheckError("RSC stream missing levelInit")
 

@@ -36,8 +36,19 @@ class LiveUpdateService {
   static LiveUpdateStyle preferredStyle = LiveUpdateStyle.auto;
 
   static Future<bool> isSupported() async {
-    return _supported ??= await LiveUpdate.isSupported();
+    if (_supported != null) return _supported!;
+    final s = await LiveUpdate.isSupported();
+    _supported = s;
+    AppLog.log(
+        'live update: isSupported=$s '
+        '(Android 16 QPR1+/17 nötig UND „Livemeldungen" für die App an)',
+        tag: 'notify');
+    return s;
   }
+
+  /// Force the next [isSupported] to re-ask the platform — the rider may have
+  /// just flipped the "Livemeldungen" toggle, and the cached answer is stale.
+  static void invalidateSupport() => _supported = null;
 
   /// Called when a new trip starts being tracked: a fresh trip may be shown
   /// again even if the previous one was dismissed.
@@ -48,15 +59,29 @@ class LiveUpdateService {
   /// Returns whether the system is really promoting it — false means "show the
   /// ordinary notification instead", not "something broke".
   static Future<bool> show(Journey journey, {DateTime? now}) async {
-    if (_dismissed) return false;
-    if (!await isSupported()) return false;
+    if (_dismissed) {
+      AppLog.log('live update: übersprungen — vom Nutzer weggewischt (reset() '
+          'setzt das bei neuer Reise zurück)', tag: 'notify');
+      return false;
+    }
+    if (!await isSupported()) {
+      AppLog.log('live update: NICHT gepostet — Gerät promotet es nicht '
+          '(isSupported=false)', tag: 'notify');
+      return false;
+    }
     _listenForDismissal();
 
     final at = now ?? DateTime.now();
     final trip = summariseTrip(journey, at);
-    if (trip.isEmpty) return false;
+    if (trip.isEmpty) {
+      AppLog.log('live update: NICHT gepostet — Reise ohne verwertbare '
+          'Etappen/Zeiten (summariseTrip leer)', tag: 'notify');
+      return false;
+    }
     // Over and done: the Live Update's whole promise is that it is current.
     if (trip.finishedAt(at)) {
+      AppLog.log('live update: NICHT gepostet — Reise laut Zeiten schon '
+          'beendet, blende aus', tag: 'notify');
       await hide();
       return false;
     }
@@ -74,32 +99,42 @@ class LiveUpdateService {
             ? LiveUpdateSemantic.caution
             : LiveUpdateSemantic.safe;
 
-    final result = await LiveUpdate.post(
-      title: title,
-      text: _nextStopLine(trip, at),
-      // Short and critical, in that order: the chip has room for about seven
-      // characters, and the delay is the one number worth that space.
-      chipText: trip.cancelled ? 'X' : (delay > 0 ? '+$delay' : null),
-      segments: [
-        for (final s in trip.segments)
-          LiveUpdateSegment(minutes: s.minutes, color: s.color),
-      ],
-      transferPoints: trip.transferPoints,
-      progressMinutes: trip.progressMinutes,
-      eta: trip.arrival,
-      transferColor: LiveTripColors.transfer,
-      titleSemantic: semantic,
-      metrics: _metrics(trip, semantic),
-      // The delay is what the rider is actually anxious about; when the system
-      // has room for only one figure, that is the one.
-      criticalMetric: 0,
-      style: preferredStyle,
-    );
-    AppLog.log(
-        'live update [${result.style}]: $title · ${trip.segments.length} Etappen, '
-        '${trip.transferPoints.length} Umstiege, promoted=${result.promoted}',
-        tag: 'notify');
-    return result.promoted;
+    try {
+      final result = await LiveUpdate.post(
+        title: title,
+        text: _nextStopLine(trip, at),
+        // Short and critical, in that order: the chip has room for about seven
+        // characters, and the delay is the one number worth that space.
+        chipText: trip.cancelled ? 'X' : (delay > 0 ? '+$delay' : null),
+        segments: [
+          for (final s in trip.segments)
+            LiveUpdateSegment(minutes: s.minutes, color: s.color),
+        ],
+        transferPoints: trip.transferPoints,
+        progressMinutes: trip.progressMinutes,
+        eta: trip.arrival,
+        transferColor: LiveTripColors.transfer,
+        titleSemantic: semantic,
+        metrics: _metrics(trip, semantic),
+        // The delay is what the rider is actually anxious about; when the system
+        // has room for only one figure, that is the one.
+        criticalMetric: 0,
+        style: preferredStyle,
+      );
+      // post.promoted is the flag the system set at post time; isPromoted asks
+      // the live notification back — they should agree, and a mismatch is worth
+      // seeing in the log.
+      final live = await LiveUpdate.isPromoted();
+      AppLog.log(
+          'live update [${result.style}]: "$title" · ${trip.segments.length} '
+          'Etappen, ${trip.transferPoints.length} Umstiege · '
+          'post.promoted=${result.promoted}, system.promoted=$live',
+          tag: 'notify');
+      return result.promoted;
+    } catch (e) {
+      AppLog.log('live update: POST fehlgeschlagen — $e', tag: 'notify');
+      return false;
+    }
   }
 
   /// The three figures the Android 17 template shows. Ignored below it, so the

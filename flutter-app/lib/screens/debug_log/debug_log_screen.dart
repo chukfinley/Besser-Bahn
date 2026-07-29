@@ -137,7 +137,10 @@ Future<void> _testLiveUpdate(BuildContext context) async {
     ),
   ]);
 
+  AppLog.log('live update: TEST-Knopf gedrückt — synthetische Reise '
+      'Kiel→Hamburg, +3 Min', tag: 'notify');
   LiveUpdateService.reset(); // clear any earlier "dismissed" state
+  LiveUpdateService.invalidateSupport(); // re-ask the platform (toggle may have changed)
   final supported = await LiveUpdateService.isSupported();
   final posted = await LiveUpdateService.show(journey);
   if (!context.mounted) return;

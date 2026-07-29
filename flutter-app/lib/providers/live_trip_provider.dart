@@ -109,10 +109,15 @@ class LiveTripTracker extends Notifier<LiveTripState>
     // Either half can drive live tracking: reminders (foreground alerts) or the
     // GPS companion (which keeps us alive to alert in the background too, #50).
     final enabled = settings.remindersEnabled || settings.exitAlarmEnabled;
-    final active = enabled
-        ? _pickActive(ref.read(libraryProvider).upcomingJourneys)
-        : null;
+    final upcoming = ref.read(libraryProvider).upcomingJourneys;
+    final active = enabled ? _pickActive(upcoming) : null;
     if (active == null) {
+      AppLog.log(
+          'live tracker: keine aktive Reise '
+          '(Benachrichtigungen=${settings.remindersEnabled}, '
+          'GPS=${settings.exitAlarmEnabled}, gemerkte anstehende=${upcoming.length}, '
+          'davon getrackt im Fenster Abfahrt−1h…Ankunft: 0) → kein Live-Update',
+          tag: 'live');
       _timer?.cancel();
       _lastAlert.clear();
       if (state.activeKey != null) {
@@ -124,6 +129,10 @@ class LiveTripTracker extends Notifier<LiveTripState>
       return;
     }
     if (active.key != state.activeKey) {
+      AppLog.log(
+          'live tracker: aktive Reise "${active.journey.origin?.name ?? '?'} → '
+          '${active.journey.destination?.name ?? '?'}" → poll + Live-Update',
+          tag: 'live');
       _lastAlert.clear();
       // A different trip: a Live Update dismissed on the previous one must not
       // suppress this one.

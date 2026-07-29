@@ -87,12 +87,16 @@ class LiveUpdateService {
     }
 
     final line = trip.currentLeg?.line?.name ?? 'Reise';
+    // Where this leg is headed — "ERX 83 → Lüneburg" reads like a train, not a
+    // code, and tells the rider more than the line number alone.
+    final dest = trip.currentLeg?.destination.name;
+    final head = (dest != null && dest.isNotEmpty) ? '$line → $dest' : line;
     final delay = trip.delayMinutes;
     final title = trip.cancelled
-        ? '$line · fällt aus'
+        ? '$head · fällt aus'
         : delay > 0
-            ? '$line · +$delay min'
-            : '$line · pünktlich';
+            ? '$head · +$delay min'
+            : head;
     final semantic = trip.cancelled
         ? LiveUpdateSemantic.danger
         : delay > 0
@@ -148,7 +152,8 @@ class LiveUpdateService {
         semantic: semantic,
       ),
     ];
-    final next = trip.currentLeg?.destination.name;
+    final next = _nextStop(trip, DateTime.now())?.stop.name ??
+        trip.currentLeg?.destination.name;
     if (next != null && next.isNotEmpty) {
       metrics.add(LiveUpdateMetric.text(label: 'Nächster', value: next));
     }
@@ -159,7 +164,22 @@ class LiveUpdateService {
     return metrics;
   }
 
-  /// "Nächster Halt: Kiel Hbf · an 09:34" — what the expanded card says under
+  /// The first intermediate stop still ahead on the current leg, or null once
+  /// they're all behind us. Naming the *actual* next stop beats naming the leg's
+  /// far-off destination — a 16-stop leg would otherwise always read "Lüneburg"
+  /// while the train is only at Lübeck.
+  static LegStopover? _nextStop(LiveTripSummary trip, DateTime now) {
+    final leg = trip.currentLeg;
+    if (leg == null) return null;
+    for (final s in leg.stopovers) {
+      if (s.cancelled) continue;
+      final at = s.arrival ?? s.departure;
+      if (at != null && at.isAfter(now)) return s;
+    }
+    return null;
+  }
+
+  /// "Nächster Halt: Lübeck Hbf · an 12:14" — what the expanded card says under
   /// the bar.
   static String _nextStopLine(LiveTripSummary trip, DateTime now) {
     final leg = trip.currentLeg;
@@ -169,10 +189,14 @@ class LiveUpdateService {
     if (departure != null && now.isBefore(departure)) {
       return 'Ab ${departure.hhmm} · ${leg.origin.name}';
     }
-    final arrival = leg.arrival ?? leg.plannedArrival;
-    final where = leg.destination.name;
-    return arrival != null
-        ? 'Nächster Halt: $where · an ${arrival.hhmm}'
+    final next = _nextStop(trip, now);
+    final where = next?.stop.name ?? leg.destination.name;
+    final at = next?.arrival ??
+        next?.departure ??
+        leg.arrival ??
+        leg.plannedArrival;
+    return at != null
+        ? 'Nächster Halt: $where · an ${at.hhmm}'
         : 'Nächster Halt: $where';
   }
 

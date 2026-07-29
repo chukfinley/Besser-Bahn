@@ -9,6 +9,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 
 /**
  * The running trip as a **Live Update** — the promoted ongoing notification
@@ -179,7 +180,7 @@ object TripLiveUpdate {
             // Update surface at all and `isSupported` already fails there.
             .setColorized(false)
 
-        if (withProgressStyle) builder.setStyle(progressStyle(spec))
+        if (withProgressStyle) builder.setStyle(progressStyle(context, spec))
         // Blank is not "no text": an empty chip string still claims the chip and
         // the status bar shows a stub.
         if (!spec.chipText.isNullOrBlank()) builder.setShortCriticalText(spec.chipText)
@@ -201,12 +202,22 @@ object TripLiveUpdate {
         return builder
     }
 
-    private fun progressStyle(spec: Spec): NotificationCompat.ProgressStyle {
+    private fun progressStyle(context: Context, spec: Spec): NotificationCompat.ProgressStyle {
         val style = NotificationCompat.ProgressStyle()
             // The segments carry the colours (done / running / late); letting the
             // bar recolour itself by progress would overwrite exactly that.
             .setStyledByProgress(false)
             .setProgress(spec.progressMinutes.coerceAtLeast(0))
+        // The little train that rides the bar at the live position — the thing
+        // that tells the rider "you are HERE", not "the whole leg is behind you".
+        // Without it the current leg is one flat colour and reads as done.
+        try {
+            style.setProgressTrackerIcon(
+                IconCompat.createWithResource(context, R.drawable.ic_live_train)
+            )
+        } catch (e: Throwable) {
+            Log.w(TAG, "tracker icon failed: $e")
+        }
         for (s in spec.segments) {
             style.addProgressSegment(
                 // A zero-length segment breaks the bar's arithmetic; as far as

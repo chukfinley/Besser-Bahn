@@ -65,7 +65,8 @@ void main() {
     expect(await LiveUpdateService.show(_journey(delay: 12), now: _at(9, 10)),
         isTrue);
     final args = lastPost();
-    expect(args['title'], 'RE 7 · +12 min');
+    // The title names where this train takes the rider, plus the delay.
+    expect(args['title'], 'RE 7 → Kiel Hbf · +12 min');
     expect(args['chipText'], '+12');
     expect(args['titleSemantic'], 3, reason: 'SEMANTIC_STYLE_CAUTION');
   });
@@ -73,15 +74,18 @@ void main() {
   test('a cancelled train is a danger, not a delay', () async {
     await LiveUpdateService.show(_journey(cancelled: true), now: _at(9, 10));
     final args = lastPost();
-    expect(args['title'], 'RE 7 · fällt aus');
+    expect(args['title'], 'RE 7 → Kiel Hbf · fällt aus');
     expect(args['titleSemantic'], 4, reason: 'SEMANTIC_STYLE_DANGER');
   });
 
-  test('on time is a safe, with no chip claiming the status bar', () async {
+  test('on time: title is just the destination, chip counts down to the stop',
+      () async {
     await LiveUpdateService.show(_journey(), now: _at(9, 10));
     final args = lastPost();
-    expect(args['title'], 'RE 7 · pünktlich');
-    expect(args['chipText'], isNull);
+    expect(args['title'], 'RE 7 → Kiel Hbf');
+    // No intermediate stops in this journey → the chip counts to the rider's
+    // own stop (Kiel 09:34, 24 min out).
+    expect(args['chipText'], "24'");
     expect(args['titleSemantic'], 2, reason: 'SEMANTIC_STYLE_SAFE');
   });
 
@@ -102,12 +106,69 @@ void main() {
     expect(lastPost()['criticalMetric'], 0);
   });
 
-  test('the journey is still sent as segments for the Android 16 bar', () async {
+  test('the current leg is split at the live position so the bar fills', () async {
     await LiveUpdateService.show(_journey(), now: _at(9, 10));
     final args = lastPost();
-    expect((args['segments']! as List).length, 1);
+    // 9 min travelled (done) + 24 min ahead (current) = the fill split.
+    expect((args['segments']! as List).length, 2);
     expect(args['progress'], 9);
+    // The countdown runs to the rider's own stop (here the single leg's end).
     expect(args['etaEpochMillis'], _at(9, 34).millisecondsSinceEpoch);
+  });
+
+  test('the countdown and text lead with the rider\'s OWN stop, not the trip end',
+      () async {
+    // ERX 83 Kiel 10:43 → Lüneburg 13:17 (the rider's transfer), passing
+    // Lübeck ~12:14, then a second train on to Hamburg 14:00.
+    final luebeck =
+        const Station(id: '8000237', name: 'Lübeck Hbf', locationId: 'A=1@');
+    final lueneburg =
+        const Station(id: '8000237b', name: 'Lüneburg', locationId: 'A=1@');
+    final hamburg =
+        const Station(id: '8002549', name: 'Hamburg Hbf', locationId: 'A=1@');
+    final journey = Journey(legs: [
+      JourneyLeg(
+        origin: _kiel,
+        destination: lueneburg,
+        departure: _at(10, 43),
+        plannedDeparture: _at(10, 43),
+        arrival: _at(13, 17),
+        plannedArrival: _at(13, 17),
+        arrivalPlatform: '5',
+        line: TransitLine(
+            name: 'ERX 83', fahrtNr: '21017', productName: 'RE', product: 'regional'),
+        stopovers: [
+          LegStopover(stop: luebeck, arrival: _at(12, 14), departure: _at(12, 16)),
+        ],
+      ),
+      JourneyLeg(
+        origin: lueneburg,
+        destination: hamburg,
+        departure: _at(13, 35),
+        plannedDeparture: _at(13, 35),
+        arrival: _at(14, 0),
+        plannedArrival: _at(14, 0),
+        line: TransitLine(
+            name: 'RE 8', fahrtNr: '1', productName: 'RE', product: 'regional'),
+      ),
+    ]);
+
+    await LiveUpdateService.show(journey, now: _at(11, 53));
+    final args = lastPost();
+
+    // The big countdown runs to Lüneburg (13:17), the rider's exit from THIS
+    // train — not Hamburg (14:00), the far end of the whole journey.
+    expect(args['etaEpochMillis'], _at(13, 17).millisecondsSinceEpoch);
+    // The text leads with the rider's own stop, labelled a transfer, and only
+    // then mentions the next passing stop.
+    final text = args['text'] as String;
+    expect(text, startsWith('Umstieg Lüneburg · 13:17'));
+    expect(text, contains('Gleis 5'));
+    expect(text, contains('nächst Lübeck Hbf'));
+    // The arrival metric is the transfer, not the journey end.
+    final metrics = (args['metrics']! as List).cast<Map<Object?, Object?>>();
+    expect(metrics.last['kind'], 'clock');
+    expect(metrics.last['number'], 13 * 60 + 17);
   });
 
   test('a finished trip is taken down instead of refreshed', () async {

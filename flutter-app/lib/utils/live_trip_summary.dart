@@ -167,16 +167,27 @@ LiveTripSummary summariseTrip(Journey journey, DateTime now) {
       delay = legDelay;
     }
 
-    segments.add(LiveTripSegment(
-      length,
-      legDelay > 0 && !isDone
-          ? LiveTripColors.delayed
-          : isDone
-              ? LiveTripColors.done
-              : isCurrent
-                  ? LiveTripColors.current
-                  : LiveTripColors.pending,
-    ));
+    final aheadColor =
+        legDelay > 0 ? LiveTripColors.delayed : LiveTripColors.current;
+
+    if (isDone) {
+      segments.add(LiveTripSegment(length, LiveTripColors.done));
+    } else if (isCurrent) {
+      // Split the leg being ridden at the live position: the part behind us is
+      // filled (done-green), the part ahead keeps the leg's colour. That is
+      // what makes the bar visibly fill and the train sit at the fill edge,
+      // instead of a whole leg glowing one colour as if it were over.
+      final travelled = now.difference(from).inMinutes.clamp(0, length);
+      final ahead = length - travelled;
+      if (travelled > 0) {
+        segments.add(LiveTripSegment(travelled, LiveTripColors.done));
+      }
+      if (ahead > 0 || travelled == 0) {
+        segments.add(LiveTripSegment(ahead.clamp(1, length), aheadColor));
+      }
+    } else {
+      segments.add(LiveTripSegment(length, LiveTripColors.pending));
+    }
     offset += length;
   }
 

@@ -107,9 +107,8 @@ class LiveUpdateService {
       final result = await LiveUpdate.post(
         title: title,
         text: _nextStopLine(trip, at),
-        // Short and critical, in that order: the chip has room for about seven
-        // characters, and the delay is the one number worth that space.
-        chipText: trip.cancelled ? 'X' : (delay > 0 ? '+$delay' : null),
+        // The tiny status-bar chip: delay when late, else minutes to next stop.
+        chipText: _chip(trip, at),
         segments: [
           for (final s in trip.segments)
             LiveUpdateSegment(minutes: s.minutes, color: s.color),
@@ -179,25 +178,61 @@ class LiveUpdateService {
     return null;
   }
 
-  /// "Nächster Halt: Lübeck Hbf · an 12:14" — what the expanded card says under
-  /// the bar.
+  /// The line under the bar — the one thing the rider actually reads. It changes
+  /// with the situation: a countdown to departure on the platform, the real next
+  /// stop with "in X Min" while running, "Gleich: …" on approach, and "Ankunft
+  /// …" on the last stretch — each with the Gleis where DB gives us one.
   static String _nextStopLine(LiveTripSummary trip, DateTime now) {
     final leg = trip.currentLeg;
     if (leg == null) return '';
+
+    // Standing on the platform: the departure and its Gleis are what matter.
     final departure = leg.departure ?? leg.plannedDeparture;
-    // Still on the platform: the departure is the thing that matters.
     if (departure != null && now.isBefore(departure)) {
-      return 'Ab ${departure.hhmm} · ${leg.origin.name}';
+      final mins = departure.difference(now).inMinutes;
+      final gleis = _platformSuffix(leg.departurePlatform);
+      return mins <= 0
+          ? 'Jetzt abfahrbereit · ${leg.origin.name}$gleis'
+          : 'Abfahrt ${departure.hhmm} · in ${_mins(mins)}$gleis';
     }
+
+    // Running: name the true next intermediate stop with a countdown.
     final next = _nextStop(trip, now);
-    final where = next?.stop.name ?? leg.destination.name;
-    final at = next?.arrival ??
-        next?.departure ??
-        leg.arrival ??
-        leg.plannedArrival;
-    return at != null
-        ? 'Nächster Halt: $where · an ${at.hhmm}'
-        : 'Nächster Halt: $where';
+    if (next != null) {
+      final at = next.arrival ?? next.departure;
+      final where = next.stop.name;
+      if (at == null) return 'Nächster Halt: $where';
+      final mins = at.difference(now).inMinutes;
+      if (mins <= 1) return 'Gleich: $where';
+      return 'Nächster Halt: $where · in ${_mins(mins)} (${at.hhmm})';
+    }
+
+    // Past the last intermediate stop — on the final run to the leg's end.
+    final arr = leg.arrival ?? leg.plannedArrival;
+    final where = leg.destination.name;
+    final gleis = _platformSuffix(leg.arrivalPlatform);
+    if (arr == null) return 'Nächster Halt: $where';
+    final mins = arr.difference(now).inMinutes;
+    return mins <= 1
+        ? 'Ankunft $where${gleis.isEmpty ? '' : gleis}'
+        : 'Ankunft $where · in ${_mins(mins)} (${arr.hhmm})$gleis';
+  }
+
+  static String _mins(int m) => '$m Min';
+
+  static String _platformSuffix(String? gleis) =>
+      (gleis != null && gleis.isNotEmpty) ? ' · Gleis $gleis' : '';
+
+  /// The tiny status-bar chip: the delay when late, otherwise the minutes to the
+  /// next stop — always something useful in ~4 characters.
+  static String? _chip(LiveTripSummary trip, DateTime now) {
+    if (trip.cancelled) return 'X';
+    if (trip.delayMinutes > 0) return '+${trip.delayMinutes}';
+    final next = _nextStop(trip, now);
+    final at = next?.arrival ?? next?.departure ?? trip.currentLeg?.arrival;
+    if (at == null) return null;
+    final mins = at.difference(now).inMinutes;
+    return (mins >= 0 && mins < 100) ? "$mins'" : null;
   }
 
   static Future<void> hide() async {

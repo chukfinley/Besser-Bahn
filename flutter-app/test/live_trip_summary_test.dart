@@ -74,12 +74,23 @@ Journey _journey({int delay310 = 0, int delay22 = 0}) => Journey(legs: [
 
 void main() {
   group('the bar is the journey', () {
-    test('one segment per train, the walk folded into the ride it feeds', () {
+    test('the walk folds into the ride it feeds; the bar totals right', () {
       final trip = summariseTrip(_journey(), _at(9, 10));
 
-      // 33 min of Bus 310, then 5 min walk + 9 min of Bus 22 = 14.
-      expect(trip.segments.map((s) => s.minutes).toList(), [33, 14]);
+      // 33 min of Bus 310, then 5 min walk + 9 min of Bus 22 = 14 → total 47.
       expect(trip.totalMinutes, 47);
+      // The whole bar's minutes add up to the total whatever the fill split.
+      expect(trip.segments.fold<int>(0, (a, s) => a + s.minutes), 47);
+    });
+
+    test('the current leg fills: travelled part done, rest ahead', () {
+      // 9 min into Bus 310 (33 min): 9 filled (done), 24 ahead (current),
+      // then Bus 22 still pending (14).
+      final trip = summariseTrip(_journey(), _at(9, 10));
+      expect(trip.segments.map((s) => s.minutes).toList(), [9, 24, 14]);
+      expect(trip.segments[0].color, LiveTripColors.done);
+      expect(trip.segments[1].color, LiveTripColors.current);
+      expect(trip.segments[2].color, LiveTripColors.pending);
     });
 
     test('a marker at the change, none at the start', () {

@@ -9,7 +9,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/app_log.dart';
 import '../../core/bahncard_art.dart';
 import '../../core/bahncard_html_dump.dart';
+import '../../models/departure.dart' show TransitLine;
+import '../../models/journey.dart';
+import '../../models/station.dart';
 import '../../providers/account_provider.dart';
+import '../../services/live_update_service.dart';
 
 /// Live debug log — shows what the API layer is doing (vendo / bahn.de / HAFAS),
 /// so issues like "search returns 500" can be diagnosed on-device.
@@ -22,6 +26,11 @@ class DebugLogScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Debug-Log'),
         actions: [
+          IconButton(
+            tooltip: 'Live-Update testen',
+            icon: const Icon(Icons.notifications_active_outlined),
+            onPressed: () => _testLiveUpdate(context),
+          ),
           IconButton(
             tooltip: 'BahnCard-HTML exportieren',
             icon: const Icon(Icons.badge_outlined),
@@ -97,6 +106,51 @@ class DebugLogScreen extends ConsumerWidget {
 /// first (see [redactBahnCardHtml]), plus what the parser made of the real
 /// document, so a fallback can be diagnosed without anyone shipping their
 /// BahnCard around.
+/// Fire a Live Update with a synthetic in-progress trip so the feature can be
+/// verified on-device without waiting for a real saved trip to enter its
+/// tracking window. Reports whether the device actually promotes it.
+Future<void> _testLiveUpdate(BuildContext context) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final now = DateTime.now();
+  Station st(String name, double lat, double lon) =>
+      Station(id: name, name: name, latitude: lat, longitude: lon);
+  TransitLine line() => const TransitLine(
+      name: 'RE7', fahrtNr: '0', productName: 'RE', product: 'regional');
+  final journey = Journey(legs: [
+    JourneyLeg(
+      origin: st('Kiel Hbf', 54.3143, 10.1324),
+      destination: st('Neumünster', 54.0719, 9.9819),
+      line: line(),
+      plannedDeparture: now.subtract(const Duration(minutes: 2)),
+      departure: now.subtract(const Duration(minutes: 2)),
+      plannedArrival: now.add(const Duration(minutes: 15)),
+      arrival: now.add(const Duration(minutes: 18)), // +3 min delay
+    ),
+    JourneyLeg(
+      origin: st('Neumünster', 54.0719, 9.9819),
+      destination: st('Hamburg Hbf', 53.5528, 10.0067),
+      line: line(),
+      plannedDeparture: now.add(const Duration(minutes: 22)),
+      departure: now.add(const Duration(minutes: 22)),
+      plannedArrival: now.add(const Duration(minutes: 45)),
+      arrival: now.add(const Duration(minutes: 45)),
+    ),
+  ]);
+
+  LiveUpdateService.reset(); // clear any earlier "dismissed" state
+  final supported = await LiveUpdateService.isSupported();
+  final posted = await LiveUpdateService.show(journey);
+  if (!context.mounted) return;
+  final msg = posted
+      ? 'Live-Update gepostet — schau in die Statusleiste.'
+      : supported
+          ? 'Gerät unterstützt es, aber Post abgelehnt (Reise evtl. schon vorbei).'
+          : 'Dein Gerät promotet es nicht: Android 16 QPR1+/17 nötig und '
+              '„Live Updates" für die App in den Benachrichtigungs-'
+              'einstellungen aktivieren.';
+  messenger.showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 6)));
+}
+
 Future<void> _exportBahnCardHtml(BuildContext context, WidgetRef ref) async {
   final messenger = ScaffoldMessenger.of(context);
   try {

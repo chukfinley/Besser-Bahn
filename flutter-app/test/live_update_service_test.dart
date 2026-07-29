@@ -158,20 +158,27 @@ void main() {
     // The big countdown runs to Lüneburg (13:17), the rider's exit from THIS
     // train — not Hamburg (14:00), the far end of the whole journey.
     expect(args['etaEpochMillis'], _at(13, 17).millisecondsSinceEpoch);
-    // The text is ONLY about the rider's exit — no passing station (Lübeck) at
-    // all; those don't interest the rider.
+
+    // The text (under the bar) is the live pulse: the next stop with a
+    // countdown — "how far is the next stop", which the rider watches.
     final text = args['text'] as String;
-    expect(text, startsWith('Umstieg Lüneburg · 13:17'));
-    expect(text, contains('Gleis 5'));
-    expect(text, isNot(contains('Lübeck')));
-    expect(text, isNot(contains('nächst')));
-    // Metrics are the rider's milestones: the transfer (13:17) and the final
-    // arrival (14:00) — no intermediate stop.
+    expect(text, contains('Lübeck'));
+    expect(text, contains('in 21 Min'));
+
+    // The subtext carries the rider's own milestones: the transfer (with Gleis)
+    // and where the whole journey ends.
+    final sub = args['subText'] as String;
+    expect(sub, contains('Umstieg Lüneburg 13:17'));
+    expect(sub, contains('Gl 5'));
+    expect(sub, contains('Ziel Hamburg Hbf 14:00'));
+
+    // Metrics, in order: delay, next stop, the rider's exit.
     final metrics = (args['metrics']! as List).cast<Map<Object?, Object?>>();
-    expect(metrics[1]['label'], 'Umstieg');
-    expect(metrics[1]['number'], 13 * 60 + 17);
-    expect(metrics.last['label'], 'Ankunft');
-    expect(metrics.last['number'], 14 * 60);
+    expect(metrics[0]['label'], 'Verspätung');
+    expect(metrics[1]['label'], 'Nächster Halt');
+    expect(metrics[1]['text'], 'Lübeck Hbf');
+    expect(metrics[2]['label'], 'Umstieg');
+    expect(metrics[2]['number'], 13 * 60 + 17);
   });
 
   test('a finished trip is taken down instead of refreshed', () async {

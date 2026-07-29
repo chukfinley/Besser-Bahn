@@ -80,6 +80,7 @@ object TripLiveUpdate {
         val title: String,
         val text: String,
         val chipText: String? = null,
+        val subText: String? = null,
         val segments: List<Segment> = emptyList(),
         val transferPoints: List<Int> = emptyList(),
         val transferColor: Int = 0xFFF29D38.toInt(),
@@ -171,6 +172,8 @@ object TripLiveUpdate {
             .setContentTitle(Api37.annotate(spec.title, spec.titleSemantic))
             .setContentText(spec.text)
             .setOngoing(true)
+        if (!spec.subText.isNullOrBlank()) builder.setSubText(spec.subText)
+        builder
             .setRequestPromotedOngoing(true)
             .setOnlyAlertOnce(true)
             // Colorized *disqualifies* a notification from promotion, as would a

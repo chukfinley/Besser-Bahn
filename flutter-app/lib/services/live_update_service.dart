@@ -154,20 +154,18 @@ class LiveUpdateService {
         semantic: semantic,
       ),
     ];
-    final next = _nextStop(trip, DateTime.now())?.stop.name ??
-        trip.currentLeg?.destination.name;
-    if (next != null && next.isNotEmpty) {
-      metrics.add(LiveUpdateMetric.text(label: 'Nächster Halt', value: next));
+    // The rider's own milestones — nothing about the stations the train merely
+    // rolls through. Their next exit (a transfer, or the final arrival), and the
+    // journey's end. On a direct trip those coincide, so only "Ankunft" shows.
+    final legArr = _myStopArrival(trip);
+    final finalArr = trip.arrival;
+    final isTransfer =
+        legArr != null && finalArr != null && legArr.isBefore(finalArr);
+    if (isTransfer) {
+      metrics.add(LiveUpdateMetric.clock(label: 'Umstieg', value: legArr));
     }
-    // The rider's own stop — their exit from THIS train. On an earlier leg that
-    // is the transfer ("Umstieg"); on the last one it's the journey's end
-    // ("Ankunft"). Either way it's the time that matters to them, not the far
-    // end of a multi-leg trip.
-    final myArr = _myStopArrival(trip) ?? trip.arrival;
-    if (myArr != null) {
-      final isTransfer = trip.arrival != null && myArr.isBefore(trip.arrival!);
-      metrics.add(LiveUpdateMetric.clock(
-          label: isTransfer ? 'Umstieg' : 'Ankunft', value: myArr));
+    if (finalArr != null) {
+      metrics.add(LiveUpdateMetric.clock(label: 'Ankunft', value: finalArr));
     }
     return metrics;
   }
@@ -176,21 +174,6 @@ class LiveUpdateService {
   /// final exit on the last leg. This, not the whole trip's end, is "mein Halt".
   static DateTime? _myStopArrival(LiveTripSummary trip) =>
       trip.currentLeg?.arrival ?? trip.currentLeg?.plannedArrival;
-
-  /// The first intermediate stop still ahead on the current leg, or null once
-  /// they're all behind us. Naming the *actual* next stop beats naming the leg's
-  /// far-off destination — a 16-stop leg would otherwise always read "Lüneburg"
-  /// while the train is only at Lübeck.
-  static LegStopover? _nextStop(LiveTripSummary trip, DateTime now) {
-    final leg = trip.currentLeg;
-    if (leg == null) return null;
-    for (final s in leg.stopovers) {
-      if (s.cancelled) continue;
-      final at = s.arrival ?? s.departure;
-      if (at != null && at.isAfter(now)) return s;
-    }
-    return null;
-  }
 
   /// The line under the bar — the one thing the rider actually reads. It changes
   /// with the situation: a countdown to departure on the platform, the real next
@@ -210,38 +193,21 @@ class LiveUpdateService {
           : 'Abfahrt ${departure.hhmm} · in ${_mins(mins)}$gleis';
     }
 
-    // Running: LEAD with the rider's own stop — when they get off THIS train —
-    // because that is the thing they keep asking ("wann ist mein Halt"). The
-    // next passing stop is appended only as context.
+    // Running: the rider's own exit from THIS train — where they get off (a
+    // transfer, or the final destination). The stations the train only rolls
+    // through are deliberately left out; they aren't what the rider is waiting
+    // for.
     final isTransfer = trip.arrival != null &&
         (_myStopArrival(trip)?.isBefore(trip.arrival!) ?? false);
     final exitWord = isTransfer ? 'Umstieg' : 'Ziel';
     final myArr = _myStopArrival(trip);
     final myName = leg.destination.name;
     final myGleis = _platformSuffix(leg.arrivalPlatform);
-
-    final buf = StringBuffer();
-    if (myArr != null) {
-      final mins = myArr.difference(now).inMinutes;
-      buf.write(mins <= 1
-          ? '$exitWord $myName · gleich$myGleis'
-          : '$exitWord $myName · ${myArr.hhmm} · in ${_mins(mins)}$myGleis');
-    } else {
-      buf.write('$exitWord $myName');
-    }
-
-    // The next intermediate stop, when it isn't the exit itself — "just passed
-    // Lübeck / Lübeck next" tells the rider the train is moving and roughly
-    // where it is.
-    final next = _nextStop(trip, now);
-    if (next != null && next.stop.name != myName) {
-      final at = next.arrival ?? next.departure;
-      if (at != null) {
-        final m = at.difference(now).inMinutes;
-        if (m >= 0) buf.write(' · nächst ${next.stop.name} in ${_mins(m)}');
-      }
-    }
-    return buf.toString();
+    if (myArr == null) return '$exitWord $myName';
+    final mins = myArr.difference(now).inMinutes;
+    return mins <= 1
+        ? '$exitWord $myName · gleich$myGleis'
+        : '$exitWord $myName · ${myArr.hhmm} · in ${_mins(mins)}$myGleis';
   }
 
   static String _mins(int m) => '$m Min';
@@ -250,15 +216,14 @@ class LiveUpdateService {
       (gleis != null && gleis.isNotEmpty) ? ' · Gleis $gleis' : '';
 
   /// The tiny status-bar chip: the delay when late, otherwise the minutes to the
-  /// next stop — always something useful in ~4 characters.
+  /// rider's own next exit — always something useful in ~4 characters.
   static String? _chip(LiveTripSummary trip, DateTime now) {
     if (trip.cancelled) return 'X';
     if (trip.delayMinutes > 0) return '+${trip.delayMinutes}';
-    final next = _nextStop(trip, now);
-    final at = next?.arrival ?? next?.departure ?? trip.currentLeg?.arrival;
+    final at = _myStopArrival(trip);
     if (at == null) return null;
     final mins = at.difference(now).inMinutes;
-    return (mins >= 0 && mins < 100) ? "$mins'" : null;
+    return (mins >= 0 && mins < 1000) ? "$mins'" : null;
   }
 
   static Future<void> hide() async {

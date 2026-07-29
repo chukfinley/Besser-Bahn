@@ -89,20 +89,19 @@ void main() {
     expect(args['titleSemantic'], 2, reason: 'SEMANTIC_STYLE_SAFE');
   });
 
-  test('three metrics, delay first because it is the reason to look', () async {
+  test('a direct trip: delay + arrival, no intermediate-stop metric', () async {
     await LiveUpdateService.show(_journey(delay: 12), now: _at(9, 10));
     final metrics = (lastPost()['metrics']! as List).cast<Map<Object?, Object?>>();
-    expect(metrics.length, 3);
+    // Just the rider's milestones: how late, and when they arrive. No
+    // "next stop" tile — the passing stations don't interest the rider.
+    expect(metrics.length, 2);
     expect(metrics[0]['label'], 'Verspätung');
     expect(metrics[0]['kind'], 'count');
     expect(metrics[0]['number'], 12);
-    expect(metrics[0]['unit'], 'min');
     expect(metrics[0]['semantic'], 3);
-    expect(metrics[1]['kind'], 'text');
-    expect(metrics[1]['text'], 'Kiel Hbf');
-    // 09:34 as the minute of the day — a LocalTime on the far side.
-    expect(metrics[2]['kind'], 'clock');
-    expect(metrics[2]['number'], 9 * 60 + 34);
+    expect(metrics[1]['kind'], 'clock');
+    expect(metrics[1]['label'], 'Ankunft');
+    expect(metrics[1]['number'], 9 * 60 + 34); // 09:34
     expect(lastPost()['criticalMetric'], 0);
   });
 
@@ -159,16 +158,20 @@ void main() {
     // The big countdown runs to Lüneburg (13:17), the rider's exit from THIS
     // train — not Hamburg (14:00), the far end of the whole journey.
     expect(args['etaEpochMillis'], _at(13, 17).millisecondsSinceEpoch);
-    // The text leads with the rider's own stop, labelled a transfer, and only
-    // then mentions the next passing stop.
+    // The text is ONLY about the rider's exit — no passing station (Lübeck) at
+    // all; those don't interest the rider.
     final text = args['text'] as String;
     expect(text, startsWith('Umstieg Lüneburg · 13:17'));
     expect(text, contains('Gleis 5'));
-    expect(text, contains('nächst Lübeck Hbf'));
-    // The arrival metric is the transfer, not the journey end.
+    expect(text, isNot(contains('Lübeck')));
+    expect(text, isNot(contains('nächst')));
+    // Metrics are the rider's milestones: the transfer (13:17) and the final
+    // arrival (14:00) — no intermediate stop.
     final metrics = (args['metrics']! as List).cast<Map<Object?, Object?>>();
-    expect(metrics.last['kind'], 'clock');
-    expect(metrics.last['number'], 13 * 60 + 17);
+    expect(metrics[1]['label'], 'Umstieg');
+    expect(metrics[1]['number'], 13 * 60 + 17);
+    expect(metrics.last['label'], 'Ankunft');
+    expect(metrics.last['number'], 14 * 60);
   });
 
   test('a finished trip is taken down instead of refreshed', () async {

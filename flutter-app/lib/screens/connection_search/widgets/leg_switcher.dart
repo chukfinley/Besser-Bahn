@@ -799,14 +799,26 @@ class LegAlternativeSwitcherState
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(
-                    _error ??
-                        'Diese Abfahrt${dep != null ? ' · ab ${dep.hhmm}' : ''}'
-                            '$position   ·   Block wischen für andere',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: muted, fontWeight: FontWeight.w500),
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final base = 'Diese Abfahrt'
+                          '${dep != null ? ' · ab ${dep.hhmm}' : ''}$position';
+                      // The "Block wischen für andere" hint is a nice-to-have;
+                      // on a narrow screen (e.g. the Fold7 cover display, #76)
+                      // it only got ellipsised away and clipped the essentials
+                      // with it. Show it only where it actually fits.
+                      const hint = '   ·   Block wischen für andere';
+                      final label = _error ??
+                          (constraints.maxWidth > 300 ? '$base$hint' : base);
+                      return Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: muted, fontWeight: FontWeight.w500),
+                      );
+                    },
                   ),
           ),
         ),
@@ -817,11 +829,17 @@ class LegAlternativeSwitcherState
 
   Widget _navBtn(
       ThemeData theme, IconData icon, String tip, VoidCallback onTap) {
-    return IconButton(
+    // Tonal circle so the stepper reads as a real control, not two loose
+    // glyphs — same footprint, so it can't re-clip the label on a narrow
+    // (fold-cover) screen (#76).
+    return IconButton.filledTonal(
       icon: Icon(icon, size: 22),
       tooltip: tip,
       visualDensity: VisualDensity.compact,
-      color: theme.colorScheme.primary,
+      style: IconButton.styleFrom(
+        foregroundColor: theme.colorScheme.primary,
+        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.10),
+      ),
       onPressed: _loading ? null : onTap,
     );
   }

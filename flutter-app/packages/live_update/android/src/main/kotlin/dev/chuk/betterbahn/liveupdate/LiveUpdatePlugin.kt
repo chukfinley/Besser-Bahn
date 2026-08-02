@@ -129,6 +129,9 @@ class LiveUpdatePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             text = call.argument<String>("text") ?: "",
             chipText = call.argument<String>("chipText"),
             subText = call.argument<String>("subText"),
+            nowbarPrimary = call.argument<String>("nowbarPrimary"),
+            nowbarSecondary = call.argument<String>("nowbarSecondary"),
+            chipExpandedText = call.argument<String>("chipExpandedText"),
             segments = segments,
             transferPoints = call.argument<List<Int>>("points") ?: emptyList(),
             transferColor =

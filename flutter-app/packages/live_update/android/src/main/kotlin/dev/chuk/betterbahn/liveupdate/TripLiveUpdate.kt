@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -81,6 +82,10 @@ object TripLiveUpdate {
         val text: String,
         val chipText: String? = null,
         val subText: String? = null,
+        /** Concise, Now-Bar-only primary/secondary lines (see [applyNowBar]). */
+        val nowbarPrimary: String? = null,
+        val nowbarSecondary: String? = null,
+        val chipExpandedText: String? = null,
         val segments: List<Segment> = emptyList(),
         val transferPoints: List<Int> = emptyList(),
         val transferColor: Int = 0xFFF29D38.toInt(),
@@ -202,7 +207,36 @@ object TripLiveUpdate {
                 .setUsesChronometer(false)
                 .setChronometerCountDown(false)
         }
+        applyNowBar(builder, spec)
         return builder
+    }
+
+    /**
+     * Give Samsung's Now Bar its own concise content instead of letting One UI
+     * cram our dense shade notification into the compact pill (which came out
+     * cluttered and truncated — issue #76).
+     *
+     * These are undocumented extras keys reverse-engineered from One UI's own
+     * apps; One UI 8 reads them to render the Now Bar, every other launcher just
+     * ignores an unknown extra. So it's a best-effort enhancement, gated to
+     * Samsung, that cannot harm the notification anywhere else. The full shade
+     * notification (title/text/subtext/bar) is unchanged.
+     */
+    private fun applyNowBar(builder: NotificationCompat.Builder, spec: Spec) {
+        if (!Build.MANUFACTURER.equals("samsung", ignoreCase = true)) return
+        val extras = Bundle()
+        spec.nowbarPrimary?.takeIf { it.isNotBlank() }?.let {
+            extras.putString("nowbarPrimaryInfo", it)
+            extras.putString("primaryInfo", it)
+        }
+        spec.nowbarSecondary?.takeIf { it.isNotBlank() }?.let {
+            extras.putString("nowbarSecondaryInfo", it)
+            extras.putString("secondaryInfo", it)
+        }
+        spec.chipExpandedText?.takeIf { it.isNotBlank() }?.let {
+            extras.putString("chipExpandedText", it)
+        }
+        if (!extras.isEmpty) builder.addExtras(extras)
     }
 
     private fun progressStyle(context: Context, spec: Spec): NotificationCompat.ProgressStyle {

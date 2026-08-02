@@ -179,6 +179,11 @@ void main() {
     expect(metrics[1]['text'], 'Lübeck Hbf');
     expect(metrics[2]['label'], 'Umstieg');
     expect(metrics[2]['number'], 13 * 60 + 17);
+
+    // Samsung Now Bar gets its own short lines (#76): the exit as primary, the
+    // next stop as secondary — no dense multi-fact string to overload the pill.
+    expect(args['nowbarPrimary'], '→ Lüneburg 13:17');
+    expect(args['nowbarSecondary'], 'Lübeck Hbf in 21 Min');
   });
 
   test('a finished trip is taken down instead of refreshed', () async {

@@ -115,6 +115,11 @@ class LiveUpdateService {
         subText: _journeyLine(trip, journey, at),
         // The tiny status-bar chip: delay when late, else minutes to next stop.
         chipText: _chip(trip, at),
+        // Concise, purpose-built lines for Samsung's Now Bar so One UI doesn't
+        // cram the dense shade content into the pill (cluttered/truncated, #76).
+        nowbarPrimary: _nowbarPrimary(trip),
+        nowbarSecondary: _nowbarSecondary(trip, at),
+        chipExpandedText: _nowbarPrimary(trip),
         segments: [
           for (final s in trip.segments)
             LiveUpdateSegment(minutes: s.minutes, color: s.color),
@@ -261,6 +266,39 @@ class LiveUpdateService {
     if (at == null) return null;
     final mins = at.difference(now).inMinutes;
     return (mins >= 0 && mins < 1000) ? "$mins'" : null;
+  }
+
+  /// Now Bar primary line — the one glance that matters: where the rider gets
+  /// off this train and when. Short on purpose (the pill is tiny).
+  static String _nowbarPrimary(LiveTripSummary trip) {
+    final leg = trip.currentLeg;
+    final dest = leg?.destination.name;
+    if (dest == null || dest.isEmpty) return leg?.line?.name ?? 'Reise';
+    final myArr = _myStopArrival(trip);
+    final time = myArr != null ? ' ${myArr.hhmm}' : '';
+    final flag = trip.cancelled
+        ? ' · fällt aus'
+        : (trip.delayMinutes > 0 ? ' +${trip.delayMinutes}' : '');
+    return '→ $dest$time$flag';
+  }
+
+  /// Now Bar secondary line — the live pulse, kept to a handful of words: the
+  /// next stop with a countdown, or the departure countdown on the platform.
+  static String _nowbarSecondary(LiveTripSummary trip, DateTime now) {
+    final leg = trip.currentLeg;
+    final dep = leg?.departure ?? leg?.plannedDeparture;
+    if (dep != null && now.isBefore(dep)) {
+      final m = dep.difference(now).inMinutes;
+      return m <= 0 ? 'Jetzt abfahrbereit' : 'Abfahrt in ${_mins(m)}';
+    }
+    final next = _nextStop(trip, now);
+    if (next != null) {
+      final at = next.arrival ?? next.departure;
+      if (at == null) return next.stop.name;
+      final m = at.difference(now).inMinutes;
+      return m <= 1 ? 'Gleich ${next.stop.name}' : '${next.stop.name} in ${_mins(m)}';
+    }
+    return '';
   }
 
   /// The first intermediate stop still ahead on the current leg (or null once

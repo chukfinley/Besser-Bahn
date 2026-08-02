@@ -227,6 +227,7 @@ class LiveTripTracker extends Notifier<LiveTripState>
           _checkPlatform(curTrip.id, leg.origin.name, s.departurePlatform,
               s.plannedDeparturePlatform,
               tag: 'depplat');
+          _checkZugbindung(leg, s);
         }
       } else {
         // On board: watch arrival at the leg's end (the transfer / final stop).
@@ -236,6 +237,7 @@ class LiveTripTracker extends Notifier<LiveTripState>
           _checkDelay(curTrip.id, '$lineName an ${leg.destination.name}',
               s.arrivalDelay, s.arrival ?? s.plannedArrival,
               tag: 'arr');
+          _checkZugbindung(leg, s);
         }
       }
     }
@@ -317,6 +319,39 @@ class LiveTripTracker extends Notifier<LiveTripState>
       body = 'Nur $gap Min in $station$why · ab ${dep.hhmm}, beeil dich.';
     }
     _alertOnce('transfer:$tripId', '$gap', title: title, body: body);
+  }
+
+  /// A Sparpreis' Zugbindung falls away once the booked long-distance train
+  /// (ICE/IC/EC) runs ≥20 min late or is cancelled — then the rider may legally
+  /// switch to any train to the destination. We can't see the ticket, so this
+  /// fires informationally the moment a Fernverkehr leg crosses that line — the
+  /// exact "hoff dass die Zugbindung ausfällt" moment (#zugbindung).
+  static bool isFernverkehr(String? product) =>
+      product == 'nationalExpress' || product == 'national';
+
+  /// Whether a Sparpreis' Zugbindung is lifted: a long-distance train that's
+  /// cancelled or ≥20 min late frees the rider to take any train (#zugbindung).
+  /// Pure + public so the rule is unit-tested, not just wired in.
+  static bool zugbindungAufgehoben(
+          {String? product, int delaySeconds = 0, bool cancelled = false}) =>
+      isFernverkehr(product) && (cancelled || delaySeconds >= 1200);
+
+  void _checkZugbindung(JourneyLeg leg, Stopover s) {
+    final delaySec = s.arrivalDelay ?? s.departureDelay ?? 0;
+    if (!zugbindungAufgehoben(
+        product: leg.line?.product,
+        delaySeconds: delaySec,
+        cancelled: s.cancelled)) {
+      return;
+    }
+    final line = leg.line?.displayName ?? 'Fernzug';
+    _alertOnce('zugbindung:${leg.tripId ?? line}', s.cancelled ? 'X' : 'late',
+        title: '✅ Zugbindung aufgehoben',
+        body: s.cancelled
+            ? '$line fällt aus — bei Sparpreis darfst du jetzt beliebige '
+                'Züge zum Ziel nehmen.'
+            : '$line +${delaySec ~/ 60} Min — bei Sparpreis ist die '
+                'Zugbindung aufgehoben, nimm den nächsten passenden Zug.');
   }
 
   /// Fire an alert for [key] only when [value] differs from what we last sent

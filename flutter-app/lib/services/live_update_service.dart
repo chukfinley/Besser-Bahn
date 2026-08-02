@@ -106,6 +106,8 @@ class LiveUpdateService {
     try {
       final result = await LiveUpdate.post(
         title: title,
+        // A train glyph, not the app logo, for the running trip (#76).
+        smallIcon: 'ic_stat_train',
         // Under the bar: the live pulse — the next stop with a countdown, which
         // is what tells the rider the train is moving and how far the next stop
         // is.
@@ -256,13 +258,14 @@ class LiveUpdateService {
   static String _platformSuffix(String? gleis) =>
       (gleis != null && gleis.isNotEmpty) ? ' · Gleis $gleis' : '';
 
-  /// The tiny status-bar chip: the delay when late, otherwise the minutes to the
-  /// very next stop — always something useful in ~4 characters.
+  /// The tiny status-bar chip (also the Samsung Now Bar's collapsed pill): the
+  /// delay when late, otherwise the minutes to the rider's OWN exit — "Zeit bis
+  /// zum Ausstieg", the number they actually care about (#76). Always something
+  /// useful in ~4 characters.
   static String? _chip(LiveTripSummary trip, DateTime now) {
     if (trip.cancelled) return 'X';
     if (trip.delayMinutes > 0) return '+${trip.delayMinutes}';
-    final next = _nextStop(trip, now);
-    final at = next?.arrival ?? next?.departure ?? _myStopArrival(trip);
+    final at = _myStopArrival(trip);
     if (at == null) return null;
     final mins = at.difference(now).inMinutes;
     return (mins >= 0 && mins < 1000) ? "$mins'" : null;

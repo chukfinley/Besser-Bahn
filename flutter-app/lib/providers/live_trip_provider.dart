@@ -142,8 +142,22 @@ class LiveTripTracker extends Notifier<LiveTripState>
     _poll(); // immediate, then self-arms
   }
 
-  SavedJourney? _pickActive(List<SavedJourney> upcoming) {
-    final now = DateTime.now();
+  SavedJourney? _pickActive(List<SavedJourney> upcoming) =>
+      pickActiveTrip(upcoming, DateTime.now());
+
+  /// Which saved trip the live notification should follow right now.
+  ///
+  /// Smart pick (#live-active): when two saved trips overlap in time — e.g. one
+  /// you booked but skipped and the one you're actually riding — the tracker
+  /// used to grab the FIRST in window, which was often the skipped earlier one.
+  /// Now it prefers a trip that has already departed (you're on it) and, among
+  /// several, the one that started most recently — the train you just boarded,
+  /// not an earlier one you left behind. Only if none has departed yet does it
+  /// fall back to the soonest upcoming.
+  static SavedJourney? pickActiveTrip(
+      List<SavedJourney> upcoming, DateTime now) {
+    final running = <({SavedJourney j, DateTime dep})>[];
+    final pending = <({SavedJourney j, DateTime dep})>[];
     for (final j in upcoming) {
       // Per-trip opt-out: this trip's live tracking was switched off (#11.2).
       if (!j.watched) continue;
@@ -152,9 +166,16 @@ class LiveTripTracker extends Notifier<LiveTripState>
       if (dep == null) continue;
       final from = dep.subtract(const Duration(hours: 1));
       final to = arr ?? dep.add(const Duration(hours: 3));
-      if (now.isAfter(from) && now.isBefore(to)) return j;
+      if (now.isBefore(from) || !now.isBefore(to)) continue; // out of window
+      (now.isBefore(dep) ? pending : running).add((j: j, dep: dep));
     }
-    return null;
+    if (running.isNotEmpty) {
+      running.sort((a, b) => b.dep.compareTo(a.dep)); // most recently boarded
+      return running.first.j;
+    }
+    if (pending.isEmpty) return null;
+    pending.sort((a, b) => a.dep.compareTo(b.dep)); // soonest to depart
+    return pending.first.j;
   }
 
   Future<void> _poll() async {

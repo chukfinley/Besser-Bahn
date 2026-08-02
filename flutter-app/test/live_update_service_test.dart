@@ -192,6 +192,22 @@ void main() {
     expect(calls.map((c) => c.method), isNot(contains('post')));
   });
 
+  test('chip can show stops-to-exit instead of minutes (#76)', () async {
+    LiveUpdateService.chipShowsStops = true;
+    addTearDown(() => LiveUpdateService.chipShowsStops = false);
+    await LiveUpdateService.show(_journey(), now: _at(9, 10));
+    // No stopover list on this leg → falls back to "1 to go" while en route.
+    expect(lastPost()['chipText'], '1 Hlt');
+  });
+
+  test('the icon carries the state: train, or train-alert when late (#76)',
+      () async {
+    await LiveUpdateService.show(_journey(), now: _at(9, 10));
+    expect(lastPost()['smallIcon'], 'ic_stat_train');
+    await LiveUpdateService.show(_journey(delay: 12), now: _at(9, 10));
+    expect(lastPost()['smallIcon'], 'ic_stat_train_alert');
+  });
+
   test('a dismissed Live Update does not come back', () async {
     await LiveUpdateService.show(_journey(), now: _at(9, 10));
     LiveUpdateService.markDismissed();

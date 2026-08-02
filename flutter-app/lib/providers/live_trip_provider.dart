@@ -197,6 +197,8 @@ class LiveTripTracker extends Notifier<LiveTripState>
       // it is the thing the rider actually looks at while travelling. Where the
       // device won't promote it this is a no-op and the alerts above stay the
       // only channel.
+      LiveUpdateService.chipShowsStops =
+          ref.read(settingsProvider).liveChipStops;
       unawaited(LiveUpdateService.show(journey.journey));
     } catch (e) {
       AppLog.log('live poll failed ($e)', tag: 'live');

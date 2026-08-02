@@ -185,6 +185,16 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.tag),
+                  title: const Text('Live-Chip: Stationen statt Zeit'),
+                  subtitle: const Text(
+                      'Der kleine Status-Indikator (auch Samsung Now Bar) zeigt '
+                      'die Anzahl Halte bis zum Ausstieg statt der Restzeit.'),
+                  value: settings.liveChipStops,
+                  onChanged: (v) => notifier.setLiveChipStops(v),
+                ),
+                const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.directions_walk),
                   title: const Text('Umsteigeprofil'),

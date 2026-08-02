@@ -65,6 +65,10 @@ class AppSettings {
   /// default — the original wording stays unless the rider asks for simpler.
   final bool plainLanguage;
 
+  /// The live status-bar / Now-Bar chip shows the number of stops to the exit
+  /// instead of the minutes (#76). Off by default → minutes.
+  final bool liveChipStops;
+
   const AppSettings({
     this.bahnCard = BahnCardType.none,
     this.hasDeutschlandTicket = false,
@@ -82,6 +86,7 @@ class AppSettings {
     this.searchParty = const SearchParty(),
     this.partyCustomized = false,
     this.plainLanguage = false,
+    this.liveChipStops = false,
   });
 
   AppSettings copyWith({
@@ -101,6 +106,7 @@ class AppSettings {
     SearchParty? searchParty,
     bool? partyCustomized,
     bool? plainLanguage,
+    bool? liveChipStops,
   }) {
     return AppSettings(
       bahnCard: bahnCard ?? this.bahnCard,
@@ -119,6 +125,7 @@ class AppSettings {
       searchParty: searchParty ?? this.searchParty,
       partyCustomized: partyCustomized ?? this.partyCustomized,
       plainLanguage: plainLanguage ?? this.plainLanguage,
+      liveChipStops: liveChipStops ?? this.liveChipStops,
     );
   }
 }
@@ -155,6 +162,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
           SearchParty.fromSettings(bahnCard, dTicket),
       partyCustomized: prefs.getBool('partyCustomized') ?? false,
       plainLanguage: prefs.getBool('plainLanguage') ?? false,
+      liveChipStops: prefs.getBool('liveChipStops') ?? false,
     );
   }
 
@@ -176,10 +184,16 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await prefs.setString('searchParty', state.searchParty.encode());
     await prefs.setBool('partyCustomized', state.partyCustomized);
     await prefs.setBool('plainLanguage', state.plainLanguage);
+    await prefs.setBool('liveChipStops', state.liveChipStops);
   }
 
   void setPlainLanguage(bool value) {
     state = state.copyWith(plainLanguage: value);
+    _save();
+  }
+
+  void setLiveChipStops(bool value) {
+    state = state.copyWith(liveChipStops: value);
     _save();
   }
 

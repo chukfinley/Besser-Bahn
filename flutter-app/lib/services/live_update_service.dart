@@ -35,6 +35,10 @@ class LiveUpdateService {
   /// Android 17 there is only the bar and this changes nothing.
   static LiveUpdateStyle preferredStyle = LiveUpdateStyle.auto;
 
+  /// Chip content: false = minutes to the exit, true = stops to the exit (#76).
+  /// Set from settings by the live tracker before each [show].
+  static bool chipShowsStops = false;
+
   static Future<bool> isSupported() async {
     if (_supported != null) return _supported!;
     final s = await LiveUpdate.isSupported();
@@ -106,8 +110,12 @@ class LiveUpdateService {
     try {
       final result = await LiveUpdate.post(
         title: title,
-        // A train glyph, not the app logo, for the running trip (#76).
-        smallIcon: 'ic_stat_train',
+        // A train glyph, not the app logo — and a train-with-warning when the
+        // trip is late or cancelled, so the status-bar icon itself carries the
+        // state (#76).
+        smallIcon: (trip.cancelled || trip.delayMinutes > 0)
+            ? 'ic_stat_train_alert'
+            : 'ic_stat_train',
         // Under the bar: the live pulse — the next stop with a countdown, which
         // is what tells the rider the train is moving and how far the next stop
         // is.
@@ -265,10 +273,31 @@ class LiveUpdateService {
   static String? _chip(LiveTripSummary trip, DateTime now) {
     if (trip.cancelled) return 'X';
     if (trip.delayMinutes > 0) return '+${trip.delayMinutes}';
+    if (chipShowsStops) {
+      final n = _stopsToExit(trip, now);
+      return (n != null && n > 0) ? '$n Hlt' : null;
+    }
     final at = _myStopArrival(trip);
     if (at == null) return null;
     final mins = at.difference(now).inMinutes;
     return (mins >= 0 && mins < 1000) ? "$mins'" : null;
+  }
+
+  /// Stops still ahead on the current leg, up to and including the exit — the
+  /// "wie viele Stationen noch" a rider can also choose for the chip (#76).
+  static int? _stopsToExit(LiveTripSummary trip, DateTime now) {
+    final leg = trip.currentLeg;
+    if (leg == null) return null;
+    var n = 0;
+    for (final s in leg.stopovers) {
+      final at = s.arrival ?? s.departure;
+      if (at != null && at.isAfter(now)) n++;
+    }
+    // Some legs carry no stopover list; fall back to "1 to go" while the leg is
+    // still ahead of its arrival.
+    final arr = _myStopArrival(trip);
+    if (n == 0 && arr != null && arr.isAfter(now)) n = 1;
+    return n;
   }
 
   /// Now Bar primary line — the one glance that matters: where the rider gets

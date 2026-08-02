@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../models/coach_sequence.dart';
 import '../../../models/journey.dart' show OccupancyLevel;
 import '../../../models/trip.dart';
+import '../../../utils/train_operator.dart';
 import '../../../widgets/occupancy_indicator.dart';
 import '../../../widgets/product_badge.dart';
 import 'train_map_view.dart';
@@ -119,14 +120,38 @@ class TrainInfoHeader extends StatelessWidget {
               predictionStrip!,
             ],
 
-            if (trip.line.operatorName != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                trip.line.operatorName!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ],
+            // Who actually runs this train (erixx, metronom, DB Fernverkehr…) —
+            // DB's line label ("RE 83") hides it, so surface it with a small
+            // brand-coloured badge (#operator).
+            ...(() {
+              final op = operatorFor(
+                  productName: trip.line.productName,
+                  product: trip.line.product,
+                  name: trip.line.name);
+              final label = op?.name ?? trip.line.operatorName;
+              if (label == null) return const <Widget>[];
+              final color =
+                  op != null ? Color(op.color) : theme.colorScheme.primary;
+              return [
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text('Betrieben von $label',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ];
+            })(),
 
             // Endpoints/times are NOT repeated here — the Halte timeline below
             // (same card) already shows origin, destination and their times.

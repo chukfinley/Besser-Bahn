@@ -58,7 +58,40 @@ MOB_HOST = "app.services-bahn.de"
 MOB_MIN_INTERVAL = 2.0  # seconds between consecutive /mob requests
 MAX_RETRIES = 3
 _last_mob_call = 0.0
-_raw_get, _raw_post = requests.get, requests.post
+
+# curl_cffi is the transport for EVERY call now — not just the wagenreihung
+# probe. DB's Akamai edge answers plain-`requests` TLS fingerprints with
+# 452/OPS_BLOCKED from datacenter/CI IPs, while a real Chrome fingerprint sails
+# through. Without this the whole /mob suite cried "API changed" from CI though
+# nothing had (#mob). Falls back to `requests` if curl_cffi isn't installed.
+try:
+    from curl_cffi import requests as _cc
+except Exception:  # pragma: no cover
+    _cc = None
+
+
+def _raw_request(method, url, *args, **kwargs):
+    # curl_cffi (real Chrome TLS) ONLY for the DB Navigator backend
+    # (app.services-bahn.de: /mob + gsd), the one host whose Akamai edge blocks
+    # plain-`requests` TLS with 452/OPS_BLOCKED. Everything else stays on plain
+    # requests on purpose: www.bahn.de must still read as OPS_BLOCKED (that check
+    # asserts it), and Träwelling's UA-rule check must see what a normal client
+    # sees — impersonation would mask both (#mob).
+    if _cc is not None and "app.services-bahn.de" in str(url):
+        kwargs.setdefault("impersonate", "chrome")
+        try:
+            return _cc.request(method, url, *args, **kwargs)
+        except Exception as e:  # curl_cffi errors aren't requests.RequestException
+            raise requests.RequestException(str(e)) from e
+    return requests.request(method, url, *args, **kwargs)
+
+
+def _raw_get(url, *args, **kwargs):
+    return _raw_request("GET", url, *args, **kwargs)
+
+
+def _raw_post(url, *args, **kwargs):
+    return _raw_request("POST", url, *args, **kwargs)
 
 
 def _pace(url: str) -> None:
@@ -506,9 +539,9 @@ def check_mob_surface() -> str:
         # unmatched method+path), re-probe with GET before calling it gone.
         try:
             for method in ("POST", "GET"):
-                r = requests.request(method, url, headers=_vendo_headers(media),
-                                     data="{}" if method == "POST" else None,
-                                     timeout=15)
+                r = _raw_request(method, url, headers=_vendo_headers(media),
+                                 data="{}" if method == "POST" else None,
+                                 timeout=15)
                 if r.status_code == 403 or "OPS_BLOCKED" in r.text:
                     return path, "BLOCKED"
                 if r.status_code != 404:
@@ -2177,6 +2210,15 @@ def check_vendo_seat_map() -> str:
     # 2=VORGESCHLAGEN (suggested, also free). So free = status in {1, 2}.
     free = sum(1 for w in coaches for p in w["plaetze"] if p.get("status") in (1, 2))
     total = sum(len(w["plaetze"]) for w in coaches)
+    # The app's free-seat count hinges on this exact encoding (0=belegt, 1/2=frei).
+    # If DB introduces a new status code, "frei in Wagen X" would silently miscount
+    # — so fail loudly the moment an unexpected value appears (#seat).
+    statuses = {p.get("status") for w in coaches for p in w["plaetze"]}
+    unknown = statuses - {0, 1, 2, None}
+    if unknown:
+        raise CheckError(
+            f"gsd seat status encoding changed — unexpected {sorted(unknown)} "
+            "(app assumes 0=belegt, 1/2=frei; a new code breaks free-seat counts)")
 
     # Per-coach geometry endpoint.
     wtyp = coaches[0].get("wagentyp", "")
@@ -3439,6 +3481,45 @@ def check_db_oauth_authorize_page() -> str:
     return f"scheme redirect renders the login form; loopback blocked ({loopback})"
 
 
+def check_prediction_service() -> str:
+    """Self-hosted reliability model at bahn.chuk.dev (`/v1/journey-scores`).
+
+    The app POSTs the columnar `TransferData` features (see
+    prediction_service.dart) and reads back `verbindungsscore` (P all transfers
+    caught) + `puenktlichkeit` (P arrival ≤10 min late). This asserts the
+    endpoint is up and still returns those two fields for a minimal two-row
+    (one-leg) payload — if the contract drifts, the app's Anschluss/Pünktlichkeit
+    badges silently vanish. Soft: it's our own box, may be mid-deploy.
+    """
+    # One transit leg = two rows (departure then arrival), the model's contract.
+    payload = {
+        "number": [786, 786],
+        "lat": [52.376, 53.552], "lon": [9.741, 10.006],
+        "stop_sequence": [0, 1], "distance_traveled": [0, 120000],
+        "dwell_time_schedule": [None, None], "dwell_time_prognosed": [None, None],
+        "bearing": [0, 20], "delay_prognosed": [0, 0],
+        "minute_of_day": [600, 660], "minutes_to_prognosed_time": [30, 90],
+        "weekday": [5, 5], "is_regional": [False, False],
+        "is_arrival": [False, True],
+        "operator": ["DB Fernverkehr AG", "DB Fernverkehr AG"],
+        "category": ["ICE", "ICE"], "line": ["ICE 786", "ICE 786"],
+        "prognosed_transfer_time": [None, None], "minimal_transfer_time": [None, None],
+    }
+    r = _raw_post("https://bahn.chuk.dev/v1/journey-scores",
+                  headers={"Content-Type": "application/json"},
+                  data=json.dumps(payload), timeout=TIMEOUT)
+    r.raise_for_status()
+    d = r.json()
+    if "puenktlichkeit" not in d:
+        raise CheckError("journey-scores response missing 'puenktlichkeit' "
+                         "(app's Pünktlichkeit badge would break)")
+    p = d.get("puenktlichkeit")
+    if not isinstance(p, (int, float)) or not (0 <= p <= 100):
+        raise CheckError(f"puenktlichkeit out of range: {p!r}")
+    return (f"journey-scores ok (puenktlichkeit={p:.0f}%, "
+            f"verbindungsscore={d.get('verbindungsscore')})")
+
+
 # (name, callable, soft) — soft checks warn instead of fail.
 CHECKS = [
     ("bahn.de web API blocked (reiseloesung)", check_bahn_web_api_blocked, True),
@@ -3470,6 +3551,7 @@ CHECKS = [
     ("vendo share journey (teilen vbid)", check_vendo_share, False),
     ("vendo train polyline (zuglauf)", check_vendo_train_polyline, False),
     ("vendo seat map (gsd free seats)", check_vendo_seat_map, False),
+    ("prediction service (bahn.chuk.dev scores)", check_prediction_service, True),
     ("wagenreihung wing-train split (RE)", check_wagenreihung_split, True),
     ("wagenreihung transfer sectors (#27)",
      check_wagenreihung_transfer_sectors, True),

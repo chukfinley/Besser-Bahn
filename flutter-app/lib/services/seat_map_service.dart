@@ -76,27 +76,34 @@ class SeatMapService {
     final url = '$_base/gsd_v3?data=${Uri.encodeQueryComponent(jsonEncode(data))}';
     AppLog.log('seat map zug $fahrtNr $abfahrtEva→$ankunftEva '
         'klasse=${firstClass ? 1 : 2}', tag: 'gsd');
-    try {
-      final res = await _client
-          .get(Uri.parse(url), headers: const {'User-Agent': _ua})
-          .timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) {
-        AppLog.log('gsd_v3 HTTP ${res.statusCode}', tag: 'gsd');
-        return null;
+    // The gsd page is served behind an edge that intermittently answers a 200
+    // WITHOUT the ssr_data blob (or a 5xx) — a single miss then reads to the
+    // user as "kein Sitzplatz verfügbar" although the train has seats. Retry a
+    // couple of times before giving up (#seat).
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final res = await _client
+            .get(Uri.parse(url), headers: const {'User-Agent': _ua})
+            .timeout(const Duration(seconds: 15));
+        if (res.statusCode != 200) {
+          AppLog.log('gsd_v3 HTTP ${res.statusCode} (try ${attempt + 1})',
+              tag: 'gsd');
+          continue;
+        }
+        final ssr = _extractSsr(utf8.decode(res.bodyBytes));
+        if (ssr == null) {
+          AppLog.log('gsd_v3 no ssr_data (try ${attempt + 1})', tag: 'gsd');
+          continue;
+        }
+        final map = SeatMap.fromSsr(ssr);
+        AppLog.log('seat map: ${map.coaches.length} coaches, '
+            '${map.totalFree}/${map.totalSeats} free', tag: 'gsd');
+        return map.isEmpty ? null : map;
+      } catch (e) {
+        AppLog.log('seat map failed (try ${attempt + 1}): $e', tag: 'gsd');
       }
-      final ssr = _extractSsr(utf8.decode(res.bodyBytes));
-      if (ssr == null) {
-        AppLog.log('gsd_v3 no ssr_data', tag: 'gsd');
-        return null;
-      }
-      final map = SeatMap.fromSsr(ssr);
-      AppLog.log('seat map: ${map.coaches.length} coaches, '
-          '${map.totalFree}/${map.totalSeats} free', tag: 'gsd');
-      return map.isEmpty ? null : map;
-    } catch (e) {
-      AppLog.log('seat map failed ($e)', tag: 'gsd');
-      return null;
     }
+    return null;
   }
 
   /// Physical layout for a coach type, cached per type for the session.

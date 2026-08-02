@@ -110,6 +110,21 @@ class SeatMap {
   int get totalSeats => coaches.fold(0, (n, c) => n + c.totalCount);
   bool get isEmpty => coaches.isEmpty || totalSeats == 0;
 
+  /// Coach numbers that still have a free seat — so a rider on a nearly-full
+  /// train sees *where* the space is ("frei in Wagen 6") instead of a bare
+  /// count or a misleading empty state (#seat).
+  List<String> get freeCoachNumbers =>
+      [for (final c in coaches) if (c.hasFree) c.number];
+
+  /// "  ·  frei in Wagen 6, 11" when seats are scarce (≤ 5 coaches with space),
+  /// empty otherwise — appended to the "N von M frei" line when no coach is
+  /// selected. On a nearly-full train this is the piece that matters (#seat).
+  String get freeCoachHint {
+    final free = freeCoachNumbers;
+    if (free.isEmpty || free.length > 5) return '';
+    return '  ·  frei in Wagen ${free.join(', ')}';
+  }
+
   /// Parse the `ssr_data` JSON embedded in the gsd_v3 HTML page.
   factory SeatMap.fromSsr(Map<String, dynamic> ssr) {
     final zugteile = (ssr['zugfahrt'] as Map<String, dynamic>?)?['zugteile']

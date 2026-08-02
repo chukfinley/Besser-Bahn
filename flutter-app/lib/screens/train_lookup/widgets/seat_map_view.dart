@@ -106,7 +106,7 @@ class SeatPlanBody extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
           child: Text(
             '${map.totalFree} von ${map.totalSeats} Plätzen frei'
-            '${coach != null ? '  ·  Wagen ${coach.number}: ${coach.freeCount} frei' : ''}',
+            '${coach != null ? '  ·  Wagen ${coach.number}: ${coach.freeCount} frei' : map.freeCoachHint}',
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),

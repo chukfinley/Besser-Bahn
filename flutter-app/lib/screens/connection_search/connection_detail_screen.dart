@@ -35,6 +35,7 @@ import '../../widgets/ui/message_card.dart';
 import '../../utils/earlier_alight.dart';
 import '../../utils/leg_swap.dart';
 import '../../utils/plain_language.dart';
+import '../../utils/transfer_risk.dart';
 import '../../utils/split_stops.dart';
 import '../../widgets/departure_card.dart';
 import '../../widgets/fahrgastrechte_card.dart';
@@ -930,6 +931,48 @@ class _ConnectionDetailScreenState
     context.push('/split-ticket', extra: journey);
   }
 
+  /// The smallest live transfer buffer across the connection's changes, in
+  /// minutes (null when there's no change or no live data yet). Negative means a
+  /// transfer is live-missed.
+  int? _worstLiveTransfer() {
+    final legs = journey.legs.where((l) => !l.isWalking).toList();
+    return worstTransferGapMinutes([
+      for (final l in legs) (arr: _liveArrivalOf(l), dep: _liveDepartureOf(l)),
+    ]);
+  }
+
+  /// Connection reliability for the top card. Prefers LIVE truth over the
+  /// search-time model: once a transfer is live-missed (or down to the wire),
+  /// the model's "Anschluss X%" (computed at search from planned times) would
+  /// contradict the "-4 min zum Umsteigen" row below it. So when live data says
+  /// a change is at risk, show that instead of a stale percentage (#live).
+  Widget _reliabilityRow(BuildContext context) {
+    final worst = _worstLiveTransfer();
+    if (worst != null && worst <= 2) {
+      final theme = Theme.of(context);
+      final missed = worst < 0;
+      final color =
+          missed ? theme.colorScheme.error : const Color(0xFFCC8800);
+      return Row(
+        children: [
+          Icon(missed ? Icons.link_off : Icons.warning_amber_rounded,
+              size: 18, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              missed
+                  ? 'Anschluss laut Live-Daten nicht erreichbar'
+                  : 'Anschluss sehr knapp (${worst <= 0 ? 0 : worst} Min, live)',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: color, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      );
+    }
+    return PredictionBadge(journey: journey, axis: Axis.horizontal);
+  }
+
   Widget _summary(BuildContext context) {
     final theme = Theme.of(context);
     final t = journey.transfers;
@@ -1005,7 +1048,7 @@ class _ConnectionDetailScreenState
             const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 10),
-            PredictionBadge(journey: journey, axis: Axis.horizontal),
+            _reliabilityRow(context),
             // Live "Reisefortschritt" folded into this main block (instead of a
             // separate card) — only while on board, else it collapses.
             TripProgressInline(journey: journey),

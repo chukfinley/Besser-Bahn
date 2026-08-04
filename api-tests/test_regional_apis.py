@@ -25,11 +25,59 @@ import hashlib
 import hmac
 import base64
 import json
+import time
 from datetime import datetime
 
 import pytest
+import requests
 
 import healthcheck as hc
+
+
+# --------------------------------------------------------------------------- #
+# Transport hiccups are not protocol changes
+# --------------------------------------------------------------------------- #
+
+# A read timeout, a reset, a TLS hiccup or a HAFAS box answering "not today"
+# says nothing about whether the protocol still works — only that this one
+# Verbund is having a moment. Shape errors (assert/KeyError) are NOT in here:
+# those are the signal the monitor exists for.
+NETWORK_ERRORS = (requests.exceptions.RequestException, OSError, hc.CheckError)
+
+
+_last_error = ""
+
+
+def _attempt(fn, *args, **kwargs):
+    """One live request, retried once after a short pause on a transport error.
+
+    Returns `None` if it stays unreachable; the reason lands in `_last_error`
+    so a skip still names what went wrong.
+    """
+    global _last_error
+    for attempt in range(2):
+        try:
+            return fn(*args, **kwargs)
+        except NETWORK_ERRORS as e:
+            _last_error = f"{type(e).__name__}: {str(e)[:80]}"
+            if attempt == 0:
+                time.sleep(2)
+    return None
+
+
+def _call(pid, fn, *args, **kwargs):
+    """Like `_attempt`, but skips the test when the backend stays unreachable.
+
+    Every live call in a per-backend test must go through this. Wrapping only
+    the *first* call used to be enough by accident: `fpa.invg.de` answered
+    LocMatch and then read-timed out on the StationBoard call, which escaped as
+    a ReadTimeout and turned the whole daily monitor red (#79) — for one slow
+    Verbund the app treats as optional anyway.
+    """
+    res = _attempt(fn, *args, **kwargs)
+    if res is None:
+        pytest.skip(f"{pid} unreachable: {_last_error}")
+    return res
 
 
 # --------------------------------------------------------------------------- #
@@ -44,20 +92,17 @@ def test_hafas_backend_platforms(profile):
     many are gone.
     """
     pid, label, endpoint, cid, cname, aid, probe = profile
-    try:
-        res = hc._hafas(endpoint, cid, cname, aid, "LocMatch",
-                        {"input": {"loc": {"type": "S", "name": probe + "?"},
-                                   "maxLoc": 5, "field": "S"}})
-    except Exception as e:  # noqa: BLE001 — unreachable backend is not our bug
-        pytest.skip(f"{pid} unreachable: {str(e)[:60]}")
+    res = _call(pid, hc._hafas, endpoint, cid, cname, aid, "LocMatch",
+                {"input": {"loc": {"type": "S", "name": probe + "?"},
+                           "maxLoc": 5, "field": "S"}})
 
     locs = (res.get("match") or {}).get("locL") or []
     assert locs, f"{pid}: LocMatch returned no stop for {probe!r}"
 
-    board = hc._hafas(endpoint, cid, cname, aid, "StationBoard",
-                      {"type": "DEP", "date": datetime.now().strftime("%Y%m%d"),
-                       "time": "090000", "stbLoc": {"extId": locs[0]["extId"]},
-                       "maxJny": 60})
+    board = _call(pid, hc._hafas, endpoint, cid, cname, aid, "StationBoard",
+                  {"type": "DEP", "date": datetime.now().strftime("%Y%m%d"),
+                   "time": "090000", "stbLoc": {"extId": locs[0]["extId"]},
+                   "maxJny": 60})
     assert board.get("jnyL"), f"{pid}: empty board at {probe}"
     # Whether THIS stop happens to carry platforms is checked in the aggregate
     # below — a single stop that resolves to a bay-less tram halt (VRN does this
@@ -69,25 +114,28 @@ def _hafas_platform_share():
     reachable. Shared by the two aggregate assertions."""
     reachable = with_platform = 0
     for pid, label, endpoint, cid, cname, aid, probe in hc.REGIONAL_PROFILES:
-        try:
-            res = hc._hafas(endpoint, cid, cname, aid, "LocMatch",
-                            {"input": {"loc": {"type": "S", "name": probe + "?"},
-                                       "maxLoc": 3, "field": "S"}})
-            locs = (res.get("match") or {}).get("locL") or []
-            if not locs:
-                continue
-            reachable += 1
-            board = hc._hafas(endpoint, cid, cname, aid, "StationBoard",
-                              {"type": "DEP",
-                               "date": datetime.now().strftime("%Y%m%d"),
-                               "time": "090000",
-                               "stbLoc": {"extId": locs[0]["extId"]},
-                               "maxJny": 60})
-            if any(hc._hafas_platform(j.get("stbStop") or {}, "S")
-                   for j in (board.get("jnyL") or [])):
-                with_platform += 1
-        except Exception:  # noqa: BLE001
-            pass
+        res = _attempt(hc._hafas, endpoint, cid, cname, aid, "LocMatch",
+                       {"input": {"loc": {"type": "S", "name": probe + "?"},
+                                  "maxLoc": 3, "field": "S"}})
+        locs = ((res or {}).get("match") or {}).get("locL") or []
+        if not locs:
+            continue
+        reachable += 1
+        # A board that times out must not count against `with_platform` — it
+        # never got to say whether it names a platform. Drop the backend from
+        # both tallies instead of scoring it a silent zero.
+        board = _attempt(hc._hafas, endpoint, cid, cname, aid, "StationBoard",
+                         {"type": "DEP",
+                          "date": datetime.now().strftime("%Y%m%d"),
+                          "time": "090000",
+                          "stbLoc": {"extId": locs[0]["extId"]},
+                          "maxJny": 60})
+        if board is None:
+            reachable -= 1
+            continue
+        if any(hc._hafas_platform(j.get("stbStop") or {}, "S")
+               for j in (board.get("jnyL") or [])):
+            with_platform += 1
     return reachable, with_platform
 
 
@@ -125,20 +173,17 @@ def test_efa_backend_platforms(profile):
     """STOPFINDER → DM_REQUEST, and a departure names BOTH planned and live
     platform. One value alone cannot say whether a platform moved."""
     pid, label, base, probe = profile
-    try:
-        sf = _efa(base, "XML_STOPFINDER_REQUEST",
-                  {"name_sf": probe, "type_sf": "any",
-                   "coordOutputFormat": "WGS84[DD.ddddd]"})
-    except Exception as e:  # noqa: BLE001
-        pytest.skip(f"{pid} unreachable: {str(e)[:60]}")
+    sf = _call(pid, _efa, base, "XML_STOPFINDER_REQUEST",
+               {"name_sf": probe, "type_sf": "any",
+                "coordOutputFormat": "WGS84[DD.ddddd]"})
 
     locs = [l for l in (sf.get("locations") or []) if l.get("type") == "stop"] \
         or (sf.get("locations") or [])
     assert locs, f"{pid}: stopfinder found nothing for {probe!r}"
 
-    dm = _efa(base, "XML_DM_REQUEST",
-              {"name_dm": locs[0]["id"], "type_dm": "stop", "mode": "direct",
-               "useRealtime": "1", "limit": "30"})
+    dm = _call(pid, _efa, base, "XML_DM_REQUEST",
+               {"name_dm": locs[0]["id"], "type_dm": "stop", "mode": "direct",
+                "useRealtime": "1", "limit": "30"})
     assert dm.get("stopEvents"), f"{pid}: empty board at {probe}"
     # Whether this stop names both platform fields is the aggregate's job — VRN
     # resolves "Mannheim Hauptbahnhof" to a bay-less tram halt, which is a data
@@ -148,25 +193,25 @@ def test_efa_backend_platforms(profile):
 def _efa_platform_share():
     reachable = with_platform = 0
     for pid, label, base, probe in hc.EFA_PROFILES:
-        try:
-            sf = _efa(base, "XML_STOPFINDER_REQUEST",
+        sf = _attempt(_efa, base, "XML_STOPFINDER_REQUEST",
                       {"name_sf": probe, "type_sf": "any"})
-            locs = [l for l in (sf.get("locations") or [])
-                    if l.get("type") == "stop"] or (sf.get("locations") or [])
-            if not locs:
-                continue
-            reachable += 1
-            dm = _efa(base, "XML_DM_REQUEST",
+        locs = [l for l in ((sf or {}).get("locations") or [])
+                if l.get("type") == "stop"] or ((sf or {}).get("locations") or [])
+        if not locs:
+            continue
+        reachable += 1
+        dm = _attempt(_efa, base, "XML_DM_REQUEST",
                       {"name_dm": locs[0]["id"], "type_dm": "stop",
                        "mode": "direct", "useRealtime": "1", "limit": "30"})
-            if any(
-                ((e.get("location") or {}).get("properties") or {}).get("plannedPlatformName")
-                and ((e.get("location") or {}).get("properties") or {}).get("platformName")
-                for e in (dm.get("stopEvents") or [])
-            ):
-                with_platform += 1
-        except Exception:  # noqa: BLE001
-            pass
+        if dm is None:  # timed out before it could name a platform — see above
+            reachable -= 1
+            continue
+        if any(
+            ((e.get("location") or {}).get("properties") or {}).get("plannedPlatformName")
+            and ((e.get("location") or {}).get("properties") or {}).get("platformName")
+            for e in (dm.get("stopEvents") or [])
+        ):
+            with_platform += 1
     return reachable, with_platform
 
 
@@ -220,10 +265,7 @@ def test_gti_signature_reproduces_known_value():
 def test_gti_auth_accepted():
     """`init` with the extracted key must be accepted — proves the app user +
     signature still authenticate."""
-    try:
-        d = _gti("init", {})
-    except Exception as e:  # noqa: BLE001
-        pytest.skip(f"gti unreachable: {str(e)[:60]}")
+    d = _call("gti", _gti, "init", {})
     assert d.get("returnCode") == "OK", (
         f"Geofox rejected the key (returnCode={d.get('returnCode')}) — the app "
         f"secret may have rotated")
@@ -237,22 +279,19 @@ def test_gti_departure_platforms():
     NAH.SH neighbour has them — so the platform data here is rail/U-/S-Bahn. The
     test asserts what the feed actually provides, not the bus bays it does not.
     """
-    try:
-        found = _gti("checkName",
-                     {"version": 58,
-                      "theName": {"name": "Hauptbahnhof", "city": "Hamburg",
-                                  "type": "STATION"}, "maxList": 3})
-    except Exception as e:  # noqa: BLE001
-        pytest.skip(f"gti unreachable: {str(e)[:60]}")
+    found = _call("gti", _gti, "checkName",
+                  {"version": 58,
+                   "theName": {"name": "Hauptbahnhof", "city": "Hamburg",
+                               "type": "STATION"}, "maxList": 3})
     results = found.get("results") or []
     assert results, "checkName found no Hamburg Hauptbahnhof"
 
     now = datetime.now()
-    board = _gti("departureList",
-                 {"version": 58, "station": results[0],
-                  "time": {"date": now.strftime("%d.%m.%Y"),
-                           "time": now.strftime("%H:%M")},
-                  "maxList": 40, "maxTimeOffset": 120, "useRealtime": True})
+    board = _call("gti", _gti, "departureList",
+                  {"version": 58, "station": results[0],
+                   "time": {"date": now.strftime("%d.%m.%Y"),
+                            "time": now.strftime("%H:%M")},
+                   "maxList": 40, "maxTimeOffset": 120, "useRealtime": True})
     deps = board.get("departures") or []
     assert board.get("returnCode") == "OK" and deps, \
         f"departureList returnCode={board.get('returnCode')}, {len(deps)} deps"

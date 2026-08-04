@@ -29,3 +29,6 @@ session.txt
 
 # Agent worktrees — never part of the repo
 .claude/worktrees/
+
+# local test output
+flutter-app/.test_out.txt

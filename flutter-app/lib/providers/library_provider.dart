@@ -106,9 +106,17 @@ class LibraryState {
 }
 
 class LibraryNotifier extends Notifier<LibraryState> {
+  /// The initial read of the stored library. Every write waits for it.
+  ///
+  /// Writes persist the *whole* list from the current state, so one that runs
+  /// before the load has landed writes a state that does not know about the
+  /// stored entries yet — and wipes them from storage for good. Saving a trip
+  /// in the first moments after launch used to do exactly that.
+  Future<void>? _loading;
+
   @override
   LibraryState build() {
-    _load();
+    _loading = _load();
     return const LibraryState();
   }
 
@@ -137,38 +145,80 @@ class LibraryNotifier extends Notifier<LibraryState> {
         })
         .toList(growable: false);
 
+    // Anything saved while this load was still in flight has to survive it.
+    // Reading prefs is asynchronous, so a rider who taps "merken" in the first
+    // moments after launch — or arrives on a saved-trip screen straight from a
+    // notification — used to have their entry silently wiped when the load
+    // finally landed and assigned a whole new state over it.
+    //
+    // Entries added meanwhile win over the loaded copy: they are the newer of
+    // the two by definition.
+    final pending = state;
+    List<T> merge<T>(List<T> loaded, List<T> added, String Function(T) key) {
+      if (added.isEmpty) return loaded;
+      final byKey = {for (final e in loaded) key(e): e};
+      for (final e in added) {
+        byKey[key(e)] = e;
+      }
+      return byKey.values.toList(growable: false);
+    }
+
     state = LibraryState(
-      stations: decode(_kStationsKey, FavoriteStation.fromJson),
-      routes: decode(_kRoutesKey, SavedRoute.fromJson),
-      trains: decode(_kTrainsKey, SavedTrain.fromJson),
-      journeys: journeys,
+      stations: merge(decode(_kStationsKey, FavoriteStation.fromJson),
+          pending.stations, (s) => s.station.id),
+      routes: merge(
+          decode(_kRoutesKey, SavedRoute.fromJson), pending.routes, (r) => r.key),
+      trains: merge(
+          decode(_kTrainsKey, SavedTrain.fromJson), pending.trains, (t) => t.key),
+      journeys: merge(journeys, pending.journeys, (j) => j.key),
       loaded: true,
     );
-    // Persist the purge so dropped entries don't resurrect next launch.
+    // Persist the purge so dropped entries don't resurrect next launch. Uses
+    // the raw writer: we ARE the load these waits are waiting for.
     if (journeys.length != decode(_kJourneysKey, SavedJourney.fromJson).length) {
-      _saveJourneys();
+      _writeJourneys();
     }
   }
 
   Future<void> _saveStations() async {
+    await _loading;
+    await _writeStations();
+  }
+
+  Future<void> _writeStations() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kStationsKey,
         jsonEncode(state.stations.map((s) => s.toJson()).toList()));
   }
 
   Future<void> _saveRoutes() async {
+    await _loading;
+    await _writeRoutes();
+  }
+
+  Future<void> _writeRoutes() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        _kRoutesKey, jsonEncode(state.routes.map((r) => r.toJson()).toList()));
+    await prefs.setString(_kRoutesKey,
+        jsonEncode(state.routes.map((r) => r.toJson()).toList()));
   }
 
   Future<void> _saveTrains() async {
+    await _loading;
+    await _writeTrains();
+  }
+
+  Future<void> _writeTrains() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-        _kTrainsKey, jsonEncode(state.trains.map((t) => t.toJson()).toList()));
+    await prefs.setString(_kTrainsKey,
+        jsonEncode(state.trains.map((t) => t.toJson()).toList()));
   }
 
   Future<void> _saveJourneys() async {
+    await _loading;
+    await _writeJourneys();
+  }
+
+  Future<void> _writeJourneys() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kJourneysKey,
         jsonEncode(state.journeys.map((j) => j.toJson()).toList()));

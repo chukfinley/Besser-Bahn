@@ -503,7 +503,48 @@ class _ConnectionSearchScreenState
               ],
             ),
           ),
+          _savedRouteStrip(context, theme),
         ],
+      ),
+    );
+  }
+
+  /// Saved routes as a flat strip right under the search box: one tap fills
+  /// both ends and searches.
+  ///
+  /// Visible without tapping anything — a saved route is meant to be the
+  /// *fastest* way into a search, and living only in the Von field's menu put
+  /// it one tap away and made it hard to find. Deliberately borderless: the
+  /// version before that wrapped an already-outlined route button in a second
+  /// rounded container, the "box inside a box" the report called out (#38).
+  Widget _savedRouteStrip(BuildContext context, ThemeData theme) {
+    final routes = ref.watch(libraryProvider).routes;
+    if (routes.isEmpty) return const SizedBox.shrink();
+    final scheme = theme.colorScheme;
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(top: 6),
+        itemCount: routes.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 2),
+        itemBuilder: (context, i) {
+          final route = routes[i];
+          return TextButton.icon(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: scheme.onSurfaceVariant,
+            ),
+            icon: Icon(Icons.bookmark, size: 16, color: scheme.primary),
+            label: Text(
+              '${route.from.name} → ${route.to.name}',
+              style: theme.textTheme.labelLarge,
+            ),
+            onPressed: () => _applyRoute(route),
+          );
+        },
       ),
     );
   }

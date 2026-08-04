@@ -230,6 +230,18 @@ class SearchParty {
   List<Map<String, dynamic>> toReisendeJson() =>
       travelers.map((t) => t.toVendoJson()).toList();
 
+  /// Just the first *person* of this party, for the "what would one ticket
+  /// cost?" comparison (#67).
+  ///
+  /// Their own discounts ride along so the comparison is like-for-like; bike
+  /// and dog stay out, since those are extras on a booking, not a per-person
+  /// fare, and counting them N times would invent a saving that isn't there.
+  List<Map<String, dynamic>> toSingleTravellerJson() {
+    final person = travelers.where((t) => t.typ.isPerson).firstOrNull;
+    if (person == null) return toReisendeJson();
+    return [person.toVendoJson()];
+  }
+
   SearchParty copyWith({
     bool? firstClass,
     bool? deutschlandTicket,

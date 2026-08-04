@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../models/journey.dart';
 import '../../../models/trip.dart';
+import '../../../providers/group_savings_provider.dart';
 import '../../../providers/journey_search_provider.dart';
 import '../../../providers/settings_provider.dart';
 import '../../../utils/arrival_buffer.dart';
@@ -111,6 +112,19 @@ class JourneyCard extends ConsumerWidget {
                     label: label,
                     urgent: journey.bike.reservationRequired,
                   ),
+                  const SizedBox(height: 6),
+                ],
+              ],
+              // "Einzeln buchen spart 12,00 €" (#67) — only in a result list,
+              // where the comparison search actually ran, and only when the
+              // difference is worth a booking split.
+              if (fromResults) ...[
+                if (groupSavingFor(
+                        ref.watch(groupSavingsProvider).asData?.value ??
+                            const [],
+                        journey)
+                    case final saving?) ...[
+                  _GroupSavingChip(saving: saving),
                   const SizedBox(height: 6),
                 ],
               ],
@@ -379,6 +393,36 @@ class _BikeChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Einzeln buchen spart 12,00 €" (#67).
+///
+/// Reads as an opportunity, not a warning: nothing is wrong with the
+/// connection, there is just a cheaper way to buy it.
+class _GroupSavingChip extends StatelessWidget {
+  final GroupSaving saving;
+  const _GroupSavingChip({required this.saving});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        'Einzeln buchen spart '
+        '${saving.savings.toStringAsFixed(2).replaceAll('.', ',')} €',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: scheme.onTertiaryContainer,
+        ),
       ),
     );
   }

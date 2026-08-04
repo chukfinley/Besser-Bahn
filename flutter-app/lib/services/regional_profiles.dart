@@ -111,7 +111,7 @@ const List<RegionalProfile> kRegionalProfiles = [
     endpoint: 'https://bvg-apps-ext.hafas.de/bin/mgate.exe',
     clientId: 'VBB',
     clientName: 'webapp',
-    aid: 'dVg4TZbW8anjx9zt',
+    aid: 'dVg4TZbW8anjx9ztPwe2uk4LVRi9wO',
     minLat: 52.33, minLon: 13.08, maxLat: 52.68, maxLon: 13.77,
     priority: 10,
   ),
@@ -228,7 +228,7 @@ const List<RegionalProfile> kRegionalProfiles = [
     endpoint: 'https://vmt.eks-prod-euc1.hafas.cloud/bin/mgate.exe',
     clientId: 'VMT',
     clientName: 'webapp',
-    aid: 'web-vmt-qdr6c6y8',
+    aid: 'web-vmt-qdr6c6y8s4cvfmfw',
     minLat: 50.20, minLon: 9.85, maxLat: 51.65, maxLon: 12.70,
   ),
   // ---- EFA / Mentz: the states HAFAS never covered ----------------------
@@ -299,7 +299,7 @@ const List<RegionalProfile> kRegionalProfiles = [
     endpoint: 'https://saarfahrplan.de/bin/mgate.exe',
     clientId: 'ZPS-SAAR',
     clientName: 'Saarfahrplan',
-    aid: '51XfsVqgbdA6oXzH',
+    aid: 'yCW9qZFSye1wIv3gCzm5r7d2kJ3LIF',
     minLat: 49.10, minLon: 6.30, maxLat: 49.65, maxLon: 7.45,
   ),
 ];

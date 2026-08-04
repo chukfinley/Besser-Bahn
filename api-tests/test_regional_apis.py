@@ -76,6 +76,13 @@ def _call(pid, fn, *args, **kwargs):
     """
     res = _attempt(fn, *args, **kwargs)
     if res is None:
+        # AUTH is not a bad minute: the backend understood us fine and rejected
+        # our credentials — it will keep doing that until we change them. bvg,
+        # vmt and saarfahrplan sat on `LocMatch AUTH` (truncated aids) unnoticed
+        # for months precisely because a skip is silent. That one gets to be red.
+        if "AUTH" in _last_error:
+            pytest.fail(f"{pid} rejected our credentials — aid/client stale "
+                        f"({_last_error})")
         pytest.skip(f"{pid} unreachable: {_last_error}")
     return res
 

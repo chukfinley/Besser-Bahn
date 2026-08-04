@@ -2852,7 +2852,7 @@ REGIONAL_PROFILES = [
     ("avv", "AVV Aachen", "https://auskunft.avv.de/bin/mgate.exe",
      "AVV_AACHEN", "webapp", "4vV1AcH3N511icH", "Aachen Bushof"),
     ("bvg", "BVG Berlin", "https://bvg-apps-ext.hafas.de/bin/mgate.exe",
-     "VBB", "webapp", "dVg4TZbW8anjx9zt", "Berlin Alexanderplatz"),
+     "VBB", "webapp", "dVg4TZbW8anjx9ztPwe2uk4LVRi9wO", "Berlin Alexanderplatz"),
     ("rsag", "RSAG Rostock", "https://fahrplan.rsag-online.de/bin/mgate.exe",
      "RSAG", "webapp", "tF5JTs25rzUhGrrl", "Rostock Hbf"),
     ("invg", "INVG Ingolstadt", "https://fpa.invg.de/bin/mgate.exe",
@@ -2880,9 +2880,9 @@ REGIONAL_PROFILES = [
      "NASA", "nasaPROD", "nasa-apps", "Magdeburg Hbf"),
     ("vmt", "VMT Thüringen",
      "https://vmt.eks-prod-euc1.hafas.cloud/bin/mgate.exe",
-     "VMT", "webapp", "web-vmt-qdr6c6y8", "Erfurt Hbf"),
+     "VMT", "webapp", "web-vmt-qdr6c6y8s4cvfmfw", "Erfurt Hbf"),
     ("saarfahrplan", "saarVV", "https://saarfahrplan.de/bin/mgate.exe",
-     "ZPS-SAAR", "Saarfahrplan", "51XfsVqgbdA6oXzH", "Saarbrücken Hbf"),
+     "ZPS-SAAR", "Saarfahrplan", "yCW9qZFSye1wIv3gCzm5r7d2kJ3LIF", "Saarbrücken Hbf"),
 ]
 
 

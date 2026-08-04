@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../../core/backup.dart';
 import '../../core/constants.dart';
 import '../../core/offline_package.dart';
 import '../../models/reisende.dart';
@@ -13,6 +19,7 @@ import '../../providers/offline_package_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/traewelling_provider.dart';
+import '../../services/backup_service.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/traewelling_logo.dart';
 
@@ -381,6 +388,35 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
+          _sectionHeader(context, 'Sicherung'),
+
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.lock_outline),
+                  title: const Text('Verschlüsselte Sicherung erstellen'),
+                  subtitle: const Text(
+                    'Bibliothek, Statistik und Einstellungen in eine Datei — '
+                    'mit Passwort, nur von dir lesbar. Ohne Konto, ohne Server.',
+                  ),
+                  onTap: () => _createBackup(context),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.settings_backup_restore),
+                  title: const Text('Sicherung einspielen'),
+                  subtitle: const Text(
+                    'Auf einem neuen Gerät: Datei wählen, Passwort eingeben. '
+                    'Zugänge zum DB-Konto sind nie Teil der Sicherung.',
+                  ),
+                  onTap: () => _restoreBackup(context),
+                ),
+              ],
+            ),
+          ),
+
           _sectionHeader(context, 'Datenschutz'),
 
           Card(
@@ -607,6 +643,124 @@ class _OfflineStorageCard extends ConsumerWidget {
 
 /// Opens [url] externally; on failure shows a SnackBar rather than dead-tapping
 /// (a link with an "open" glyph that does nothing reads as broken — #48).
+/// Ask for a password (twice when creating one), or null on cancel.
+///
+/// Typed twice on purpose for a *new* backup: the file is unreadable without
+/// it, and there is nobody to reset it — a typo here is the whole backup gone.
+Future<String?> _askPassword(BuildContext context, {required bool confirm}) {
+  final first = TextEditingController();
+  final second = TextEditingController();
+  String? error;
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        title: Text(confirm ? 'Passwort festlegen' : 'Passwort der Sicherung'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: first,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: 'Passwort'),
+            ),
+            if (confirm)
+              TextField(
+                controller: second,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Wiederholen'),
+              ),
+            if (error != null) ...[
+              const SizedBox(height: 8),
+              Text(error!,
+                  style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
+            ],
+            if (confirm) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Ohne dieses Passwort lässt sich die Datei nicht mehr öffnen. '
+                'Es gibt keinen Weg zurück.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (first.text.isEmpty) {
+                setState(() => error = 'Bitte ein Passwort eingeben.');
+                return;
+              }
+              if (confirm && first.text != second.text) {
+                setState(() => error = 'Die beiden stimmen nicht überein.');
+                return;
+              }
+              Navigator.pop(ctx, first.text);
+            },
+            child: const Text('Weiter'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Build the encrypted file and hand it to the system share sheet (#72).
+Future<void> _createBackup(BuildContext context) async {
+  final password = await _askPassword(context, confirm: true);
+  if (password == null || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final file = await BackupService().writeBackup(password);
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(file.path)],
+      subject: 'Besser-Bahn Sicherung',
+    ));
+  } on BackupError catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+  } catch (e) {
+    messenger.showSnackBar(
+        SnackBar(content: Text('Sicherung fehlgeschlagen: $e')));
+  }
+}
+
+/// Pick a `.bbbk` file and write it back into the local stores (#72).
+///
+/// Restarting afterwards is not cosmetic: every provider read its state on
+/// launch, so the running app still holds the old data until it does that
+/// again.
+Future<void> _restoreBackup(BuildContext context) async {
+  final picked = await FilePicker.platform.pickFiles(withData: true);
+  final file = picked?.files.firstOrNull;
+  if (file == null || !context.mounted) return;
+  final bytes = file.bytes ??
+      (file.path != null ? await File(file.path!).readAsBytes() : null);
+  if (bytes == null || !context.mounted) return;
+
+  final password = await _askPassword(context, confirm: false);
+  if (password == null || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final n = await BackupService().restore(bytes, password);
+    messenger.showSnackBar(SnackBar(
+      content: Text('$n Einträge wiederhergestellt — bitte die App neu '
+          'starten, damit alles geladen wird.'),
+      duration: const Duration(seconds: 6),
+    ));
+  } on BackupError catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+  } catch (e) {
+    messenger.showSnackBar(
+        SnackBar(content: Text('Wiederherstellen fehlgeschlagen: $e')));
+  }
+}
+
 Future<void> _openUrl(BuildContext context, String url) async {
   final messenger = ScaffoldMessenger.of(context);
   var ok = false;

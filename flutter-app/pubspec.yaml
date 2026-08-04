@@ -45,6 +45,8 @@ dependencies:
   webview_flutter: ^4.14.1       # render DB's official Handyticket HTML offline
   webview_flutter_android: ^4.0.0  # platform tweaks (hide native scrollbar)
   device_info_plus: ^13.1.0      # real Android model + SDK level for DB Navigator-shaped headers
+  cryptography: ^2.9.0           # AES-GCM + PBKDF2 for the encrypted backup (#72)
+  file_picker: ^3.0.4            # picking a backup file to restore (#72)
 
 # Force-bump transitives our direct deps pin too low. Each is API-compatible
 # with the held version (LatLng / xml AST / image API), so the override is

@@ -72,4 +72,35 @@ void main() {
       expect((geo['features'] as List), isEmpty);
     });
   });
+
+  group('journeysToGpx (#72)', () {
+    test('one trk per journey, lat/lon order, dupes collapsed', () {
+      final j = Journey(legs: [
+        _leg(_st('A', lat: 54.0, lon: 10.0), _st('B', lat: 53.5, lon: 10.5)),
+        _leg(_st('B', lat: 53.5, lon: 10.5), _st('C', lat: 53.0, lon: 11.0)),
+      ]);
+      final gpx = journeysToGpx([j]);
+      expect(gpx, startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
+      expect(gpx, contains('<gpx version="1.1"'));
+      expect('<trk>'.allMatches(gpx).length, 1);
+      // A,B,C — the repeated B is collapsed. GPX is lat/lon, not lon/lat.
+      expect('<trkpt'.allMatches(gpx).length, 3);
+      expect(gpx, contains('<trkpt lat="54.0" lon="10.0">'));
+    });
+
+    test('journeys without coordinates produce no track', () {
+      final j = Journey(legs: [_leg(_st('A'), _st('B'))]);
+      expect(journeysToGpx([j]), isNot(contains('<trk>')));
+    });
+
+    test('station names with XML metacharacters are escaped', () {
+      final j = Journey(legs: [
+        _leg(_st('A & <B>', lat: 54.0, lon: 10.0),
+            _st('C', lat: 53.0, lon: 11.0)),
+      ]);
+      final gpx = journeysToGpx([j]);
+      expect(gpx, contains('&amp;'));
+      expect(gpx, isNot(contains('<B>')));
+    });
+  });
 }

@@ -69,6 +69,55 @@ String statsToCsv(TravelStats stats, List<PurchasedSplit> splits) {
   return b.toString();
 }
 
+/// Travelled routes as GPX 1.1 (#72): one `<trk>` per journey, its stations as
+/// track points in order. Same data as the GeoJSON, in the format the hiking /
+/// cycling / GPS world actually reads (Komoot, OsmAnd, Garmin, Strava) — a
+/// GeoJSON file is useless to most of those.
+///
+/// Timestamps are deliberately omitted: the app knows when a journey departed,
+/// not when the train passed each station, and a made-up `<time>` would make
+/// every tool compute nonsense speeds.
+String journeysToGpx(List<Journey> journeys) {
+  String esc(String s) => s
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+
+  final b = StringBuffer()
+    ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
+    ..writeln('<gpx version="1.1" creator="Besser-Bahn" '
+        'xmlns="http://www.topografix.com/GPX/1/1">');
+  for (final j in journeys) {
+    final pts = <List<double>>[];
+    for (final leg in j.legs) {
+      if (leg.isWalking) continue;
+      for (final end in [leg.origin, leg.destination]) {
+        if (end.latitude == null || end.longitude == null) continue;
+        final pt = [end.latitude!, end.longitude!];
+        if (pts.isEmpty || pts.last[0] != pt[0] || pts.last[1] != pt[1]) {
+          pts.add(pt);
+        }
+      }
+    }
+    if (pts.length < 2) continue;
+    final when = (j.departure ?? j.arrival)?.toIso8601String();
+    b
+      ..writeln('  <trk>')
+      ..writeln('    <name>${esc(TripMetrics.routeLabel(j))}</name>');
+    if (when != null) b.writeln('    <desc>${esc(when)}</desc>');
+    b.writeln('    <trkseg>');
+    for (final p in pts) {
+      b.writeln('      <trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>');
+    }
+    b
+      ..writeln('    </trkseg>')
+      ..writeln('  </trk>');
+  }
+  b.writeln('</gpx>');
+  return b.toString();
+}
+
 /// Travelled routes as GeoJSON (#72): a FeatureCollection with one LineString
 /// per journey, drawn through each boarded leg's endpoint coordinates. Journeys
 /// (or legs) without coordinates are skipped, so the output is a lower bound,

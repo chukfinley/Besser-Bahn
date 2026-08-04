@@ -833,3 +833,35 @@ final stationMapProvider =
 final dedicatedStationMapProvider =
     NotifierProvider<StationMapNotifier, StationMapState>(
         StationMapNotifier.new);
+
+/// Out-of-service lifts/escalators at a transfer station, for the tracks the
+/// rider actually uses (#73).
+///
+/// A broken lift is only news to someone who needs one, so this is fetched
+/// exclusively for the profiles that do (Barrierearm, Mit Kind, Mit Fahrrad) —
+/// everyone else pays no request. Keyed by station name plus the comma-joined
+/// Gleise so a Gleiswechsel re-asks for the right platform.
+///
+/// Never throws and never blocks: no station map (or a dead bahnhof.de) yields
+/// an empty list, i.e. no warning, rather than an error in the middle of a
+/// journey the rider is reading.
+final stepFreeTransferProvider = FutureProvider.autoDispose
+    .family<List<StationFacility>, ({String station, String gleise})>(
+        (ref, key) async {
+  if (key.station.isEmpty) return const [];
+  try {
+    final map = await ref
+        .read(stationMapServiceProvider)
+        .fetchByStationName(key.station, background: true);
+    final gleise =
+        key.gleise.split(',').where((g) => g.trim().isNotEmpty).toSet();
+    // Without a known Gleis, warn about any broken lift in the station: the
+    // rider still has to cross it, we just can't say which one bites.
+    return gleise.isEmpty
+        ? map.outOfServiceFacilities
+        : map.outOfServiceForGleise(gleise);
+  } catch (e) {
+    AppLog.log('step-free check for "${key.station}" failed: $e', tag: 'map');
+    return const [];
+  }
+});

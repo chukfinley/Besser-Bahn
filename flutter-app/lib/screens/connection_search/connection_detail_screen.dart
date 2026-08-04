@@ -13,6 +13,8 @@ import '../../models/coach_sequence.dart';
 import '../../models/journey.dart';
 import '../../models/library_models.dart';
 import '../../models/station.dart';
+import '../../models/station_map.dart';
+import '../../models/transfer_profile.dart';
 import '../../models/trip.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1323,6 +1325,11 @@ class _ConnectionDetailScreenState
             '${wasG != null ? _insteadOf(wasG, movedBay) : ''}'
         : null;
     final detail = [?gleise, ?movedBay?.note, _walkDetail(leg)].join(' · ');
+    // Vendo models nearly every transfer as this walking leg, so the step-free
+    // check has to sit here too, not just on the direct-transfer path (#73).
+    final liftWarn = _stepFreeWarning(ref, leg.origin.name, [arrG, depG]);
+    final warnText =
+        [?warn, ?liftWarn].join(' · ');
 
     return _transferTile(
       context,
@@ -1333,7 +1340,7 @@ class _ConnectionDetailScreenState
       strikeBefore: changed ? '$planGap min' : null,
       headColor: color,
       detail: detail,
-      warn: warn,
+      warn: warnText.isEmpty ? null : warnText,
       trailing: _stopoverButton(context, leg.origin),
       onTap: leg.origin.name.isEmpty
           ? null
@@ -1469,6 +1476,12 @@ class _ConnectionDetailScreenState
             '${samePlatform ? ' · gleicher Bahnsteig' : ''}'
         : (samePlatform ? 'gleicher Bahnsteig' : null);
 
+    // A lift that is out at exactly this transfer (#73) — only asked for by the
+    // profiles that depend on one, and only ever additive: no data, no warning.
+    final liftWarn = _stepFreeWarning(ref, station.name, [arrGleis, depGleis]);
+    final warnText =
+        [?warn, ?liftWarn].join(' · ');
+
     return _transferTile(
       context,
       icon: samePlatform ? Icons.swap_horiz : Icons.swap_calls,
@@ -1478,7 +1491,7 @@ class _ConnectionDetailScreenState
       strikeBefore: changed ? '$planGap min' : null,
       headColor: color,
       detail: gleisText,
-      warn: warn,
+      warn: warnText.isEmpty ? null : warnText,
       trailing: _stopoverButton(context, station),
       onTap: station.name.isEmpty
           ? null
@@ -1519,6 +1532,42 @@ class _ConnectionDetailScreenState
   }
 
   /// Shared tappable transfer/walk row.
+  /// "Aufzug zu Gleis 7 außer Betrieb" for a transfer, or null (#73).
+  ///
+  /// Only asked for by the profiles that actually depend on a lift — Barrierearm,
+  /// Mit Kind, Mit Fahrrad. For everyone else a broken lift is noise, and the
+  /// station map behind it is a network request not worth making.
+  ///
+  /// Additive by design: while the map loads, and whenever bahnhof.de has no
+  /// facility data, this is null and the transfer reads exactly as before. It
+  /// never *removes* a warning the timetable already earned.
+  String? _stepFreeWarning(
+      WidgetRef ref, String stationName, List<String?> gleise) {
+    const needsLift = {
+      TransferProfile.accessible,
+      TransferProfile.child,
+      TransferProfile.bike,
+    };
+    final profile = ref.watch(settingsProvider).transferProfile;
+    if (!needsLift.contains(profile) || stationName.isEmpty) return null;
+
+    final broken = ref
+            .watch(stepFreeTransferProvider((
+              station: stationName,
+              gleise: gleise.whereType<String>().join(','),
+            )))
+            .asData
+            ?.value ??
+        const <StationFacility>[];
+    if (broken.isEmpty) return null;
+
+    final f = broken.first;
+    final where = f.gleise.isEmpty ? '' : ' zu Gleis ${f.gleise.join('/')}';
+    final more = broken.length > 1 ? ' (+${broken.length - 1})' : '';
+    return '${f.germanKind}$where außer Betrieb$more — '
+        'barrierefreier Umstieg hier unsicher';
+  }
+
   Widget _transferTile(
     BuildContext context, {
     required IconData icon,

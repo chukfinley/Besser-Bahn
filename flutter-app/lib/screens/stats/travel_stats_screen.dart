@@ -45,6 +45,9 @@ class TravelStatsScreen extends ConsumerWidget {
                     value: 'csv',
                     child: Text('Statistik als CSV')),
                 PopupMenuItem(
+                    value: 'gpx',
+                    child: Text('Strecken als GPX')),
+                PopupMenuItem(
                     value: 'geojson',
                     child: Text('Strecken als GeoJSON')),
               ],
@@ -702,14 +705,16 @@ class TravelStatsScreen extends ConsumerWidget {
       final stats = ref.read(travelStatsProvider);
       final splits = ref.read(purchasedSplitsProvider);
       final String content, name, subject;
-      if (kind == 'geojson') {
+      if (kind == 'geojson' || kind == 'gpx') {
         final journeys = [
           ...ref.read(libraryProvider).pastJourneys,
           ...ref.read(libraryProvider).upcomingJourneys,
         ].map((s) => s.journey).toList();
-        content = journeysToGeoJson(journeys);
-        name = 'besser-bahn-strecken.geojson';
-        subject = 'Gefahrene Strecken (GeoJSON)';
+        final gpx = kind == 'gpx';
+        content =
+            gpx ? journeysToGpx(journeys) : journeysToGeoJson(journeys);
+        name = 'besser-bahn-strecken.${gpx ? 'gpx' : 'geojson'}';
+        subject = 'Gefahrene Strecken (${gpx ? 'GPX' : 'GeoJSON'})';
       } else {
         content = statsToCsv(stats, splits);
         name = 'besser-bahn-statistik.csv';

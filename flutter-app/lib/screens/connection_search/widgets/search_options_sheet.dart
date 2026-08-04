@@ -114,6 +114,7 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
                   Text('Suchoptionen', style: theme.textTheme.titleLarge),
                   const Spacer(),
                   IconButton(
+                    tooltip: 'Schließen',
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
                   ),

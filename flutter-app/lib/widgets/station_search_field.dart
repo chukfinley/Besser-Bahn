@@ -416,6 +416,7 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
               : null,
           suffixIcon: _controller.text.isNotEmpty
               ? IconButton(
+                  tooltip: 'Eingabe löschen',
                   icon: Icon(Icons.clear, size: widget.dense ? 18 : 20),
                   visualDensity:
                       widget.dense ? VisualDensity.compact : null,

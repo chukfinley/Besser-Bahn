@@ -187,6 +187,7 @@ class _TraewellingCheckinScreenState
               suffixIcon: _searchCtrl.text.isEmpty
                   ? null
                   : IconButton(
+                      tooltip: 'Eingabe löschen',
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _searchCtrl.clear();

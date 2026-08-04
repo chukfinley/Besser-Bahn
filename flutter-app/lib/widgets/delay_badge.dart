@@ -9,8 +9,28 @@ class DelayBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Screenreader wording (#74): "+5" is read out as "plus five" with no unit
+    // and no clue what it counts, and the colour that carries "5 vs 25 minutes"
+    // is invisible to TalkBack. Say it in words instead; the visible badge stays
+    // as tight as it has to be.
     if (cancelled) {
-      return Container(
+      return Semantics(
+        label: 'Fällt aus',
+        excludeSemantics: true,
+        child: _cancelledBadge(),
+      );
+    }
+    if (delaySeconds == null || delaySeconds == 0) {
+      return const SizedBox.shrink();
+    }
+    return Semantics(
+      label: '${delaySeconds! ~/ 60} Minuten Verspätung',
+      excludeSemantics: true,
+      child: _delayBadge(),
+    );
+  }
+
+  Widget _cancelledBadge() => Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: AppColors.cancelled,
@@ -25,12 +45,8 @@ class DelayBadge extends StatelessWidget {
           ),
         ),
       );
-    }
 
-    if (delaySeconds == null || delaySeconds == 0) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _delayBadge() {
     final minutes = delaySeconds! ~/ 60;
     final color = minutes <= 5 ? AppColors.warning : AppColors.delay;
 

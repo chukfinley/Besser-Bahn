@@ -85,6 +85,7 @@ class _ReisendeSheetState extends State<_ReisendeSheet> {
                   Text('Reisende & Klasse', style: theme.textTheme.titleLarge),
                   const Spacer(),
                   IconButton(
+                    tooltip: 'Schließen',
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -258,6 +259,7 @@ class _TravelerTile extends StatelessWidget {
                 Text('Alter', style: Theme.of(context).textTheme.bodyMedium),
                 const Spacer(),
                 IconButton(
+                  tooltip: 'Alter verringern',
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.remove_circle_outline),
                   onPressed: age > minAge
@@ -271,6 +273,7 @@ class _TravelerTile extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium),
                 ),
                 IconButton(
+                  tooltip: 'Alter erhöhen',
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: age < maxAge

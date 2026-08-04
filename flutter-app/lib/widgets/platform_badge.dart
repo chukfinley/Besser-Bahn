@@ -68,7 +68,10 @@ class PlatformChip extends StatelessWidget {
         platform != plannedPlatform;
     final color = changed ? Colors.red : Colors.blue;
     final theme = Theme.of(context);
-    return Container(
+    return Semantics(
+      label: _platformLabel(display, changed ? plannedPlatform : null),
+      excludeSemantics: true,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
@@ -95,7 +98,8 @@ class PlatformChip extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: changed ? Colors.red : theme.colorScheme.onSurface)),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -116,7 +120,10 @@ class PlatformBadge extends StatelessWidget {
         plannedPlatform != null &&
         platform != plannedPlatform;
 
-    return Row(
+    return Semantics(
+      label: _platformLabel(display, changed ? plannedPlatform : null),
+      excludeSemantics: true,
+      child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         TrackIcon(
@@ -145,6 +152,17 @@ class PlatformBadge extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }
+
+/// What a platform chip should *say* out loud (#74).
+///
+/// On screen a struck-through old number next to a red new one reads as "moved"
+/// at a glance; a screenreader gets "7 5" and no hint which is which. Spell the
+/// change out, and keep it short enough to sit in a busy departure row.
+String _platformLabel(String display, String? changedFrom) =>
+    changedFrom == null || changedFrom.isEmpty
+        ? 'Gleis $display'
+        : 'Gleis $display, geändert von Gleis $changedFrom';

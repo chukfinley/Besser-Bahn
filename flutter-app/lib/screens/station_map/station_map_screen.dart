@@ -797,6 +797,7 @@ class _PoiCard extends StatelessWidget {
                         color: AppColors.warning, size: 18),
                   ),
                 IconButton(
+                  tooltip: 'Schließen',
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.close, size: 18),
                   onPressed: onClose,

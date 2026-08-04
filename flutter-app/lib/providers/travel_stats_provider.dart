@@ -163,8 +163,14 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
     // Jahresrückblick aggregates (#71): accumulate route/line frequency and
     // the transfer tally into fresh maps (the stored ones are const/immutable).
     final routes = Map<String, int>.from(s.routeCounts);
+    final routeOnTime = Map<String, int>.from(s.routeOnTime);
     final route = TripMetrics.routeLabel(j);
-    if (route.isNotEmpty) routes[route] = (routes[route] ?? 0) + 1;
+    if (route.isNotEmpty) {
+      routes[route] = (routes[route] ?? 0) + 1;
+      // Per-route punctuality (#63) rides along with the count it is compared
+      // against, so the two can never drift apart.
+      if (onTime) routeOnTime[route] = (routeOnTime[route] ?? 0) + 1;
+    }
 
     final lines = Map<String, int>.from(s.lineCounts);
     for (final line in TripMetrics.linesUsed(j)) {
@@ -183,6 +189,7 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
           ? endMs
           : s.firstTripMs,
       routeCounts: routes,
+      routeOnTime: routeOnTime,
       lineCounts: lines,
       connectionsTotal: s.connectionsTotal + TripMetrics.transferCount(j),
       connectionsMissed: s.connectionsMissed + TripMetrics.missedConnections(j),

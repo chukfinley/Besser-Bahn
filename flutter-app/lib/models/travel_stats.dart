@@ -46,6 +46,15 @@ class TravelStats {
   /// left, or the onward leg was cancelled). A conservative lower bound (#71).
   final int connectionsMissed;
 
+  /// Per-route punctuality from your OWN completed trips (#63): route label →
+  /// how many of those arrivals were on time. Counted against [routeCounts],
+  /// so "4 von 6" needs both maps.
+  ///
+  /// Deliberately your observation, not a statistic about the line: it is the
+  /// only reliability figure the app can state without a server, and it is the
+  /// one the rider can check against their own memory.
+  final Map<String, int> routeOnTime;
+
   const TravelStats({
     this.totalKm = 0,
     this.tripCount = 0,
@@ -58,6 +67,7 @@ class TravelStats {
     this.lineCounts = const {},
     this.connectionsTotal = 0,
     this.connectionsMissed = 0,
+    this.routeOnTime = const {},
   });
 
   static const empty = TravelStats();
@@ -80,6 +90,18 @@ class TravelStats {
   /// The [n] most-travelled routes, most first, as (label, count).
   List<MapEntry<String, int>> topRoutes([int n = 3]) => _top(routeCounts, n);
 
+  /// How your own trips on [route] went (#63), or null when you have not
+  /// travelled it often enough to say anything.
+  ///
+  /// Three is the smallest number that can be wrong twice and still mean
+  /// something; below that "1 von 1 pünktlich" reads as a claim about the
+  /// route when it is a claim about one Tuesday.
+  ({int trips, int onTime})? experienceOn(String route, {int minTrips = 3}) {
+    final trips = routeCounts[route] ?? 0;
+    if (trips < minTrips) return null;
+    return (trips: trips, onTime: routeOnTime[route] ?? 0);
+  }
+
   /// The [n] most-ridden lines, most first, as (label, count).
   List<MapEntry<String, int>> topLines([int n = 3]) => _top(lineCounts, n);
 
@@ -101,6 +123,7 @@ class TravelStats {
     Map<String, int>? lineCounts,
     int? connectionsTotal,
     int? connectionsMissed,
+    Map<String, int>? routeOnTime,
   }) {
     return TravelStats(
       totalKm: totalKm ?? this.totalKm,
@@ -114,6 +137,7 @@ class TravelStats {
       lineCounts: lineCounts ?? this.lineCounts,
       connectionsTotal: connectionsTotal ?? this.connectionsTotal,
       connectionsMissed: connectionsMissed ?? this.connectionsMissed,
+      routeOnTime: routeOnTime ?? this.routeOnTime,
     );
   }
 
@@ -129,6 +153,7 @@ class TravelStats {
         'lineCounts': lineCounts,
         'connectionsTotal': connectionsTotal,
         'connectionsMissed': connectionsMissed,
+        'routeOnTime': routeOnTime,
       };
 
   factory TravelStats.fromJson(Map<String, dynamic> json) => TravelStats(
@@ -143,6 +168,9 @@ class TravelStats {
         lineCounts: _intMap(json['lineCounts']),
         connectionsTotal: json['connectionsTotal'] as int? ?? 0,
         connectionsMissed: json['connectionsMissed'] as int? ?? 0,
+        // Absent in stats saved before #63 — an old install simply starts
+        // collecting from its next trip instead of losing its other numbers.
+        routeOnTime: _intMap(json['routeOnTime']),
       );
 
   static Map<String, int> _intMap(dynamic raw) {

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_log.dart';
 import '../../core/extensions.dart';
 import '../../core/missed_connection.dart';
+import '../../core/trip_metrics.dart';
 import '../../core/share_text.dart';
 import '../../models/coach_sequence.dart';
 import '../../models/journey.dart';
@@ -28,6 +29,7 @@ import '../../providers/split_ticket_provider.dart';
 import '../../providers/regional_transit_provider.dart';
 import '../../providers/station_map_provider.dart';
 import '../../providers/stopover_plan_provider.dart';
+import '../../providers/travel_stats_provider.dart';
 import '../../services/db_api_service.dart';
 import '../../services/regional_transit_service.dart'
     show RegionalTransitService, PlatformCorrection;
@@ -485,6 +487,7 @@ class _ConnectionDetailScreenState
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           _summary(context),
+          _ownExperience(context),
           // Offline, the legs below are replayed from this journey's package
           // (see the fallbacks in HafasService/CoachSequenceService/
           // StationMapService). Say how old they are — cached data presented
@@ -973,6 +976,38 @@ class _ConnectionDetailScreenState
       );
     }
     return PredictionBadge(journey: journey, axis: Axis.horizontal);
+  }
+
+  /// "Bei dir: 4 von 6 Fahrten pünktlich" — how THIS route has actually gone
+  /// for this rider (#63).
+  ///
+  /// Counted from their own completed trips, on device, and labelled as such:
+  /// the issue asks for a clean separation between live data, our forecast, and
+  /// observation, so this never sits inside the prediction badge and never gets
+  /// phrased as a probability. Below three trips it says nothing at all — "1 von
+  /// 1 pünktlich" is a claim about one Tuesday, not about a route.
+  Widget _ownExperience(BuildContext context) {
+    final route = TripMetrics.routeLabel(journey);
+    final seen = ref.watch(travelStatsProvider).experienceOn(route);
+    if (seen == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          Icon(Icons.history,
+              size: 16, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'Bei dir: ${seen.onTime} von ${seen.trips} Fahrten pünktlich',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _summary(BuildContext context) {

@@ -110,4 +110,33 @@ void main() {
       expect(back.tripCount, 3);
     });
   });
+
+  group('eigene Erfahrung pro Strecke (#63)', () {
+    const stats = TravelStats(
+      tripCount: 9,
+      routeCounts: {'A → B': 6, 'C → D': 2},
+      routeOnTime: {'A → B': 4},
+    );
+
+    test('reports trips and on-time count for a route you know', () {
+      final seen = stats.experienceOn('A → B');
+      expect(seen?.trips, 6);
+      expect(seen?.onTime, 4);
+    });
+
+    test('stays silent below three trips — one Tuesday is not a route', () {
+      expect(stats.experienceOn('C → D'), isNull);
+      expect(stats.experienceOn('Nie gefahren'), isNull);
+    });
+
+    test('a route ridden but never on time reports zero, not null', () {
+      const grim = TravelStats(routeCounts: {'A → B': 4});
+      expect(grim.experienceOn('A → B')?.onTime, 0);
+    });
+
+    test('routeOnTime round-trips and defaults empty for old stats', () {
+      expect(TravelStats.fromJson(stats.toJson()).routeOnTime, {'A → B': 4});
+      expect(TravelStats.fromJson({'tripCount': 1}).routeOnTime, isEmpty);
+    });
+  });
 }

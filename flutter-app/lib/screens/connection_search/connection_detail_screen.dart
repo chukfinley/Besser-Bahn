@@ -488,6 +488,7 @@ class _ConnectionDetailScreenState
         children: [
           _summary(context),
           _ownExperience(context),
+          _bikeNotice(context),
           // Offline, the legs below are replayed from this journey's package
           // (see the fallbacks in HafasService/CoachSequenceService/
           // StationMapService). Say how old they are — cached data presented
@@ -976,6 +977,44 @@ class _ConnectionDetailScreenState
       );
     }
     return PredictionBadge(journey: journey, axis: Axis.horizontal);
+  }
+
+  /// What DB says about bikes on this connection (#68) — only for riders who
+  /// put a bike in the search, and only when DB actually said something.
+  ///
+  /// The strictest rule of all trains on the connection: with a bike, one
+  /// reservation-only leg decides the whole trip. The fare itself needs no
+  /// note — vendo already prices the Fahrradkarte into the total as soon as
+  /// the bike is in the party (Kiel→Berlin: 45,99 € → 54,98 €), and drops the
+  /// price entirely for connections that can't take one.
+  Widget _bikeNotice(BuildContext context) {
+    if (!ref.watch(settingsProvider).searchParty.hasBike) {
+      return const SizedBox.shrink();
+    }
+    final text = journey.bike.detail;
+    if (text == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final urgent = journey.bike.reservationRequired;
+    final color =
+        urgent ? AppColors.warning : theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          Icon(Icons.directions_bike, size: 16, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: urgent ? FontWeight.w600 : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// "Bei dir: 4 von 6 Fahrten pünktlich" — how THIS route has actually gone

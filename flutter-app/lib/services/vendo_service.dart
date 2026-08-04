@@ -1320,6 +1320,15 @@ class VendoService {
       );
     }
 
+    // Bike rules for this train (#68). They ride in `attributNotizen` — the
+    // same list the disruption collector deliberately skips, because a
+    // reservation hint is not a disruption. Keys only: DB owns the wording.
+    final bike = BikeCarriage.fromKeys(
+      (a['attributNotizen'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map((n) => n['key'] as String? ?? ''),
+    );
+
     return JourneyLeg(
       tripId: a['zuglaufId'] as String? ?? a['risZuglaufId'] as String?,
       origin: origin,
@@ -1347,6 +1356,7 @@ class VendoService {
       occupancy: _occupancy(a['auslastungsInfos'] as List<dynamic>?,
           firstClass: firstClass),
       disruptions: disruptions,
+      bike: bike,
       replacementDestination: ersatzZiel == null
           ? null
           : _stationFromVendo(

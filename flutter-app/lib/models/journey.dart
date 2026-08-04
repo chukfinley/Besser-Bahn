@@ -56,6 +56,19 @@ class Journey {
     this.serviceDaysNote,
   });
 
+  /// The bike rules of the whole connection (#68) — the strictest of every
+  /// train on it. One reservation-only leg makes the connection
+  /// reservation-only: a cyclist has to satisfy every train they board, not
+  /// the friendliest one.
+  BikeCarriage get bike {
+    final trains = legs.where((l) => !l.isWalking).map((l) => l.bike);
+    return BikeCarriage(
+      reservationRequired: trains.any((b) => b.reservationRequired),
+      limited: trains.any((b) => b.limited),
+      restrictedHours: trains.any((b) => b.restrictedHours),
+    );
+  }
+
   factory Journey.fromHafas(Map<String, dynamic> json) {
     final legsJson = json['legs'] as List<dynamic>? ?? [];
     final priceJson = json['price'] as Map<String, dynamic>?;
@@ -201,6 +214,12 @@ class JourneyLeg {
   /// reservation hints are deliberately NOT included here.
   final List<String> disruptions;
 
+  /// What DB says about taking a bike on THIS train (#68), from the leg's
+  /// `attributNotizen` — `FR` reservierungspflichtig, `FB` begrenzt möglich,
+  /// `FS` Sperrzeiten beachten. Empty means DB said nothing, which is not the
+  /// same as "no bikes": plenty of regional trains carry bikes without a note.
+  final BikeCarriage bike;
+
   /// Where the train actually ends when it stops short of [destination]
   /// (vendo `ersatzAnkunftsHalt`, note typ NEUER_ENDHALT) — e.g. terminating
   /// at Berlin-Spandau while [destination] still reads Berlin Hbf.
@@ -240,6 +259,7 @@ class JourneyLeg {
     this.stopovers = const [],
     this.occupancy,
     this.disruptions = const [],
+    this.bike = BikeCarriage.none,
     this.replacementDestination,
     this.replacementArrival,
     this.replacementArrivalPlatform,
@@ -556,6 +576,63 @@ DateTime? _parse(dynamic value) {
   if (value is String) return DateTime.tryParse(value);
   return null;
 }
+
+/// What DB tells us about bikes on one train (#68).
+///
+/// Deliberately three separate flags rather than a single "allowed?": a train
+/// can be reservation-only AND have blocked hours, and merging them would drop
+/// exactly the half a cyclist has to act on. Absence of any note is `none` —
+/// unknown, not forbidden.
+class BikeCarriage {
+  /// `FR` — Fahrradmitnahme reservierungspflichtig.
+  final bool reservationRequired;
+
+  /// `FB` — Fahrradmitnahme begrenzt möglich (few spaces).
+  final bool limited;
+
+  /// `FS` — Bei Fahrradmitnahme Sperrzeiten beachten.
+  final bool restrictedHours;
+
+  const BikeCarriage({
+    this.reservationRequired = false,
+    this.limited = false,
+    this.restrictedHours = false,
+  });
+
+  static const none = BikeCarriage();
+
+  bool get isEmpty => !reservationRequired && !limited && !restrictedHours;
+
+  /// The short line shown next to a leg, or null when DB said nothing.
+  /// Reservation first: it is the one that can end the trip at the door.
+  String? get label {
+    if (reservationRequired) return 'Rad: Reservierung nötig';
+    if (limited) return 'Rad: begrenzt möglich';
+    if (restrictedHours) return 'Rad: Sperrzeiten';
+    return null;
+  }
+
+  /// Everything DB said, for the detail line.
+  String? get detail {
+    final parts = [
+      if (reservationRequired) 'reservierungspflichtig',
+      if (limited) 'begrenzt möglich',
+      if (restrictedHours) 'Sperrzeiten beachten',
+    ];
+    return parts.isEmpty ? null : 'Fahrradmitnahme: ${parts.join(' · ')}';
+  }
+
+  /// Build from a leg's `attributNotizen` keys.
+  factory BikeCarriage.fromKeys(Iterable<String> keys) {
+    final k = keys.map((s) => s.toUpperCase()).toSet();
+    return BikeCarriage(
+      reservationRequired: k.contains('FR'),
+      limited: k.contains('FB'),
+      restrictedHours: k.contains('FS'),
+    );
+  }
+}
+
 
 Duration? _seconds(dynamic value) =>
     value is num ? Duration(seconds: value.toInt()) : null;

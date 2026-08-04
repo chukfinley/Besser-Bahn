@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../models/journey.dart';
 import '../../../models/trip.dart';
 import '../../../providers/journey_search_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../utils/arrival_buffer.dart';
 import '../../../utils/journey_highlights.dart';
 import '../../../core/extensions.dart';
@@ -99,6 +100,19 @@ class JourneyCard extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
+              ],
+              // Bike rules (#68) — a separate line from the highlight chips on
+              // purpose: those answer "which one should I take?", this is a
+              // condition of taking it at all. Only for riders with a bike in
+              // the search, and only when DB said something.
+              if (ref.watch(settingsProvider).searchParty.hasBike) ...[
+                if (journey.bike.label case final label?) ...[
+                  _BikeChip(
+                    label: label,
+                    urgent: journey.bike.reservationRequired,
+                  ),
+                  const SizedBox(height: 6),
+                ],
               ],
               // Cancellation banner — full width, red, above everything else so
               // a dead connection can't be mistaken for a normal one.
@@ -325,6 +339,46 @@ class _HighlightChip extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: scheme.onPrimaryContainer,
         ),
+      ),
+    );
+  }
+}
+
+/// "Rad: Reservierung nötig" on a result card (#68).
+///
+/// Warning-toned when a reservation is required, neutral otherwise: a limited
+/// bike compartment is something to know, a missing reservation is something
+/// that gets you put off the train.
+class _BikeChip extends StatelessWidget {
+  final String label;
+  final bool urgent;
+  const _BikeChip({required this.label, required this.urgent});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final fg = urgent ? AppColors.warning : scheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: fg.withAlpha(20),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: fg.withAlpha(90)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.directions_bike, size: 11, color: fg),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: fg,
+            ),
+          ),
+        ],
       ),
     );
   }

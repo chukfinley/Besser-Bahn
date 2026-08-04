@@ -1531,8 +1531,28 @@ def check_vendo_journey_party() -> str:
     conns = r.json().get("verbindungen", [])
     if not conns:
         raise CheckError("party search returned no verbindungen")
+
+    # Bike rules per leg (#68): the app reads `attributNotizen[].key` and maps
+    # FB/FR/FS to "begrenzt möglich / reservierungspflichtig / Sperrzeiten".
+    # The container has to stay a list of {key, text}; WHICH codes come back
+    # depends on the trains of the day, so the codes themselves stay soft.
+    bike_keys = set()
+    for c in conns:
+        for leg in c["verbindung"]["verbindungsAbschnitte"]:
+            notes = leg.get("attributNotizen")
+            if notes is None:
+                continue
+            if not isinstance(notes, list):
+                raise CheckError("leg attributNotizen is not a list")
+            for n in notes:
+                if not isinstance(n, dict) or "key" not in n:
+                    raise CheckError("attributNotiz lacks a 'key'")
+                if n["key"].upper() in {"FB", "FR", "FS"}:
+                    bike_keys.add(n["key"].upper())
+    bike_txt = (f", bike codes {sorted(bike_keys)}" if bike_keys
+                else ", no bike codes on today's trains")
     return (f"party (2 pers, bike, dog, BC25+SBA) ok — "
-            f"{len(conns)} journeys")
+            f"{len(conns)} journeys{bike_txt}")
 
 
 def check_vendo_share() -> str:

@@ -94,6 +94,42 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
     super.dispose();
   }
 
+  /// Open what the rider picked in the search field.
+  ///
+  /// The map is keyed by station name (bahnhof.de), so an address or POI has
+  /// nothing to open — but it is exactly the case the rider needs: "here is the
+  /// Arbeitsamt, which stop do I get off at?". Resolve the nearest stops to its
+  /// coordinates and open the closest one, saying which address it belongs to.
+  Future<void> _openLocation(Station picked, StationMapNotifier notifier) async {
+    if (picked.isStop) {
+      notifier.loadForStation(picked);
+      return;
+    }
+    if (!picked.hasLocation) return;
+    List<Station> near = const [];
+    try {
+      near = await ref.read(hafasServiceProvider).nearbyStations(
+            latitude: picked.latitude!,
+            longitude: picked.longitude!,
+            results: 5,
+            distance: 2000,
+          );
+    } catch (_) {
+      // handled as "nothing found" below
+    }
+    if (!mounted) return;
+    if (near.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Keine Haltestelle im Umkreis von 2 km um '
+              '„${picked.name}" gefunden.')));
+      return;
+    }
+    notifier.loadForStation(near.first);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Nächste Haltestelle zu „${picked.name}": '
+            '${near.first.name}')));
+  }
+
   /// Where the rider needs to get to: the highlighted boarding Gleis if we
   /// came from a journey, otherwise the station centre.
   LatLng _targetFor(StationMap map) =>
@@ -267,10 +303,10 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         child: StationSearchField(
-                          hint: 'Bahnhof suchen...',
+                          hint: 'Bahnhof, Adresse oder Ort…',
                           prefixIcon: Icons.location_city,
                           initialStation: state.station,
-                          onSelected: (s) => notifier.loadForStation(s),
+                          onSelected: (s) => _openLocation(s, notifier),
                           dense: true,
                           bare: true,
                         ),
@@ -307,10 +343,10 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: StationSearchField(
-                hint: 'Bahnhof suchen...',
+                hint: 'Bahnhof, Adresse oder Ort…',
                 prefixIcon: Icons.location_city,
                 initialStation: state.station,
-                onSelected: (s) => notifier.loadForStation(s),
+                onSelected: (s) => _openLocation(s, notifier),
                 dense: true,
               ),
             ),

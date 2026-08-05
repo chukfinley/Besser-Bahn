@@ -173,6 +173,8 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
                     // its text box empties with it — without the key it keeps
                     // showing the old name.
                     key: ValueKey(_via?.vendoLocationId),
+                    // A via is a point the train passes — an address is not.
+                    stopsOnly: true,
                     onSelected: (s) => setState(() => _via = s),
                   ),
                   if (_via != null) ...[

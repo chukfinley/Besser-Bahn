@@ -1,5 +1,32 @@
+/// What a search hit actually is. DB's location search answers with stops
+/// (`ST`), house addresses (`ADR`) and points of interest (`POI`) — the journey
+/// API takes all three as origin/destination and fills in the footpath, but
+/// only a stop has an EVA number (so only a stop has a departure board or a
+/// station map).
+enum LocationKind {
+  station,
+  address,
+  poi;
+
+  static LocationKind fromVendo(String? type) => switch (type) {
+        'ADR' => LocationKind.address,
+        'POI' => LocationKind.poi,
+        _ => LocationKind.station,
+      };
+
+  static LocationKind fromName(String? name) => LocationKind.values
+      .firstWhere((k) => k.name == name, orElse: () => LocationKind.station);
+
+  /// German label for the suggestion list.
+  String get label => switch (this) {
+        LocationKind.station => 'Haltestelle',
+        LocationKind.address => 'Adresse',
+        LocationKind.poi => 'Ort',
+      };
+}
+
 class Station {
-  final String id; // EVA number
+  final String id; // EVA number (stops only — empty for addresses/POIs)
   final String name;
   final double? latitude;
   final double? longitude;
@@ -9,6 +36,10 @@ class Station {
   /// DB Vendo journey API; the plain EVA [id] is not enough there.
   final String? locationId;
 
+  /// Stop, address or POI — see [LocationKind]. Everything that needs an EVA
+  /// (departure board, station map, Wagenreihung) must check [isStop] first.
+  final LocationKind kind;
+
   const Station({
     required this.id,
     required this.name,
@@ -16,7 +47,11 @@ class Station {
     this.longitude,
     this.products,
     this.locationId,
+    this.kind = LocationKind.station,
   });
+
+  /// True for a real stop, i.e. something with an EVA and a board behind it.
+  bool get isStop => kind == LocationKind.station;
 
   factory Station.fromHafas(Map<String, dynamic> json) {
     final loc = json['location'] as Map<String, dynamic>?;
@@ -51,6 +86,9 @@ class Station {
         'lat': latitude,
         'lon': longitude,
         'locationId': locationId,
+        // Only written for non-stops, so stored favorites from older versions
+        // (and every stop) keep reading back as a station.
+        if (kind != LocationKind.station) 'kind': kind.name,
       };
 
   factory Station.fromJson(Map<String, dynamic> json) => Station(
@@ -59,14 +97,17 @@ class Station {
         latitude: (json['lat'] as num?)?.toDouble(),
         longitude: (json['lon'] as num?)?.toDouble(),
         locationId: json['locationId'] as String?,
+        kind: LocationKind.fromName(json['kind'] as String?),
       );
 
   bool get hasLocation => latitude != null && longitude != null;
 
   /// Best identifier for the DB Vendo journey API: the full HAFAS string if we
-  /// have it, otherwise a minimal one built from the EVA number.
+  /// have it, otherwise a minimal one built from the EVA number. An address or
+  /// POI has no EVA, so `A=1@L=…` must never be synthesised for one — its
+  /// locationId is the only handle the backend accepts.
   String get vendoLocationId =>
-      locationId ?? (id.isNotEmpty ? 'A=1@L=$id@' : id);
+      locationId ?? (isStop && id.isNotEmpty ? 'A=1@L=$id@' : '');
 }
 
 class StationProducts {

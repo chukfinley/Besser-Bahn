@@ -57,7 +57,7 @@ class _EmptyBoards extends HafasService {
       [];
 
   @override
-  Future<List<Station>> searchStations(String query) async => const [_kiel];
+  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => const [_kiel];
 }
 
 /// bahnhof.de, canned as "this stop has no indoor plan" — the Karte tab then

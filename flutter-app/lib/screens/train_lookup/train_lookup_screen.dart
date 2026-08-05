@@ -259,6 +259,8 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
                     prefixIcon: Icons.location_on,
                     initialStation: _fromStation,
                     dense: true,
+                    // The lookup reads departure boards — stops only.
+                    stopsOnly: true,
                     onSelected: (station) {
                       setState(() => _fromStation = station);
                       // The stop is half the query — re-run it, the same way

@@ -87,6 +87,8 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
               onSelected: notifier.setStation,
               dense: true,
               bare: true,
+              // A board needs an EVA — addresses have none.
+              stopsOnly: true,
             ),
           ),
 

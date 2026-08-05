@@ -49,7 +49,7 @@ class _NoPredictions extends PredictionService {
 
 class _NoStations extends HafasService {
   @override
-  Future<List<Station>> searchStations(String query) async => [];
+  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => [];
 }
 
 /// Seeded state only — no search is run, and "Früher" is recorded rather than

@@ -29,6 +29,12 @@ class StationSearchField extends ConsumerStatefulWidget {
   /// panel.
   final bool bare;
 
+  /// Only offer real stops. Set where an EVA number is required downstream —
+  /// departure board, station map, train lookup — so the rider can't pick an
+  /// address that those screens cannot open. The connection search leaves it
+  /// off: there, an address is a perfectly good origin/destination.
+  final bool stopsOnly;
+
   const StationSearchField({
     super.key,
     required this.hint,
@@ -40,6 +46,7 @@ class StationSearchField extends ConsumerStatefulWidget {
     this.savedRoutes = const [],
     this.onRouteSelected,
     this.bare = false,
+    this.stopsOnly = false,
   });
 
   @override
@@ -163,15 +170,26 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
                 }
                 final results = ref.watch(stationSearchProvider);
                 return results.when(
-                  data: (stations) {
+                  data: (result) {
+                    // Results for an older query are not an answer to what is
+                    // in the field now — show the spinner instead of a list
+                    // that contradicts the text.
+                    if (!result.matches(query)) return _busy();
+                    final stations = result.stations;
                     if (stations.isEmpty) {
-                      // Say so rather than showing nothing: a coordinate in the
-                      // sea or abroad has no stops near it, and silence would
-                      // read as "still loading".
-                      return geo == null
-                          ? const SizedBox.shrink()
-                          : _geoNotice(context,
-                              'Keine Haltestellen in der Nähe dieser Koordinate.');
+                      // Say so rather than showing nothing: silence reads as
+                      // "still loading", and the rider is left guessing whether
+                      // the term was wrong or the search broken.
+                      return _notice(
+                        context,
+                        geo == null
+                            ? 'Keine Treffer für „$query". Haltestelle, '
+                                'Adresse oder Ort eingeben.'
+                            : 'Keine Haltestellen in der Nähe dieser Koordinate.',
+                        icon: geo == null
+                            ? Icons.search_off
+                            : Icons.my_location,
+                      );
                     }
                     return ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 320),
@@ -179,7 +197,7 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (geo != null)
-                            _geoNotice(
+                            _notice(
                                 context,
                                 geo.label != null
                                     ? 'Haltestellen nahe „${geo.label}"'
@@ -197,15 +215,12 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
                       ),
                     );
                   },
-                  loading: () => const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(
-                        child: SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2))),
+                  loading: _busy,
+                  error: (_, __) => _notice(
+                    context,
+                    'Suche gerade nicht erreichbar — bitte erneut versuchen.',
+                    icon: Icons.cloud_off,
                   ),
-                  error: (_, __) => const SizedBox.shrink(),
                 );
               },
             ),
@@ -218,8 +233,13 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
 
   Widget _buildSuggestions(WidgetRef ref) {
     final library = ref.watch(libraryProvider);
-    final favorites = library.favorites;
-    final recents = library.recents;
+    // A saved address is a fine origin/destination but has no departure board —
+    // hide it where the field only accepts stops, or the rider taps a favorite
+    // and lands on an empty screen.
+    List<Station> usable(List<Station> list) =>
+        widget.stopsOnly ? list.where((s) => s.isStop).toList() : list;
+    final favorites = usable(library.favorites);
+    final recents = usable(library.recents);
     final routes = widget.onRouteSelected != null ? widget.savedRoutes : const [];
     if (routes.isEmpty && favorites.isEmpty && recents.isEmpty) {
       return const SizedBox.shrink();
@@ -298,15 +318,25 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
         ),
       );
 
-  /// Header above coordinate-derived results, explaining why this list is
-  /// nearby stops rather than name matches.
-  Widget _geoNotice(BuildContext context, String text) {
+  static Widget _busy() => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(
+            child: SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(strokeWidth: 2))),
+      );
+
+  /// A one-line explanation inside the menu — why this list is nearby stops
+  /// rather than name matches, or why there is no list at all.
+  Widget _notice(BuildContext context, String text,
+      {IconData icon = Icons.my_location}) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
       child: Row(
         children: [
-          Icon(Icons.my_location, size: 15, color: scheme.primary),
+          Icon(icon, size: 15, color: scheme.primary),
           const SizedBox(width: 8),
           Expanded(
             child: Text(text,
@@ -317,12 +347,27 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
     );
   }
 
+  static IconData _kindIcon(LocationKind kind) => switch (kind) {
+        LocationKind.station => Icons.train,
+        LocationKind.address => Icons.home_outlined,
+        LocationKind.poi => Icons.place_outlined,
+      };
+
   Widget _stationTile(WidgetRef ref, Station station) {
     final isFav = ref.watch(libraryProvider).isStationFavorite(station.id);
     return ListTile(
       dense: true,
-      leading: const Icon(Icons.train, size: 20),
+      leading: Icon(_kindIcon(station.kind), size: 20),
       title: Text(station.name, style: const TextStyle(fontSize: 14)),
+      // Say what the hit is. An address as destination is legitimate — DB
+      // routes to the door and walks the last bit — but the rider must be able
+      // to tell "Kieler Straße 30" (Adresse) from a stop of the same name.
+      subtitle: station.isStop
+          ? null
+          : Text(station.kind.label,
+              style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
       trailing: IconButton(
         icon: Icon(
           isFav ? Icons.star : Icons.star_border,
@@ -359,8 +404,14 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
   /// Auto-select a station once the typed/pasted text clearly identifies one:
   /// an exact case-insensitive name match, or a single remaining result that
   /// the text is a prefix of. Saves the user from having to tap the dropdown.
-  void _maybeAutoSelect(List<Station> stations) {
+  void _maybeAutoSelect(StationSearchResult result) {
     final typed = _controller.text.trim().toLowerCase();
+    // Never act on an answer to a previous query.
+    if (!result.matches(_controller.text)) return;
+    // Only stops auto-commit: an address list is a list of *candidates*
+    // ("Kieler Straße 30" exists in a dozen towns), so picking one for the
+    // rider would silently route them somewhere else.
+    final stations = result.stations.where((s) => s.isStop).toList();
     if (typed.length < 3 || stations.isEmpty) return;
 
     // Only one option left → that's the answer.
@@ -436,7 +487,9 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
         onChanged: (value) {
           // The user is typing a new query — leave the saved-menu mode.
           _showSavedOnFocus = false;
-          ref.read(stationSearchProvider.notifier).search(value);
+          ref.read(stationSearchProvider.notifier)
+            ..stopsOnly = widget.stopsOnly
+            ..search(value);
           _showOverlay();
           setState(() {});
         },

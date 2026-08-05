@@ -654,6 +654,163 @@ def check_vendo_journey() -> str:
     return f"{len(conns)} journeys, first has {len(legs)} legs{price_txt}{ez_txt}"
 
 
+# The address the app must be able to route to without Google Maps: the
+# Arbeitsagentur outpost in Preetz. Its nearest stop is the bus stop
+# "Gewerbegebiet, Preetz (Holstein)" ~40 m away — which is exactly the answer a
+# maps app gives, and the answer DB gives too once addresses are searchable.
+PREETZ_ADDRESS = "Kieler Straße 30, 24211 Preetz"
+PREETZ_NEAREST_STOP = "Gewerbegebiet, Preetz (Holstein)"
+
+
+def check_vendo_address_search() -> str:
+    """Street addresses and POIs come back from /mob/location/search.
+
+    The app searches with locationTypes ALL and shows ADR/POI hits alongside
+    stops, because a rider heading to an office has an address, not a stop name.
+    If DB ever stops answering with ADR entries — or drops the coordinates /
+    locationId the journey search needs — address routing silently dies.
+    """
+    media = "application/x.db.vendo.mob.location.v3+json"
+    r = _post(
+        "https://app.services-bahn.de/mob/location/search",
+        headers=_vendo_headers(media),
+        data=json.dumps({"locationTypes": ["ALL"], "searchTerm": PREETZ_ADDRESS}),
+        timeout=TIMEOUT,
+    )
+    r.raise_for_status()
+    data = r.json()
+    if not isinstance(data, list) or not data:
+        raise CheckError("expected non-empty list")
+    addrs = [o for o in data if o.get("locationType") == "ADR"]
+    if not addrs:
+        types = sorted({o.get("locationType") for o in data})
+        raise CheckError(f"no ADR hit for an address query (types: {types})")
+    top = addrs[0]
+    if "Kieler Straße 30" not in top.get("name", ""):
+        raise CheckError(f"top ADR is not the searched address: {top.get('name')!r}")
+    loc = top.get("locationId", "")
+    if not loc.startswith("A=2@"):
+        raise CheckError(f"ADR locationId is not an address handle: {loc[:40]!r}")
+    coords = top.get("coordinates") or {}
+    if "latitude" not in coords or "longitude" not in coords:
+        raise CheckError("ADR hit carries no coordinates")
+    # An ADR *does* carry an evaNr, but it is a pseudo id (98x…/99x… range for
+    # addresses/POIs), not a station EVA: no departure board, no station map
+    # behind it. That is why the app keys "is this a stop?" off locationType and
+    # not off the presence of evaNr — this asserts the trap still looks the way
+    # the app expects it to.
+    eva = str(top.get("evaNr") or "")
+    if eva and not eva.startswith(("98", "99")):
+        raise CheckError(f"ADR evaNr {eva} looks like a real station EVA")
+    return (f"{len(addrs)}/{len(data)} ADR hits, "
+            f"top='{top['name']}' @{coords['latitude']:.5f},{coords['longitude']:.5f}")
+
+
+def check_vendo_poi_search() -> str:
+    """A named place ("Agentur für Arbeit Kiel") resolves as a POI."""
+    media = "application/x.db.vendo.mob.location.v3+json"
+    r = _post(
+        "https://app.services-bahn.de/mob/location/search",
+        headers=_vendo_headers(media),
+        data=json.dumps({"locationTypes": ["ALL"],
+                         "searchTerm": "Agentur für Arbeit Kiel"}),
+        timeout=TIMEOUT,
+    )
+    r.raise_for_status()
+    data = r.json()
+    pois = [o for o in data if o.get("locationType") == "POI"]
+    if not pois:
+        raise CheckError("no POI hit for a named place")
+    top = pois[0]
+    if not top.get("locationId", "").startswith("A=4@"):
+        raise CheckError(f"POI locationId is not a POI handle: {top.get('locationId','')[:40]!r}")
+    return f"{len(pois)} POI hits, top='{top['name']}'"
+
+
+def check_vendo_address_journey() -> str:
+    """Door-to-door: an ADR locationId works as a journey destination.
+
+    DB answers with a normal connection plus a FUSSWEG leg from the last stop to
+    the address itself — that walk is what replaces the maps app: it names the
+    stop to get off at (here "Gewerbegebiet, Preetz (Holstein)") and how far it
+    still is. Soft, because which stop wins depends on the departure the backend
+    happens to pick; the hard part (ADR accepted, journey ends at the address on
+    foot) is still asserted.
+    """
+    loc_media = "application/x.db.vendo.mob.location.v3+json"
+    r = _post(
+        "https://app.services-bahn.de/mob/location/search",
+        headers=_vendo_headers(loc_media),
+        data=json.dumps({"locationTypes": ["ALL"], "searchTerm": PREETZ_ADDRESS}),
+        timeout=TIMEOUT,
+    )
+    r.raise_for_status()
+    addrs = [o for o in r.json() if o.get("locationType") == "ADR"]
+    if not addrs:
+        raise CheckError("no ADR hit to route to")
+    target = addrs[0]
+
+    media = "application/x.db.vendo.mob.verbindungssuche.v9+json"
+    # Tomorrow 09:00 as an arrival deadline — an appointment, which is the
+    # actual use case (and keeps the query off "right now, last bus already gone").
+    when = (datetime.now().astimezone() + timedelta(days=1)).replace(
+        hour=9, minute=0, second=0, microsecond=0)
+    body = {
+        "autonomeReservierung": False,
+        "einstiegsTypList": ["STANDARD"],
+        "fahrverguenstigungen": {
+            "deutschlandTicketVorhanden": False,
+            "nurDeutschlandTicketVerbindungen": False,
+        },
+        "klasse": "KLASSE_2",
+        "reiseHin": {"wunsch": {
+            "abgangsLocationId": KIEL_LOC,
+            "alternativeHalteBerechnung": True,
+            "verkehrsmittel": ["ALL"],
+            "zeitWunsch": {"reiseDatum": when.isoformat(),
+                           "zeitPunktArt": "ANKUNFT"},
+            "zielLocationId": target["locationId"],
+        }},
+        "reisendenProfil": {"reisende": [{
+            "ermaessigungen": ["KEINE_ERMAESSIGUNG KLASSENLOS"],
+            "reisendenTyp": "ERWACHSENER",
+        }]},
+        "reservierungsKontingenteVorhanden": False,
+    }
+    r = _post(
+        "https://app.services-bahn.de/mob/angebote/fahrplan",
+        headers=_vendo_headers(media), data=json.dumps(body), timeout=TIMEOUT,
+    )
+    r.raise_for_status()
+    conns = r.json().get("verbindungen", [])
+    if not conns:
+        raise CheckError("address destination returned no verbindungen")
+
+    walks = []
+    for c in conns:
+        legs = c["verbindung"]["verbindungsAbschnitte"]
+        last = legs[-1]
+        if last.get("typ") != "FUSSWEG":
+            raise CheckError("journey to an address does not end on foot "
+                             f"(last leg typ={last.get('typ')!r})")
+        dest = (last.get("ankunftsOrt") or {}).get("name", "")
+        if "Kieler Straße 30" not in dest:
+            raise CheckError(f"last leg does not end at the address: {dest!r}")
+        walks.append(((last.get("abgangsOrt") or {}).get("name", ""),
+                      last.get("distanz")))
+
+    # The point of the feature: at least one option drops the rider within
+    # walking distance, and the app can name that stop.
+    best = min((w for w in walks if w[1] is not None),
+               key=lambda w: w[1], default=None)
+    if best is None:
+        raise CheckError("no final walk carries a distance")
+    near = [w for w in walks if w[0] == PREETZ_NEAREST_STOP]
+    near_txt = (f", {PREETZ_NEAREST_STOP} offered ({near[0][1]} m)"
+                if near else f", nearest offered: {best[0]} ({best[1]} m)")
+    return f"{len(conns)} door-to-door journeys{near_txt}"
+
+
 def check_vendo_split_scope() -> str:
     """Split-ticket scope (#22): a leg's `halte` must be exactly the stretch the
     rider travels, while /mob/zuglauf answers with the WHOLE train run.
@@ -3553,6 +3710,9 @@ CHECKS = [
     ("vendo nearby stations (bytypes)", check_vendo_nearby, False),
     ("mob endpoint surface reachable (67)", check_mob_surface, True),
     ("vendo journey + prices (v9)", check_vendo_journey, False),
+    ("vendo address search (ADR)", check_vendo_address_search, False),
+    ("vendo POI search", check_vendo_poi_search, False),
+    ("vendo door-to-door to an address", check_vendo_address_journey, True),
     ("vendo split scope: leg vs zuglauf (#22)", check_vendo_split_scope, False),
     ("vendo earlier alight (#26)", check_vendo_earlier_alight, False),
     ("vendo verkehrsmittel filter (#18)", check_vendo_verkehrsmittel, False),

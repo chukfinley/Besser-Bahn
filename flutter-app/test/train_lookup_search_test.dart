@@ -35,7 +35,7 @@ class _CountingHafas extends HafasService {
   }
 
   @override
-  Future<List<Station>> searchStations(String query) async => const [];
+  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => const [];
 }
 
 Future<_CountingHafas> _pump(WidgetTester tester) async {

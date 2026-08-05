@@ -28,8 +28,11 @@ class HafasService {
   // STATION SEARCH (DB Vendo /mob backend — bahn.de web API is Akamai-blocked)
   // ============================================================
 
-  Future<List<Station>> searchStations(String query) =>
-      _vendo.searchLocations(query);
+  /// Locations matching [query] — stops, addresses and POIs. Pass
+  /// [stopsOnly] where an EVA is required downstream (departure board,
+  /// station map, train lookup).
+  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) =>
+      _vendo.searchLocations(query, stopsOnly: stopsOnly);
 
   /// Stations near a coordinate — via the DB Vendo `location/nearby/bytypes`
   /// endpoint (request shape reverse-engineered from the DB Navigator APK).

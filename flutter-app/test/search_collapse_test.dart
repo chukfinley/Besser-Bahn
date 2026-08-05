@@ -44,7 +44,7 @@ class _NoPredictions extends PredictionService {
 /// The station dropdown must not reach for the network if a field is touched.
 class _NoStations extends HafasService {
   @override
-  Future<List<Station>> searchStations(String query) async => [];
+  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => [];
 }
 
 /// Lands a canned result exactly the way the real notifier does — serial

@@ -323,7 +323,7 @@ class _ConnectionSearchScreenState
                 child: Column(
                   children: [
                     StationSearchField(
-                      hint: 'Von',
+                      hint: 'Von — Bahnhof, Adresse oder Ort',
                       prefixIcon: Icons.trip_origin,
                       initialStation: state.from,
                       controller: _fromController,
@@ -337,7 +337,7 @@ class _ConnectionSearchScreenState
                     ),
                     const SizedBox(height: 4),
                     StationSearchField(
-                      hint: 'Nach',
+                      hint: 'Nach — Bahnhof, Adresse oder Ort',
                       prefixIcon: Icons.location_on,
                       initialStation: state.to,
                       controller: _toController,

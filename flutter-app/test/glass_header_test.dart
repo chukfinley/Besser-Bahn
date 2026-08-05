@@ -57,7 +57,7 @@ class _NoPredictions extends PredictionService {
 /// not where its rows come from.
 class _OneStation extends HafasService {
   @override
-  Future<List<Station>> searchStations(String query) async => const [
+  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => const [
         Station(id: '8000105', name: 'Frankfurt (Main) Hbf'),
       ];
 }

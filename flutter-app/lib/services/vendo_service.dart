@@ -1082,8 +1082,20 @@ class VendoService {
     }
   }
 
-  /// Vendo location search — returns stations carrying their full locationId.
-  Future<List<Station>> searchLocations(String query) async {
+  /// Vendo location search — stops, addresses and POIs, each carrying its full
+  /// locationId.
+  ///
+  /// `locationTypes: ALL` really does mean all: "Kieler Straße 30, 24211
+  /// Preetz" comes back as an `ADR` hit and "Agentur für Arbeit Kiel" as a
+  /// `POI`, and the journey API takes either as origin/destination and adds the
+  /// footpath to the nearest stop itself. Dropping everything but `ST` (as this
+  /// did) made every address search look broken, which is exactly the case
+  /// where the rider has no stop name to type.
+  ///
+  /// Duplicates are removed: the backend repeats the same address with slightly
+  /// different coordinates.
+  Future<List<Station>> searchLocations(String query,
+      {bool stopsOnly = false}) async {
     final res = await _client.post(
       Uri.parse('$_base/location/search'),
       headers: _headers(_locationMedia),
@@ -1094,13 +1106,21 @@ class VendoService {
     if (res.statusCode != 200) return [];
     final data = json.decode(utf8.decode(res.bodyBytes));
     if (data is! List) return [];
-    return data
-        .whereType<Map<String, dynamic>>()
-        // Stations only (locationType 'ST') — the app searches for stops, not
-        // addresses/POIs, and downstream boards need a station EVA.
-        .where((o) => o['locationType'] == 'ST')
-        .map(_stationFromVendo)
-        .toList();
+    final seen = <String>{};
+    final out = <Station>[];
+    for (final o in data.whereType<Map<String, dynamic>>()) {
+      if (stopsOnly && o['locationType'] != 'ST') continue;
+      final st = _stationFromVendo(o);
+      if (st.name.isEmpty) continue;
+      // A stop is unique by EVA, an address/POI by its name (the backend hands
+      // back "24211 Preetz, Danziger Straße 30" twice, metres apart).
+      final key = st.isStop && st.id.isNotEmpty
+          ? 'eva:${st.id}'
+          : '${st.kind.name}:${st.name.toLowerCase()}';
+      if (!seen.add(key)) continue;
+      out.add(st);
+    }
+    return out;
   }
 
   /// Stations near a coordinate — `POST /mob/location/nearby/bytypes`. The
@@ -1396,12 +1416,26 @@ class VendoService {
     // endpoint uses `coordinates` — accept either.
     final pos = (ort['position'] ?? ort['coordinates']) as Map<String, dynamic>?;
     final loc = ort['locationId'] as String?;
+    // Journey stops carry no locationType — those are always stops.
+    final kind = LocationKind.fromVendo(ort['locationType'] as String?);
+    final lat = (pos?['latitude'] as num?)?.toDouble();
+    final lon = (pos?['longitude'] as num?)?.toDouble();
+    final eva = (ort['evaNr'] ?? '').toString();
     return Station(
-      id: (ort['evaNr'] ?? '').toString(),
+      // An address/POI has no EVA, but favorites, recents and list keys are all
+      // keyed by id — so give it a stable synthetic one from its coordinates
+      // instead of an empty string that every address would collide on.
+      id: eva.isNotEmpty
+          ? eva
+          : (kind == LocationKind.station || lat == null || lon == null
+              ? eva
+              : '${kind.name}:${lat.toStringAsFixed(5)},'
+                  '${lon.toStringAsFixed(5)}'),
       name: ort['name'] as String? ?? '',
-      latitude: (pos?['latitude'] as num?)?.toDouble(),
-      longitude: (pos?['longitude'] as num?)?.toDouble(),
+      latitude: lat,
+      longitude: lon,
       locationId: (loc != null && loc.contains('@')) ? loc : null,
+      kind: kind,
     );
   }
 

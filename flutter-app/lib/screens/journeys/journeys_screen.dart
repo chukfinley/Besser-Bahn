@@ -19,6 +19,24 @@ import '../../widgets/offline_package_bar.dart';
 import '../../widgets/trip_progress_card.dart';
 import '../connection_search/widgets/journey_card.dart';
 
+/// The rkUuids of "Gemerkte Reisen" the user has since bought a ticket for.
+///
+/// A trip tracked on the DB account (`reiseIndizes`) stays there after booking,
+/// and the booking shows up a second time as an order (`auftragsIndizes`) — so
+/// the Reisen tab listed the same journey twice, once as a ticket on top and
+/// once under "Gemerkte Reisen" (#80). The two sides carry different ids, so
+/// they're matched on the trip identity both derive from their Verbindung
+/// (origin, destination, planned departure — [SavedJourney.key]) using the
+/// persisted key→rkUuid map the app keeps for its own DB bookmarks.
+Set<String> boughtSavedReiseIds({
+  required Map<String, String> savedReiseIds,
+  required Set<String> ticketKeys,
+}) =>
+    {
+      for (final e in savedReiseIds.entries)
+        if (ticketKeys.contains(e.key)) e.value,
+    };
+
 /// "Reisen" — the user's saved connections, like the DB Navigator. Upcoming
 /// trips on top, completed ones under "Vergangene Reisen". Trips bookmark from
 /// the connection detail; they auto-purge a week after arrival.
@@ -33,7 +51,8 @@ class JourneysScreen extends ConsumerWidget {
     // section wins (it can delete both sides); drop the local twin. The keys
     // fill in as the "Gemerkte Reisen" tiles resolve their journeys, so a
     // duplicate can flash on first paint and then collapse.
-    final dbKeys = ref.watch(dbSavedReiseIdsProvider).keys.toSet();
+    final savedReiseIds = ref.watch(dbSavedReiseIdsProvider);
+    final dbKeys = savedReiseIds.keys.toSet();
     // When signed into a DB account, the user's REAL booked tickets lead the
     // list. Logged out, only the local/offline saved trips show — that fallback
     // stays exactly as before.
@@ -59,9 +78,18 @@ class JourneysScreen extends ConsumerWidget {
     final pastTickets = ticketTrips.where((t) => t.isPast).toList();
     final savedReisen =
         loggedIn ? ref.watch(savedReisenProvider) : null;
+    // A gemerkte Reise the user has since BOUGHT comes back from the account as
+    // BOTH an order and a tracked trip, so the same journey was listed twice:
+    // once as a ticket on top, once under "Gemerkte Reisen" (#80).
+    final boughtIds = boughtSavedReiseIds(
+      savedReiseIds: savedReiseIds,
+      ticketKeys: ticketKeys,
+    );
     // A gemerkte Reise whose start day is already behind us belongs under
     // "Vergangene Reisen", not on top as if it still lay ahead (#46).
-    final savedList = savedReisen?.asData?.value ?? const <DbSavedReiseIndex>[];
+    final savedList = (savedReisen?.asData?.value ?? const <DbSavedReiseIndex>[])
+        .where((s) => !boughtIds.contains(s.rkUuid))
+        .toList();
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     bool reiseIsPast(DbSavedReiseIndex s) =>

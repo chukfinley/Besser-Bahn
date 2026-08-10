@@ -7,13 +7,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Lets the library's SharedPreferences read/write settle before asserting.
 Future<void> _settle() => Future.delayed(const Duration(milliseconds: 10));
 
+/// Tomorrow, 10:00 — relative on purpose: the library purges trips a week
+/// after arrival, so a hardcoded date makes the restart case red once it ages
+/// out.
+final _dep = () {
+  final d = DateTime.now().add(const Duration(days: 1));
+  return DateTime(d.year, d.month, d.day, 10, 0);
+}();
+
 Journey _journey() => Journey.fromJson({
       'legs': [
         {
           'origin': {'id': '8000199', 'name': 'Kiel Hbf'},
           'destination': {'id': '8002549', 'name': 'Hamburg Hbf'},
-          'plannedDeparture': '2026-08-01T10:00:00.000',
-          'plannedArrival': '2026-08-01T11:15:00.000',
+          'plannedDeparture': _dep.toIso8601String(),
+          'plannedArrival':
+              _dep.add(const Duration(minutes: 75)).toIso8601String(),
         }
       ],
     });

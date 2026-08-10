@@ -9,7 +9,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Lets the library's SharedPreferences read/write settle before asserting.
 Future<void> _settle() => Future.delayed(const Duration(milliseconds: 10));
 
-final _base = DateTime(2026, 8, 1, 10, 0);
+/// Tomorrow, 10:00. Deliberately relative: the library purges trips a week
+/// after arrival, so a hardcoded date turns these tests red once it ages out —
+/// which is exactly what happened to the "survives a restart" case.
+final _base = () {
+  final d = DateTime.now().add(const Duration(days: 1));
+  return DateTime(d.year, d.month, d.day, 10, 0);
+}();
 
 Map<String, dynamic> _legJson({
   required String originId,

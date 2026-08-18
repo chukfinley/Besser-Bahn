@@ -1,18 +1,66 @@
 # Besser Bahn
 
-**Die bessere Bahn-App. Privacy-first, für Vielfahrer.**
+**Privacy-first railway companion for Germany, built with Flutter.**
 
-Ein Premium-Begleiter für die Deutsche Bahn: Verbindungssuche, Live-Abfahrten,
-Zugläufe auf der Karte, Verspätungs- und Anschluss-Vorhersage, Träwelling-Check-ins
-und das Finden günstigerer Split-Tickets — alles ohne Tracking, ohne Werbung,
-ohne Konto-Zwang.
+Besser Bahn is a privacy-focused mobile application for frequent railway travelers in Germany. It combines journey planning, live departure information, real-time disruption data, maps, connection reliability, split-ticket analysis, and optional DB account integration in a single Flutter application.
 
-Optional lässt sich das **eigene DB-Konto verbinden** — dann liegen **Tickets
-(inkl. Barcode zum Vorzeigen), BahnCard und BahnBonus** direkt in der App.
+The application is designed to work without tracking, advertising, or a mandatory account.
 
 <p align="center">
-  <img src="assets/app_icon.png" width="100" />
+  <img src="assets/app_icon.png" width="100" alt="Besser Bahn app icon" />
 </p>
+
+## Engineering Snapshot
+
+| Area             | Technology / Approach                                 |
+| ---------------- | ----------------------------------------------------- |
+| Mobile           | Flutter / Dart                                        |
+| State management | Riverpod                                              |
+| Navigation       | GoRouter                                              |
+| Networking       | REST/HTTP integrations                                |
+| Maps             | OpenStreetMap-based mapping                           |
+| Local data       | Local persistence and offline caching                 |
+| Testing          | Flutter unit/widget tests                             |
+| CI               | GitHub Actions                                        |
+| Architecture     | Service / provider / model based Flutter architecture |
+
+## My Contributions
+
+As a contributor to Besser Bahn, I worked on reliability, API integration, testing, and the Flutter toolchain.
+
+### Flutter 3.44.3 Upgrade
+
+* Upgraded the application to **Flutter 3.44.3**.
+* Stabilized affected application and test code across the Flutter upgrade.
+* Verified the migration with static analysis and the automated test suite.
+* Kept generated platform files and IDE artifacts out of the source changes.
+
+### DB / Vendo API Integration
+
+* Improved route and price parsing in the Vendo service.
+* Improved handling of DB upstream HTTP responses and actionable error messages.
+* Ensured request bodies are sent in the format expected by the upstream DB endpoint.
+* Added graceful handling for route-calculation failures so map functionality can continue when an upstream route request fails.
+* Improved parsing of journey, price, walking-route, and best-price response data.
+
+### Testing & CI
+
+* Added a GitHub Actions workflow for automated Flutter analysis and tests.
+* CI runs for relevant Flutter application changes on `main`, `chore/**`, and pull requests.
+* Added and maintained tests covering journey search, rerouting, transfer information, walking routes, station search, address search, split-ticket data, and related services.
+* Verified the upgraded application with **850 automated tests passing** and clean Flutter analysis.
+
+### Engineering Practices
+
+* Used focused commits describing individual engineering changes.
+* Kept generated platform files and IDE-specific files out of feature commits.
+* Used `git diff --check` and staged-diff inspection before committing.
+* Merged the validated Flutter upgrade into `main` only after the working tree was clean.
+
+> This repository is also useful as a practical example of working with an existing Flutter codebase: understanding unfamiliar services, modifying API integrations, maintaining tests, upgrading dependencies, and validating changes through CI.
+
+
+
 
 ## Funktionen
 

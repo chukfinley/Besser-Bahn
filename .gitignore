@@ -32,3 +32,5 @@ session.txt
 
 # local test output
 flutter-app/.test_out.txt
+
+.idea/

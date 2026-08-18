@@ -2,31 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../models/journey.dart';
 import '../providers/onboarding_provider.dart';
+import '../screens/connection_search/best_price_screen.dart';
+import '../screens/connection_search/connection_detail_screen.dart';
+// import '../screens/connection_search/connection_detail_screen.dart' show TicketRef;
+import '../screens/connection_search/connection_search_screen.dart';
+import '../screens/connection_search/stopover_plan_screen.dart';
+import '../screens/debug_log/debug_log_screen.dart';
 import '../screens/home/home_screen.dart';
-import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/journeys/journeys_screen.dart';
 import '../screens/nearby/nearby_screen.dart';
-import '../screens/train_lookup/train_lookup_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/ticket_detail_screen.dart';
-import '../screens/connection_search/connection_detail_screen.dart' show TicketRef;
-import '../screens/connection_search/connection_search_screen.dart';
-import '../screens/connection_search/best_price_screen.dart';
-import '../screens/connection_search/stopover_plan_screen.dart';
-import '../screens/station_map/station_map_screen.dart';
-import '../screens/connection_search/connection_detail_screen.dart';
-import '../models/journey.dart';
-import 'tab_pager.dart';
-import '../screens/split_ticket/split_ticket_screen.dart';
-import '../screens/split_ticket/bulk_split_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/split_ticket/bulk_split_screen.dart';
+import '../screens/split_ticket/split_ticket_screen.dart';
+import '../screens/station_map/station_map_screen.dart';
 import '../screens/stats/travel_stats_screen.dart';
-import '../screens/debug_log/debug_log_screen.dart';
-import '../screens/traewelling/traewelling_hub_screen.dart';
+import '../screens/traewelling/traewelling_checkin_screen.dart';
 import '../screens/traewelling/traewelling_feed_screen.dart';
 import '../screens/traewelling/traewelling_friends_screen.dart';
-import '../screens/traewelling/traewelling_checkin_screen.dart';
+import '../screens/traewelling/traewelling_hub_screen.dart';
+import '../screens/train_lookup/train_lookup_screen.dart';
+import 'tab_pager.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -239,8 +239,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final args = state.extra as BestPriceArgs;
-          return BestPriceScreen(
-              from: args.from, to: args.to, date: args.date);
+          return BestPriceScreen(from: args.from, to: args.to, date: args.date);
         },
       ),
       // A single train's run, pushed (with back button) from a connection leg

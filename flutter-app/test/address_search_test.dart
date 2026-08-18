@@ -18,46 +18,55 @@ import 'package:http/testing.dart';
 /// Rows below are trimmed copies of live responses — see
 /// `api-tests/healthcheck.py::check_vendo_address_search`, which asserts the same
 /// shapes against the real endpoint.
-Map<String, dynamic> _adr(String name, double lat, double lon,
-        {String? evaNr = '981033693'}) =>
-    {
-      'locationType': 'ADR',
-      'name': name,
-      // An address really does come back with an evaNr — but a pseudo one
-      // (98x/99x), with no board and no station map behind it. Only
-      // locationType says what this is.
-      if (evaNr != null) 'evaNr': evaNr,
-      'locationId': 'A=2@O=$name@X=${(lon * 1e6).round()}@'
-          'Y=${(lat * 1e6).round()}@U=91@L=981033693@p=1779965474@',
-      'coordinates': {'latitude': lat, 'longitude': lon},
-    };
+Map<String, dynamic> _adr(
+  String name,
+  double lat,
+  double lon, {
+  String? evaNr = '981033693',
+}) => {
+  'locationType': 'ADR',
+  'name': name,
+  // An address really does come back with an evaNr — but a pseudo one
+  // (98x/99x), with no board and no station map behind it. Only
+  // locationType says what this is.
+  'evaNr': ?evaNr,
+  'locationId':
+      'A=2@O=$name@X=${(lon * 1e6).round()}@'
+      'Y=${(lat * 1e6).round()}@U=91@L=981033693@p=1779965474@',
+  'coordinates': {'latitude': lat, 'longitude': lon},
+};
 
 Map<String, dynamic> _poi(String name, double lat, double lon) => {
-      'locationType': 'POI',
-      'name': name,
-      'evaNr': '991007559',
-      'locationId': 'A=4@O=$name@U=92@L=991007559@p=1785820257@',
-      'coordinates': {'latitude': lat, 'longitude': lon},
-    };
+  'locationType': 'POI',
+  'name': name,
+  'evaNr': '991007559',
+  'locationId': 'A=4@O=$name@U=92@L=991007559@p=1785820257@',
+  'coordinates': {'latitude': lat, 'longitude': lon},
+};
 
 Map<String, dynamic> _st(String name, String eva, double lat, double lon) => {
-      'locationType': 'ST',
-      'name': name,
-      'evaNr': eva,
-      'locationId': 'A=1@O=$name@U=80@L=$eva@p=1785786650@',
-      'coordinates': {'latitude': lat, 'longitude': lon},
-    };
+  'locationType': 'ST',
+  'name': name,
+  'evaNr': eva,
+  'locationId': 'A=1@O=$name@U=80@L=$eva@p=1785786650@',
+  'coordinates': {'latitude': lat, 'longitude': lon},
+};
 
-VendoService _service(List<Map<String, dynamic>> rows,
-        {void Function(Map<String, dynamic> body)? onBody}) =>
-    VendoService(
-      client: MockClient((req) async {
-        onBody?.call(
-            json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>);
-        return http.Response.bytes(utf8.encode(json.encode(rows)), 200,
-            headers: {'content-type': 'application/json; charset=utf-8'});
-      }),
+VendoService _service(
+  List<Map<String, dynamic>> rows, {
+  void Function(Map<String, dynamic> body)? onBody,
+}) => VendoService(
+  client: MockClient((req) async {
+    onBody?.call(
+      json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>,
     );
+    return http.Response.bytes(
+      utf8.encode(json.encode(rows)),
+      200,
+      headers: {'content-type': 'application/json; charset=utf-8'},
+    );
+  }),
+);
 
 void main() {
   test('address and POI hits survive the search', () async {
@@ -72,59 +81,70 @@ void main() {
       'Kiel, Agentur für Arbeit Kiel',
       'Preetz',
     ]);
-    expect(results.map((s) => s.kind),
-        [LocationKind.address, LocationKind.poi, LocationKind.station]);
+    expect(results.map((s) => s.kind), [
+      LocationKind.address,
+      LocationKind.poi,
+      LocationKind.station,
+    ]);
     expect(results.first.isStop, isFalse);
     expect(results.last.isStop, isTrue);
   });
 
-  test('an address keeps its full locationId — the journey API needs it',
-      () async {
-    final adr = (await _service([
-      _adr('24211 Preetz, Kieler Straße 30', 54.24456, 10.277403),
-    ]).searchLocations('Kieler Straße 30'))
-        .single;
+  test(
+    'an address keeps its full locationId — the journey API needs it',
+    () async {
+      final adr = (await _service([
+        _adr('24211 Preetz, Kieler Straße 30', 54.24456, 10.277403),
+      ]).searchLocations('Kieler Straße 30')).single;
 
-    expect(adr.locationId, startsWith('A=2@O=24211 Preetz, Kieler Straße 30@'));
-    expect(adr.vendoLocationId, adr.locationId);
-    expect(adr.latitude, closeTo(54.24456, 1e-6));
-  });
+      expect(
+        adr.locationId,
+        startsWith('A=2@O=24211 Preetz, Kieler Straße 30@'),
+      );
+      expect(adr.vendoLocationId, adr.locationId);
+      expect(adr.latitude, closeTo(54.24456, 1e-6));
+    },
+  );
 
-  test('an address gets a stable id — favorites/recents are keyed by it',
-      () async {
-    final adr = (await _service([
-      _adr('24211 Preetz, Kieler Straße 30', 54.24456, 10.277403),
-    ]).searchLocations('Kieler Straße 30'))
-        .single;
+  test(
+    'an address gets a stable id — favorites/recents are keyed by it',
+    () async {
+      final adr = (await _service([
+        _adr('24211 Preetz, Kieler Straße 30', 54.24456, 10.277403),
+      ]).searchLocations('Kieler Straße 30')).single;
 
-    // DB's pseudo-EVA is stable per address, so it is the key — but it is not
-    // a station: `isStop` stays false, which is what guards the boards.
-    expect(adr.id, '981033693');
-    expect(adr.isStop, isFalse);
+      // DB's pseudo-EVA is stable per address, so it is the key — but it is not
+      // a station: `isStop` stays false, which is what guards the boards.
+      expect(adr.id, '981033693');
+      expect(adr.isStop, isFalse);
 
-    final other = (await _service([
-      _adr('24211 Preetz, Danziger Straße 30', 54.244138, 10.288199,
-          evaNr: '981033643'),
-    ]).searchLocations('Danziger Straße 30'))
-        .single;
-    expect(other.id, isNot(adr.id));
-  });
+      final other = (await _service([
+        _adr(
+          '24211 Preetz, Danziger Straße 30',
+          54.244138,
+          10.288199,
+          evaNr: '981033643',
+        ),
+      ]).searchLocations('Danziger Straße 30')).single;
+      expect(other.id, isNot(adr.id));
+    },
+  );
 
   test('an address without a pseudo-EVA still gets a usable id', () async {
     // Belt and braces: an empty id made every address collide in the library
     // and silently refuse to be starred.
     final adr = (await _service([
       _adr('24211 Preetz, Kieler Straße 30', 54.24456, 10.277403, evaNr: null),
-    ]).searchLocations('Kieler Straße 30'))
-        .single;
+    ]).searchLocations('Kieler Straße 30')).single;
     expect(adr.id, 'address:54.24456,10.27740');
   });
 
   test('no synthetic EVA locationId is invented for an address', () {
     const adr = Station(
-        id: 'address:54.24456,10.27740',
-        name: '24211 Preetz, Kieler Straße 30',
-        kind: LocationKind.address);
+      id: 'address:54.24456,10.27740',
+      name: '24211 Preetz, Kieler Straße 30',
+      kind: LocationKind.address,
+    );
     // 'A=1@L=address:…@' would be nonsense to the backend — better empty.
     expect(adr.vendoLocationId, '');
   });

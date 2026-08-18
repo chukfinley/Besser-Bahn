@@ -7,28 +7,27 @@ Map<String, dynamic> _conn({
   Map<String, dynamic>? topNotiz,
   List<Map<String, dynamic>>? echtzeitNotizen,
   List<Map<String, dynamic>>? himNotizen,
-}) =>
-    {
-      'verbindung': {
-        'kontext': 'ctx-1',
-        if (topNotiz != null) 'topNotiz': topNotiz,
-        if (echtzeitNotizen != null) 'echtzeitNotizen': echtzeitNotizen,
-        if (himNotizen != null) 'himNotizen': himNotizen,
-        'verbindungsAbschnitte': [
-          {
-            'typ': 'FAHRZEUG',
-            'mitteltext': 'ICE 947',
-            'kurztext': 'ICE',
-            'produktGattung': 'ICE',
-            'abgangsOrt': {'evaNr': '8000207', 'name': 'Köln Hbf'},
-            'ankunftsOrt': {'evaNr': '8011160', 'name': 'Berlin Hbf'},
-            'abgangsDatum': '2026-07-15T20:44:00+02:00',
-            'ankunftsDatum': '2026-07-16T00:17:00+02:00',
-            'halte': [],
-          }
-        ],
-      }
-    };
+}) => {
+  'verbindung': {
+    'kontext': 'ctx-1',
+    'topNotiz': ?topNotiz,
+    'echtzeitNotizen': ?echtzeitNotizen,
+    'himNotizen': ?himNotizen,
+    'verbindungsAbschnitte': [
+      {
+        'typ': 'FAHRZEUG',
+        'mitteltext': 'ICE 947',
+        'kurztext': 'ICE',
+        'produktGattung': 'ICE',
+        'abgangsOrt': {'evaNr': '8000207', 'name': 'Köln Hbf'},
+        'ankunftsOrt': {'evaNr': '8011160', 'name': 'Berlin Hbf'},
+        'abgangsDatum': '2026-07-15T20:44:00+02:00',
+        'ankunftsDatum': '2026-07-16T00:17:00+02:00',
+        'halte': [],
+      },
+    ],
+  },
+};
 
 void main() {
   group('connection-level notes (#20)', () {
@@ -37,41 +36,53 @@ void main() {
     test('the connection note reaches the journey', () {
       // The live case: the leg carries no notes at all, and this is the only
       // place that says the train stops short of Berlin Hbf.
-      final j = svc.parseConnection(_conn(echtzeitNotizen: [
-        {
-          'prio': 'HOCH',
-          'text': 'Der Zielhalt Berlin Hbf entfällt. '
-              'Ausstieg in Berlin-Spandau möglich.'
-        }
-      ]));
+      final j = svc.parseConnection(
+        _conn(
+          echtzeitNotizen: [
+            {
+              'prio': 'HOCH',
+              'text':
+                  'Der Zielhalt Berlin Hbf entfällt. '
+                  'Ausstieg in Berlin-Spandau möglich.',
+            },
+          ],
+        ),
+      );
 
       expect(j.disruptions, hasLength(1));
       expect(j.disruptions.first, contains('Berlin-Spandau'));
-      expect(j.legs.first.disruptions, isEmpty,
-          reason: 'proves the leg was not the source');
+      expect(
+        j.legs.first.disruptions,
+        isEmpty,
+        reason: 'proves the leg was not the source',
+      );
     });
 
     test('the "textDefault" placeholder never reaches the UI', () {
       // 11 of 15 live connections carry exactly this as topNotiz.
-      final j = svc.parseConnection(_conn(
-        topNotiz: {'prio': 'NORMAL', 'text': 'textDefault'},
-        echtzeitNotizen: [
-          {'prio': 'NORMAL', 'text': 'textDefault'}
-        ],
-      ));
+      final j = svc.parseConnection(
+        _conn(
+          topNotiz: {'prio': 'NORMAL', 'text': 'textDefault'},
+          echtzeitNotizen: [
+            {'prio': 'NORMAL', 'text': 'textDefault'},
+          ],
+        ),
+      );
       expect(j.disruptions, isEmpty);
     });
 
     test('him and realtime notes are merged, deduped', () {
-      final j = svc.parseConnection(_conn(
-        himNotizen: [
-          {'text': 'Bauarbeiten'}
-        ],
-        echtzeitNotizen: [
-          {'text': 'Bauarbeiten'},
-          {'text': 'Verbindung fällt aus'},
-        ],
-      ));
+      final j = svc.parseConnection(
+        _conn(
+          himNotizen: [
+            {'text': 'Bauarbeiten'},
+          ],
+          echtzeitNotizen: [
+            {'text': 'Bauarbeiten'},
+            {'text': 'Verbindung fällt aus'},
+          ],
+        ),
+      );
       expect(j.disruptions, ['Bauarbeiten', 'Verbindung fällt aus']);
     });
 
@@ -87,8 +98,9 @@ void main() {
     /// the run really terminates at Berlin-Spandau 00:04 on platform 5.
     Map<String, dynamic> connEndingEarly() {
       final c = _conn();
-      final leg = (c['verbindung']
-          as Map<String, dynamic>)['verbindungsAbschnitte'] as List;
+      final leg =
+          (c['verbindung'] as Map<String, dynamic>)['verbindungsAbschnitte']
+              as List;
       (leg.first as Map<String, dynamic>)['ersatzZielhaltIndex'] = 4;
       (leg.first as Map<String, dynamic>)['ersatzAnkunftsHalt'] = {
         'ankunftsDatum': '2026-07-16T00:04:00+02:00',
@@ -141,17 +153,17 @@ void main() {
     final svc = VendoService();
 
     /// Live shape: both classes are always present.
-    Map<String, dynamic> connWithLoad(
-        {int? first = 2, int? second = 3}) {
+    Map<String, dynamic> connWithLoad({int? first = 2, int? second = 3}) {
       final c = _conn();
-      final legs = (c['verbindung']
-          as Map<String, dynamic>)['verbindungsAbschnitte'] as List;
+      final legs =
+          (c['verbindung'] as Map<String, dynamic>)['verbindungsAbschnitte']
+              as List;
       (legs.first as Map<String, dynamic>)['auslastungsInfos'] = [
         if (first != null)
           {
             'klasse': 'KLASSE_1',
             'stufe': first,
-            'anzeigeTextKurz': 'Mittlere Auslastung erwartet'
+            'anzeigeTextKurz': 'Mittlere Auslastung erwartet',
           },
         if (second != null) {'klasse': 'KLASSE_2', 'stufe': second},
       ];
@@ -161,8 +173,10 @@ void main() {
     test('a first-class search reads the first-class load', () {
       // This read KLASSE_2 unconditionally, so a first-class rider never saw
       // any occupancy — despite KLASSE_1 being present on every entry probed.
-      final leg =
-          svc.parseConnection(connWithLoad(), firstClass: true).legs.first;
+      final leg = svc
+          .parseConnection(connWithLoad(), firstClass: true)
+          .legs
+          .first;
       expect(leg.occupancy?.level, OccupancyLevel.medium);
     });
 

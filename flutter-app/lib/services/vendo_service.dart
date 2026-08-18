@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:http/http.dart' as http;
+
 import '../core/app_log.dart';
-import '../models/station.dart';
-import 'db_api_service.dart' show SegmentPrice;
 import '../models/best_price.dart';
-import '../models/walking_route.dart';
 import '../models/departure.dart';
 import '../models/journey.dart';
+import '../models/station.dart';
 import '../models/trip.dart';
+import '../models/walking_route.dart';
+import 'db_api_service.dart' show SegmentPrice;
 
 /// Client for the DB Navigator mobile backend (`app.services-bahn.de/mob`).
 ///
@@ -70,13 +72,13 @@ class VendoService {
   final _rng = Random();
 
   Map<String, String> _headers(String media) => {
-        'Accept': media,
-        'Content-Type': media,
-        'Accept-Language': 'de',
-        'User-Agent': 'DBNavigator/Android/26.9.0',
-        'X-App-Version': '26.9.0',
-        'X-Correlation-ID': '${_uuid()}_${_uuid()}',
-      };
+    'Accept': media,
+    'Content-Type': media,
+    'Accept-Language': 'de',
+    'User-Agent': 'DBNavigator/Android/26.9.0',
+    'X-App-Version': '26.9.0',
+    'X-Correlation-ID': '${_uuid()}_${_uuid()}',
+  };
 
   /// Search journeys with offers/prices. [fromLocationId]/[toLocationId] are the
   /// full HAFAS location strings ([Station.vendoLocationId]).
@@ -121,7 +123,7 @@ class VendoService {
             {
               'ermaessigungen': ['KEINE_ERMAESSIGUNG KLASSENLOS'],
               'reisendenTyp': 'ERWACHSENER',
-            }
+            },
           ]
         : reisende;
     final body = {
@@ -144,40 +146,43 @@ class VendoService {
             'zeitPunktArt': isArrival ? 'ANKUNFT' : 'ABFAHRT',
           },
           'zielLocationId': toLocationId,
-          if (minTransferMinutes != null)
-            'minUmstiegsdauer': minTransferMinutes,
-          if (maxTransfers != null) 'maxUmstiege': maxTransfers,
+          'minUmstiegsdauer': ?minTransferMinutes,
+          'maxUmstiege': ?maxTransfers,
           if (viaLocations != null && viaLocations.isNotEmpty)
             'viaLocations': viaLocations,
-          // Earlier/later pagination: the DB Navigator backend returns
-          // frueherContext/spaeterContext tokens; replaying one here scrolls
-          // the result window. Field is `context` (English), not `kontext`.
-          if (context != null) 'context': context,
+          'context': ?context,
         },
       },
-      'reisendenProfil': {
-        'reisende': reisendeJson,
-      },
+      'reisendenProfil': {'reisende': reisendeJson},
       'reservierungsKontingenteVorhanden': false,
     };
 
     final url = '$_base/angebote/fahrplan';
-    AppLog.log('journey ${fromLocationId.split('@O=').last.split('@').first}'
-        ' → ${toLocationId.split('@O=').last.split('@').first}', tag: 'vendo');
-    AppLog.log('POST $url klasse=${firstClass ? 1 : 2} '
-        'isArrival=$isArrival dt=${_isoWithOffset(dateTime ?? DateTime.now())}',
-        tag: 'vendo');
+    AppLog.log(
+      'journey ${fromLocationId.split('@O=').last.split('@').first}'
+      ' → ${toLocationId.split('@O=').last.split('@').first}',
+      tag: 'vendo',
+    );
+    AppLog.log(
+      'POST $url klasse=${firstClass ? 1 : 2} '
+      'isArrival=$isArrival dt=${_isoWithOffset(dateTime ?? DateTime.now())}',
+      tag: 'vendo',
+    );
     // NB: pass the body as BYTES, not a String. package:http appends
     // `; charset=utf-8` to the Content-Type of a String body, and the DB edge
     // exact-matches the vendo media type — the charset variant is rejected with
     // HTTP 405 (0B). Bytes leave the Content-Type header untouched.
     final res = await _client
-        .post(Uri.parse(url),
-            headers: _headers(_journeyMedia),
-            body: utf8.encode(json.encode(body)))
+        .post(
+          Uri.parse(url),
+          headers: _headers(_journeyMedia),
+          body: utf8.encode(json.encode(body)),
+        )
         .timeout(const Duration(seconds: 12));
-    AppLog.log('fahrplan HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
-        tag: 'vendo');
+    AppLog.log(
+      'fahrplan HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
+      tag: 'vendo',
+    );
     if (res.statusCode != 200) {
       // Surface the upstream body — DB encodes the real reason (bot block,
       // bad location id, rate limit) in the JSON, not just the status code.
@@ -189,10 +194,12 @@ class VendoService {
       // — prefer that over the raw JSON so the party sheet gets actionable
       // feedback ("Bitte wählen Sie die 2. Klasse.").
       final friendly = _dbAnzeigeText(res.bodyBytes);
-      throw VendoException(friendly ??
-          'Vendo fahrplan HTTP ${res.statusCode}: $snippet');
+      throw VendoException(
+        friendly ?? 'Vendo fahrplan HTTP ${res.statusCode}: $snippet',
+      );
     }
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final conns = data['verbindungen'] as List<dynamic>? ?? [];
     AppLog.log('${conns.length} journeys parsed', tag: 'vendo');
     return JourneyResult(
@@ -231,26 +238,36 @@ class VendoService {
     };
     final url = '$_base/location/calculateroute';
     final res = await _client
-        .post(Uri.parse(url),
-            headers: _headers(_locationMedia),
-            body: utf8.encode(json.encode(body)))
+        .post(
+          Uri.parse(url),
+          headers: _headers(_locationMedia),
+          body: utf8.encode(json.encode(body)),
+        )
         .timeout(const Duration(seconds: 10));
-    AppLog.log('calculateroute HTTP ${res.statusCode} '
-        '(${res.bodyBytes.length}B)', tag: 'vendo');
+    AppLog.log(
+      'calculateroute HTTP ${res.statusCode} '
+      '(${res.bodyBytes.length}B)',
+      tag: 'vendo',
+    );
     if (res.statusCode != 200) {
       // A route that can't be computed is not worth an exception — the map is
       // useful without it.
-      AppLog.log('calculateroute failed: ${_snippet(res.bodyBytes)}',
-          tag: 'vendo');
+      AppLog.log(
+        'calculateroute failed: ${_snippet(res.bodyBytes)}',
+        tag: 'vendo',
+      );
       return null;
     }
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final points = (data['gpsPositions'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
-        .map((p) => (
-              lat: (p['latitude'] as num?)?.toDouble(),
-              lon: (p['longitude'] as num?)?.toDouble(),
-            ))
+        .map(
+          (p) => (
+            lat: (p['latitude'] as num?)?.toDouble(),
+            lon: (p['longitude'] as num?)?.toDouble(),
+          ),
+        )
         .where((p) => p.lat != null && p.lon != null)
         .map((p) => WalkingPoint(p.lat!, p.lon!))
         .toList();
@@ -317,7 +334,7 @@ class VendoService {
                 {
                   'ermaessigungen': ['KEINE_ERMAESSIGUNG KLASSENLOS'],
                   'reisendenTyp': 'ERWACHSENER',
-                }
+                },
               ]
             : reisende,
       },
@@ -325,23 +342,34 @@ class VendoService {
     };
 
     final url = '$_base/angebote/tagesbestpreis';
-    AppLog.log('POST $url day=${_isoWithOffset(day)} '
-        'klasse=${firstClass ? 1 : 2}', tag: 'vendo');
+    AppLog.log(
+      'POST $url day=${_isoWithOffset(day)} '
+      'klasse=${firstClass ? 1 : 2}',
+      tag: 'vendo',
+    );
     // Bytes, not a String — see searchJourneys: a charset on the vendo media
     // type is rejected with a 405.
     final res = await _client
-        .post(Uri.parse(url),
-            headers: _headers(_journeyMedia),
-            body: utf8.encode(json.encode(body)))
+        .post(
+          Uri.parse(url),
+          headers: _headers(_journeyMedia),
+          body: utf8.encode(json.encode(body)),
+        )
         .timeout(const Duration(seconds: 20));
-    AppLog.log('tagesbestpreis HTTP ${res.statusCode} '
-        '(${res.bodyBytes.length}B)', tag: 'vendo');
+    AppLog.log(
+      'tagesbestpreis HTTP ${res.statusCode} '
+      '(${res.bodyBytes.length}B)',
+      tag: 'vendo',
+    );
     if (res.statusCode != 200) {
-      throw VendoException(_dbAnzeigeText(res.bodyBytes) ??
-          'Vendo tagesbestpreis HTTP ${res.statusCode}: '
-              '${_snippet(res.bodyBytes)}');
+      throw VendoException(
+        _dbAnzeigeText(res.bodyBytes) ??
+            'Vendo tagesbestpreis HTTP ${res.statusCode}: '
+                '${_snippet(res.bodyBytes)}',
+      );
     }
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final intervals = (data['tagesbestPreisIntervalle'] as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
         .map((iv) => _parseBestPriceInterval(iv, firstClass: firstClass))
@@ -354,8 +382,10 @@ class VendoService {
 
   /// One `tagesbestPreisIntervalle` entry. Null when it has no bounds — those
   /// are the only field the UI can't do without.
-  BestPriceInterval? _parseBestPriceInterval(Map<String, dynamic> iv,
-      {bool firstClass = false}) {
+  BestPriceInterval? _parseBestPriceInterval(
+    Map<String, dynamic> iv, {
+    bool firstClass = false,
+  }) {
     final from = _parse(iv['intervallAb']);
     final to = _parse(iv['intervallBis']);
     if (from == null || to == null) return null;
@@ -399,25 +429,35 @@ class VendoService {
           'zeitPunktArt': 'ANKUNFT',
         },
         'zielLocationId': zielLocationId,
-        if (context != null) 'context': context,
+        'context': ?context,
       },
     };
     final url = '$_base/trip/weitereabfahrten';
-    AppLog.log('weitereabfahrten gattung=$produktGattungen '
-        'an=${_isoWithOffset(ankunft)}${context != null ? ' (mehr)' : ''}',
-        tag: 'vendo');
+    AppLog.log(
+      'weitereabfahrten gattung=$produktGattungen '
+      'an=${_isoWithOffset(ankunft)}${context != null ? ' (mehr)' : ''}',
+      tag: 'vendo',
+    );
     final res = await _client
-        .post(Uri.parse(url),
-            headers: _headers(_journeyMedia),
-            body: utf8.encode(json.encode(body)))
+        .post(
+          Uri.parse(url),
+          headers: _headers(_journeyMedia),
+          body: utf8.encode(json.encode(body)),
+        )
         .timeout(const Duration(seconds: 12));
-    AppLog.log('weitereabfahrten HTTP ${res.statusCode} '
-        '(${res.bodyBytes.length}B)', tag: 'vendo');
+    AppLog.log(
+      'weitereabfahrten HTTP ${res.statusCode} '
+      '(${res.bodyBytes.length}B)',
+      tag: 'vendo',
+    );
     if (res.statusCode != 200) {
-      throw VendoException('Vendo weitereabfahrten HTTP ${res.statusCode}: '
-          '${_snippet(res.bodyBytes)}');
+      throw VendoException(
+        'Vendo weitereabfahrten HTTP ${res.statusCode}: '
+        '${_snippet(res.bodyBytes)}',
+      );
     }
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final conns = data['verbindungen'] as List<dynamic>? ?? [];
     return JourneyResult(
       journeys: conns
@@ -497,17 +537,25 @@ class VendoService {
     };
     final url = '$_base/angebote/verbindung/teilen';
     final res = await _client
-        .post(Uri.parse(url),
-            headers: _headers(_shareMedia),
-            body: utf8.encode(json.encode(body)))
+        .post(
+          Uri.parse(url),
+          headers: _headers(_shareMedia),
+          body: utf8.encode(json.encode(body)),
+        )
         .timeout(const Duration(seconds: 10));
-    AppLog.log('teilen HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
-        tag: 'vendo');
+    AppLog.log(
+      'teilen HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
+      tag: 'vendo',
+    );
     if (res.statusCode != 201 && res.statusCode != 200) {
-      AppLog.log('teilen non-2xx body: ${_snippet(res.bodyBytes)}', tag: 'vendo');
+      AppLog.log(
+        'teilen non-2xx body: ${_snippet(res.bodyBytes)}',
+        tag: 'vendo',
+      );
       return null;
     }
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final vbid = data['vbid'] as String?;
     if (vbid == null || vbid.isEmpty) return null;
     final link = 'https://www.bahn.de/buchung/start?vbid=$vbid';
@@ -560,8 +608,11 @@ class VendoService {
     final lookup = await _client
         .get(Uri.parse(lookupUrl), headers: _headers(_shareMedia))
         .timeout(const Duration(seconds: 12));
-    AppLog.log('share lookup HTTP ${lookup.statusCode} '
-        '(${lookup.bodyBytes.length}B)', tag: 'vendo');
+    AppLog.log(
+      'share lookup HTTP ${lookup.statusCode} '
+      '(${lookup.bodyBytes.length}B)',
+      tag: 'vendo',
+    );
     if (lookup.statusCode != 200) return null;
     final share =
         json.decode(utf8.decode(lookup.bodyBytes)) as Map<String, dynamic>;
@@ -583,21 +634,26 @@ class VendoService {
                 {
                   'ermaessigungen': ['KEINE_ERMAESSIGUNG KLASSENLOS'],
                   'reisendenTyp': 'ERWACHSENER',
-                }
+                },
               ]
             : reisende,
       },
       'reservierungsKontingenteVorhanden': false,
     };
     final res = await _client
-        .post(Uri.parse('$_base/angebote/recon'),
-            headers: _headers(_journeyMedia),
-            body: utf8.encode(json.encode(body)))
+        .post(
+          Uri.parse('$_base/angebote/recon'),
+          headers: _headers(_journeyMedia),
+          body: utf8.encode(json.encode(body)),
+        )
         .timeout(const Duration(seconds: 15));
-    AppLog.log('recon HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
-        tag: 'vendo');
+    AppLog.log(
+      'recon HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
+      tag: 'vendo',
+    );
     if (res.statusCode != 200) return null;
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     // `{verbindung, angebote}` — the same shape as one element of a search
     // result's `verbindungen`, so the normal parser reads it as-is.
     final journey = _parseConnection(data, firstClass: firstClass);
@@ -619,7 +675,8 @@ class VendoService {
     if (res.statusCode != 200) {
       throw VendoException('Vendo zuglauf HTTP ${res.statusCode}');
     }
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final points = _parsePolyline(data);
     AppLog.log('zuglauf polyline ${points?.length ?? 0} pts', tag: 'vendo');
     return points;
@@ -655,16 +712,24 @@ class VendoService {
   // (and [getTrip]) consumes, so a board row taps straight through to detail.
   // ==========================================================================
 
-  Future<List<Departure>> getDepartures(String evaId,
-          {DateTime? when, int results = 40}) =>
-      _fetchBoard(evaId, when: when, results: results, arrivals: false);
+  Future<List<Departure>> getDepartures(
+    String evaId, {
+    DateTime? when,
+    int results = 40,
+  }) => _fetchBoard(evaId, when: when, results: results, arrivals: false);
 
-  Future<List<Departure>> getArrivals(String evaId,
-          {DateTime? when, int results = 40}) =>
-      _fetchBoard(evaId, when: when, results: results, arrivals: true);
+  Future<List<Departure>> getArrivals(
+    String evaId, {
+    DateTime? when,
+    int results = 40,
+  }) => _fetchBoard(evaId, when: when, results: results, arrivals: true);
 
-  Future<List<Departure>> _fetchBoard(String evaId,
-      {DateTime? when, int results = 40, required bool arrivals}) async {
+  Future<List<Departure>> _fetchBoard(
+    String evaId, {
+    DateTime? when,
+    int results = 40,
+    required bool arrivals,
+  }) async {
     final now = when ?? DateTime.now();
     String two(int v) => v.toString().padLeft(2, '0');
     final body = {
@@ -675,15 +740,18 @@ class VendoService {
     };
     final path = arrivals ? 'ankunft' : 'abfahrt';
     final res = await _client
-        .post(Uri.parse('$_base/bahnhofstafel/$path'),
-            headers: _headers(_bahnhofstafelMedia),
-            // Bytes, not String — a charset param on Content-Type is rejected.
-            body: utf8.encode(json.encode(body)))
+        .post(
+          Uri.parse('$_base/bahnhofstafel/$path'),
+          headers: _headers(_bahnhofstafelMedia),
+          // Bytes, not String — a charset param on Content-Type is rejected.
+          body: utf8.encode(json.encode(body)),
+        )
         .timeout(const Duration(seconds: 10));
     if (res.statusCode != 200) {
       throw VendoException('Vendo bahnhofstafel/$path HTTP ${res.statusCode}');
     }
-    final data = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final data =
+        json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final key = arrivals
         ? 'bahnhofstafelAnkunftPositionen'
         : 'bahnhofstafelAbfahrtPositionen';
@@ -695,13 +763,14 @@ class VendoService {
         .toList();
   }
 
-  Departure _departureFromBoard(Map<String, dynamic> p,
-      {required bool arrivals}) {
-    final planned =
-        _parse(arrivals ? p['ankunftsDatum'] : p['abgangsDatum']);
+  Departure _departureFromBoard(
+    Map<String, dynamic> p, {
+    required bool arrivals,
+  }) {
+    final planned = _parse(arrivals ? p['ankunftsDatum'] : p['abgangsDatum']);
     final actual =
         _parse(arrivals ? p['ezAnkunftsDatum'] : p['ezAbgangsDatum']) ??
-            planned;
+        planned;
     final delay = (planned != null && actual != null)
         ? actual.difference(planned).inSeconds
         : null;
@@ -723,7 +792,9 @@ class VendoService {
         .toList();
     return Departure(
       tripId: p['zuglaufId'] as String? ?? '',
-      stop: _stationFromVendo(p['abfrageOrt'] as Map<String, dynamic>? ?? const {}),
+      stop: _stationFromVendo(
+        p['abfrageOrt'] as Map<String, dynamic>? ?? const {},
+      ),
       when: actual ?? planned,
       plannedWhen: planned,
       delay: delay,
@@ -731,10 +802,9 @@ class VendoService {
       plannedPlatform: gleis,
       direction: direction,
       line: TransitLine(
-        name: p['mitteltext'] as String? ??
-            p['kurztext'] as String? ??
-            gattung,
-        fahrtNr: p['zugnummer']?.toString() ??
+        name: p['mitteltext'] as String? ?? p['kurztext'] as String? ?? gattung,
+        fahrtNr:
+            p['zugnummer']?.toString() ??
             p['verkehrsmittelNummer'] as String? ??
             '',
         productName: p['kurztext'] as String? ?? gattung,
@@ -816,9 +886,10 @@ class VendoService {
         seconds: (retryAfter ?? (2 << attempt)).clamp(1, 20),
       );
       AppLog.log(
-          '429 on $tag → backoff ${delay.inSeconds}s '
-          '(attempt ${attempt + 1}/$_maxRetries)',
-          tag: 'vendo');
+        '429 on $tag → backoff ${delay.inSeconds}s '
+        '(attempt ${attempt + 1}/$_maxRetries)',
+        tag: 'vendo',
+      );
       await Future.delayed(delay);
       return _getWithRetry(url, media, tag: tag, attempt: attempt + 1);
     }
@@ -837,7 +908,8 @@ class VendoService {
 
     final gattung = data['produktGattung'] as String? ?? '';
     final zugnummer = data['zugnummer']?.toString() ?? '';
-    final displayName = (data['mitteltext'] as String?)?.trim().isNotEmpty == true
+    final displayName =
+        (data['mitteltext'] as String?)?.trim().isNotEmpty == true
         ? data['mitteltext'] as String
         : '$gattung $zugnummer'.trim();
 
@@ -955,8 +1027,10 @@ class VendoService {
 
   /// DB `auslastungsInfos` (per stop) → 2nd-class [OccupancyLevel], reusing the
   /// shared `stufe` mapping. Shape: `[{klasse: KLASSE_2, stufe: 1}]`.
-  OccupancyLevel _occupancyFrom(List<dynamic>? infos,
-      {bool firstClass = false}) {
+  OccupancyLevel _occupancyFrom(
+    List<dynamic>? infos, {
+    bool firstClass = false,
+  }) {
     return _levelForClass(infos, firstClass: firstClass) ??
         OccupancyLevel.unknown;
   }
@@ -987,17 +1061,21 @@ class VendoService {
         toLocationId: _loc(to),
         dateTime: dateTime,
         firstClass: firstClass,
-        reisende: reisende ??
+        reisende:
+            reisende ??
             [
               {
                 'reisendenTyp': 'ERWACHSENER',
                 'ermaessigungen': [ermaessigung],
-              }
+              },
             ],
         deutschlandTicket: deutschlandTicket,
       );
       if (result.journeys.isEmpty) {
-        return const SegmentPrice(price: double.infinity, isDTicketCovered: false);
+        return const SegmentPrice(
+          price: double.infinity,
+          isDTicketCovered: false,
+        );
       }
 
       // NOTE: no D-Ticket coverage inference here. It used to return 0,00 € if
@@ -1033,7 +1111,10 @@ class VendoService {
           .whereType<double>()
           .toList();
       if (prices.isEmpty) {
-        return const SegmentPrice(price: double.infinity, isDTicketCovered: false);
+        return const SegmentPrice(
+          price: double.infinity,
+          isDTicketCovered: false,
+        );
       }
       // No offer matched the selected trains — fall back to the cheapest, but
       // say so, so the ticket can carry a "may be train-bound" hint instead of
@@ -1045,7 +1126,10 @@ class VendoService {
       );
     } catch (e) {
       AppLog.log('segment price failed ($e)', tag: 'vendo');
-      return const SegmentPrice(price: double.infinity, isDTicketCovered: false);
+      return const SegmentPrice(
+        price: double.infinity,
+        isDTicketCovered: false,
+      );
     }
   }
 
@@ -1094,14 +1178,20 @@ class VendoService {
   ///
   /// Duplicates are removed: the backend repeats the same address with slightly
   /// different coordinates.
-  Future<List<Station>> searchLocations(String query,
-      {bool stopsOnly = false}) async {
+  Future<List<Station>> searchLocations(
+    String query, {
+    bool stopsOnly = false,
+  }) async {
     final res = await _client.post(
       Uri.parse('$_base/location/search'),
       headers: _headers(_locationMedia),
       // Bytes, not String — see the note in searchJourneys (charset → 405).
       body: utf8.encode(
-          json.encode({'locationTypes': ['ALL'], 'searchTerm': query})),
+        json.encode({
+          'locationTypes': ['ALL'],
+          'searchTerm': query,
+        }),
+      ),
     );
     if (res.statusCode != 200) return [];
     final data = json.decode(utf8.decode(res.bodyBytes));
@@ -1137,23 +1227,31 @@ class VendoService {
     final res = await _client.post(
       Uri.parse('$_base/location/nearby/bytypes'),
       headers: _headers(_locationMedia),
-      body: utf8.encode(json.encode({
-        'area': {
-          'coordinates': {'latitude': latitude, 'longitude': longitude},
-          'radius': radius,
-        },
-        'maxResults': maxResults,
-        'operatingSystem': 'ANDROID',
-        'products': ['ALL'],
-        'types': ['ST'],
-      })),
+      body: utf8.encode(
+        json.encode({
+          'area': {
+            'coordinates': {'latitude': latitude, 'longitude': longitude},
+            'radius': radius,
+          },
+          'maxResults': maxResults,
+          'operatingSystem': 'ANDROID',
+          'products': ['ALL'],
+          'types': ['ST'],
+        }),
+      ),
     );
     if (res.statusCode != 200) return [];
     final data = json.decode(utf8.decode(res.bodyBytes));
-    final locs = (data is Map<String, dynamic>
-        ? data['fahrplanAuskunftLocations']
-        : null) as List<dynamic>? ?? const [];
-    return locs.whereType<Map<String, dynamic>>().map(_stationFromVendo).toList();
+    final locs =
+        (data is Map<String, dynamic>
+                ? data['fahrplanAuskunftLocations']
+                : null)
+            as List<dynamic>? ??
+        const [];
+    return locs
+        .whereType<Map<String, dynamic>>()
+        .map(_stationFromVendo)
+        .toList();
   }
 
   // -- parsing ---------------------------------------------------------------
@@ -1164,8 +1262,7 @@ class VendoService {
   Journey parseConnection(Map<String, dynamic> c, {bool firstClass = false}) =>
       _parseConnection(c, firstClass: firstClass);
 
-  Journey _parseConnection(Map<String, dynamic> c,
-      {bool firstClass = false}) {
+  Journey _parseConnection(Map<String, dynamic> c, {bool firstClass = false}) {
     // /angebote/fahrplan wraps the connection in `verbindung`; the
     // /trip/weitereabfahrten response puts the same fields directly on the
     // connection object — fall back to `c` so both shapes parse.
@@ -1177,14 +1274,18 @@ class VendoService {
         .toList();
 
     JourneyPrice? price;
-    final preise = (c['angebote'] as Map<String, dynamic>?)?['preise']
-        as Map<String, dynamic>?;
-    final ab = ((preise?['gesamt'] as Map<String, dynamic>?)?['ab'])
-        as Map<String, dynamic>?;
+    final preise =
+        (c['angebote'] as Map<String, dynamic>?)?['preise']
+            as Map<String, dynamic>?;
+    final ab =
+        ((preise?['gesamt'] as Map<String, dynamic>?)?['ab'])
+            as Map<String, dynamic>?;
     final betrag = (ab?['betrag'] as num?)?.toDouble();
     if (betrag != null) {
       price = JourneyPrice(
-          amount: betrag, currency: ab?['waehrung'] as String? ?? 'EUR');
+        amount: betrag,
+        currency: ab?['waehrung'] as String? ?? 'EUR',
+      );
     }
 
     return Journey(
@@ -1228,8 +1329,9 @@ class VendoService {
   static List<String> _connectionNotes(Map<String, dynamic> vb) {
     final out = <String>[];
     for (final key in const ['himNotizen', 'echtzeitNotizen']) {
-      for (final n in (vb[key] as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()) {
+      for (final n
+          in (vb[key] as List<dynamic>? ?? const [])
+              .whereType<Map<String, dynamic>>()) {
         final t = (n['text'] as String?)?.trim();
         if (t == null || t.isEmpty || t == 'textDefault') continue;
         if (!out.contains(t)) out.add(t);
@@ -1241,9 +1343,11 @@ class VendoService {
   JourneyLeg _parseLeg(Map<String, dynamic> a, {bool firstClass = false}) {
     final isWalking = a['typ'] == 'FUSSWEG';
     final origin = _stationFromVendo(
-        a['abgangsOrt'] as Map<String, dynamic>? ?? const {});
+      a['abgangsOrt'] as Map<String, dynamic>? ?? const {},
+    );
     final dest = _stationFromVendo(
-        a['ankunftsOrt'] as Map<String, dynamic>? ?? const {});
+      a['ankunftsOrt'] as Map<String, dynamic>? ?? const {},
+    );
 
     final plannedDep = _parse(a['abgangsDatum']);
     final actualDep = _parse(a['ezAbgangsDatum']) ?? plannedDep;
@@ -1272,10 +1376,13 @@ class VendoService {
     // texts mention generic "Zugausfälle" without this leg being cancelled.
     final ezAusfall = (a['echtzeitNotizen'] as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
-        .any((n) =>
-            (n['text'] as String?)?.toLowerCase().contains('fällt aus') ??
-            false);
-    final cancelled = (stopovers.isNotEmpty &&
+        .any(
+          (n) =>
+              (n['text'] as String?)?.toLowerCase().contains('fällt aus') ??
+              false,
+        );
+    final cancelled =
+        (stopovers.isNotEmpty &&
             (stopovers.first.cancelled || stopovers.last.cancelled)) ||
         ezAusfall;
 
@@ -1327,8 +1434,9 @@ class VendoService {
     // it as a walk estimate there would invent a 12-minute walk across one
     // platform — hence both are only taken together.
     final available = _seconds(a['verfuegbareZeit']);
-    final walkDuration =
-        isWalking && available != null ? _seconds(a['abschnittsDauer']) : null;
+    final walkDuration = isWalking && available != null
+        ? _seconds(a['abschnittsDauer'])
+        : null;
 
     TransitLine? line;
     if (!isWalking) {
@@ -1373,18 +1481,21 @@ class VendoService {
           a['weiterfahrtAmGleichenBahnsteig'] as bool? ?? false,
       cancelled: cancelled,
       stopovers: stopovers,
-      occupancy: _occupancy(a['auslastungsInfos'] as List<dynamic>?,
-          firstClass: firstClass),
+      occupancy: _occupancy(
+        a['auslastungsInfos'] as List<dynamic>?,
+        firstClass: firstClass,
+      ),
       disruptions: disruptions,
       bike: bike,
       replacementDestination: ersatzZiel == null
           ? null
           : _stationFromVendo(
-              ersatzZiel['ort'] as Map<String, dynamic>? ?? const {}),
+              ersatzZiel['ort'] as Map<String, dynamic>? ?? const {},
+            ),
       replacementArrival: ersatzZiel == null
           ? null
           : _parse(ersatzZiel['ezAnkunftsDatum']) ??
-              _parse(ersatzZiel['ankunftsDatum']),
+                _parse(ersatzZiel['ankunftsDatum']),
       replacementArrivalPlatform:
           ersatzZiel?['ezGleis'] as String? ?? ersatzZiel?['gleis'] as String?,
     );
@@ -1414,7 +1525,8 @@ class VendoService {
   Station _stationFromVendo(Map<String, dynamic> ort) {
     // Journey halte/legs nest coords under `position`; the location-search
     // endpoint uses `coordinates` — accept either.
-    final pos = (ort['position'] ?? ort['coordinates']) as Map<String, dynamic>?;
+    final pos =
+        (ort['position'] ?? ort['coordinates']) as Map<String, dynamic>?;
     final loc = ort['locationId'] as String?;
     // Journey stops carry no locationType — those are always stops.
     final kind = LocationKind.fromVendo(ort['locationType'] as String?);
@@ -1428,9 +1540,9 @@ class VendoService {
       id: eva.isNotEmpty
           ? eva
           : (kind == LocationKind.station || lat == null || lon == null
-              ? eva
-              : '${kind.name}:${lat.toStringAsFixed(5)},'
-                  '${lon.toStringAsFixed(5)}'),
+                ? eva
+                : '${kind.name}:${lat.toStringAsFixed(5)},'
+                      '${lon.toStringAsFixed(5)}'),
       name: ort['name'] as String? ?? '',
       latitude: lat,
       longitude: lon,
@@ -1450,8 +1562,10 @@ class VendoService {
     return level == null ? null : OccupancyInfo(level: level);
   }
 
-  OccupancyLevel? _levelForClass(List<dynamic>? infos,
-      {required bool firstClass}) {
+  OccupancyLevel? _levelForClass(
+    List<dynamic>? infos, {
+    required bool firstClass,
+  }) {
     if (infos == null) return null;
     final want = firstClass ? 'KLASSE_1' : 'KLASSE_2';
     final other = firstClass ? 'KLASSE_2' : 'KLASSE_1';
@@ -1520,8 +1634,43 @@ class VendoService {
     return actual.difference(planned).inSeconds;
   }
 
-  DateTime? _parse(dynamic v) =>
-      v is String ? DateTime.tryParse(v)?.toLocal() : null;
+  DateTime? _parse(dynamic v) {
+    if (v is! String) return null;
+
+    final match = RegExp(
+      r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?',
+    ).firstMatch(v);
+
+    if (match == null) return null;
+
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+    final hour = int.parse(match.group(4)!);
+    final minute = int.parse(match.group(5)!);
+    final second = int.tryParse(match.group(6) ?? '0') ?? 0;
+
+    var millisecond = 0;
+    var microsecond = 0;
+
+    final fraction = match.group(7);
+    if (fraction != null) {
+      final padded = fraction.padRight(6, '0');
+      millisecond = int.parse(padded.substring(0, 3));
+      microsecond = int.parse(padded.substring(3, 6));
+    }
+
+    return DateTime(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      millisecond,
+      microsecond,
+    );
+  }
 
   /// Vendo durations (`verfuegbareZeit`, `abschnittsDauer`) are seconds.
   Duration? _seconds(dynamic v) =>

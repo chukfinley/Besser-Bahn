@@ -6,7 +6,7 @@ version: 2.3.1+29
 
 environment:
   sdk: ^3.11.0
-  flutter: 3.41.9   # exact: IzzyOnDroid RB parses this line and clones `flutter -b <version>`. Bump on every release to the Flutter version you actually build with.
+  flutter: 3.44.3   # exact: IzzyOnDroid RB parses this line and clones `flutter -b <version>`. Bump on every release to the Flutter version you actually build with.
 
 dependencies:
   flutter:

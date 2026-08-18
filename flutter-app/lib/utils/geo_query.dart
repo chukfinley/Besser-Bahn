@@ -4,7 +4,7 @@ class GeoQuery {
   final double longitude;
 
   /// A name carried by the link (OSM/Google put the place name in the URL), so
-  /// the picked stop can be shown as "near <place>" instead of bare numbers.
+  /// the picked stop can be shown as "near `<place>`" instead of bare numbers.
   final String? label;
 
   const GeoQuery(this.latitude, this.longitude, {this.label});
@@ -43,8 +43,10 @@ final _bare = RegExp(r'^\s*(-?\d{1,3}\.\d+)\s*[,;\s]\s*(-?\d{1,3}\.\d+)\s*$');
 
 /// `geo:53.43,14.53` / `geo:53.43,14.53?z=17` (RFC 5870, what Android's share
 /// sheet and Organic Maps emit).
-final _geoUri = RegExp(r'^\s*geo:\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)',
-    caseSensitive: false);
+final _geoUri = RegExp(
+  r'^\s*geo:\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)',
+  caseSensitive: false,
+);
 
 /// Recognise a coordinate the user typed or pasted into a station field, or
 /// null if it's an ordinary station name.
@@ -67,8 +69,9 @@ GeoQuery? parseGeoQuery(String input) {
     // `q` while the path is a placeholder.
     final q = Uri.tryParse(text)?.queryParameters['q'];
     if (q != null) {
-      final m = RegExp(r'^(-?\d+\.?\d*),(-?\d+\.?\d*)(?:\s*\((.*)\))?$')
-          .firstMatch(q.trim());
+      final m = RegExp(
+        r'^(-?\d+\.?\d*),(-?\d+\.?\d*)(?:\s*\((.*)\))?$',
+      ).firstMatch(q.trim());
       final fromQ = _make(m?.group(1), m?.group(2), label: m?.group(3));
       if (fromQ != null) return fromQ;
     }
@@ -85,8 +88,9 @@ GeoQuery? parseGeoQuery(String input) {
   if (uri.host.contains('openstreetmap')) {
     final marker = _make(qp['mlat'], qp['mlon']);
     if (marker != null) return marker;
-    final m = RegExp(r'map=\d+\.?\d*/(-?\d+\.?\d*)/(-?\d+\.?\d*)')
-        .firstMatch(uri.fragment);
+    final m = RegExp(
+      r'map=\d+\.?\d*/(-?\d+\.?\d*)/(-?\d+\.?\d*)',
+    ).firstMatch(uri.fragment);
     if (m != null) return _make(m.group(1), m.group(2));
   }
 
@@ -99,7 +103,9 @@ GeoQuery? parseGeoQuery(String input) {
     for (final key in ['q', 'query', 'daddr']) {
       final v = qp[key];
       if (v == null) continue;
-      final m = RegExp(r'^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$').firstMatch(v.trim());
+      final m = RegExp(
+        r'^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$',
+      ).firstMatch(v.trim());
       final hit = _make(m?.group(1), m?.group(2));
       if (hit != null) return hit;
     }

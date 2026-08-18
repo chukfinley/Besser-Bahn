@@ -1,15 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_log.dart';
 import '../../core/extensions.dart';
 import '../../core/missed_connection.dart';
-import '../../core/trip_metrics.dart';
 import '../../core/share_text.dart';
+import '../../core/trip_metrics.dart';
 import '../../models/coach_sequence.dart';
 import '../../models/journey.dart';
 import '../../models/library_models.dart';
@@ -17,30 +19,26 @@ import '../../models/station.dart';
 import '../../models/station_map.dart';
 import '../../models/transfer_profile.dart';
 import '../../models/trip.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import '../../providers/library_provider.dart';
 import '../../providers/account_provider.dart';
 import '../../providers/journey_search_provider.dart';
+import '../../providers/library_provider.dart';
+import '../../providers/regional_transit_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/split_ticket_provider.dart';
-import '../../providers/regional_transit_provider.dart';
 import '../../providers/station_map_provider.dart';
 import '../../providers/stopover_plan_provider.dart';
 import '../../providers/travel_stats_provider.dart';
 import '../../services/db_api_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/regional_transit_service.dart'
     show RegionalTransitService, PlatformCorrection;
-import '../../services/notification_service.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/ui/message_card.dart';
 import '../../utils/earlier_alight.dart';
 import '../../utils/leg_swap.dart';
 import '../../utils/plain_language.dart';
-import '../../utils/transfer_risk.dart';
 import '../../utils/split_stops.dart';
+import '../../utils/transfer_risk.dart';
 import '../../widgets/departure_card.dart';
 import '../../widgets/fahrgastrechte_card.dart';
 import '../../widgets/offline_package_bar.dart';
@@ -48,6 +46,7 @@ import '../../widgets/prediction_badge.dart';
 import '../../widgets/product_badge.dart';
 import '../../widgets/trip_progress_inline.dart';
 import '../../widgets/trwl_checkin_sheet.dart';
+import '../../widgets/ui/message_card.dart';
 import '../train_lookup/widgets/train_detail_view.dart';
 import 'widgets/leg_switcher.dart';
 import 'widgets/transfer_coach_hint.dart';
@@ -144,16 +143,21 @@ class _ConnectionDetailScreenState
     if (index < 0 || index >= legs.length) return;
     final old = legs[index];
     legs[index] = newLeg;
-    _adoptJourney(Journey(legs: legs)); // price/refreshToken intentionally dropped
+    _adoptJourney(
+      Journey(legs: legs),
+    ); // price/refreshToken intentionally dropped
 
     // Taking a later (or earlier) train on Kiel→München does not only change
     // that leg — everything behind it moves with it. The old onward legs
     // describe trains that have long gone, or that the rider now waits an hour
     // for, so they are re-planned from the new arrival (#55-Umstieg).
     final newArrival = newLeg.arrival ?? newLeg.plannedArrival;
-    if (tailNeedsReplan(legs, index,
-        oldArrival: old.arrival ?? old.plannedArrival,
-        newArrival: newArrival)) {
+    if (tailNeedsReplan(
+      legs,
+      index,
+      oldArrival: old.arrival ?? old.plannedArrival,
+      newArrival: newArrival,
+    )) {
       _replanTail(index, newArrival!);
       return;
     }
@@ -185,7 +189,9 @@ class _ConnectionDetailScreenState
     _snack('Fahrt ersetzt · Anschlüsse werden neu gesucht …');
     try {
       final settings = ref.read(settingsProvider);
-      final res = await ref.read(vendoServiceProvider).searchJourneys(
+      final res = await ref
+          .read(vendoServiceProvider)
+          .searchJourneys(
             fromLocationId: from.vendoLocationId,
             toLocationId: to.vendoLocationId,
             dateTime: arrival,
@@ -199,11 +205,15 @@ class _ConnectionDetailScreenState
         _snack('Keine Anschlüsse ab ${from.name} gefunden — bitte prüfen');
         return;
       }
-      _adoptJourney(Journey(legs: spliceTail(legs, index, onward)),
-          refresh: true);
+      _adoptJourney(
+        Journey(legs: spliceTail(legs, index, onward)),
+        refresh: true,
+      );
       final arr = onward.arrival ?? onward.plannedArrival;
-      _snack('Anschlüsse neu gesucht'
-          '${arr != null ? ' · Ankunft ${arr.hhmm}' : ''}');
+      _snack(
+        'Anschlüsse neu gesucht'
+        '${arr != null ? ' · Ankunft ${arr.hhmm}' : ''}',
+      );
     } catch (e) {
       AppLog.log('replan after leg swap failed: $e', tag: 'trip-detail');
       if (!mounted) return;
@@ -220,10 +230,9 @@ class _ConnectionDetailScreenState
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        duration: const Duration(seconds: 4),
-        content: Text(text),
-      ));
+      ..showSnackBar(
+        SnackBar(duration: const Duration(seconds: 4), content: Text(text)),
+      );
   }
 
   /// Rescue option B for the transfer into leg [i] (#26): what the switcher
@@ -234,7 +243,10 @@ class _ConnectionDetailScreenState
   /// the trip cache — the freshest live times of the ridden train, re-fetched
   /// around every stop, versus the search's realtime snapshot.
   EarlierAlightInput? _earlierAlightInput(
-      List<JourneyLeg> legs, int i, JourneyLeg? prev) {
+    List<JourneyLeg> legs,
+    int i,
+    JourneyLeg? prev,
+  ) {
     if (prev == null) return null;
     final destination = journey.destination;
     if (destination == null || destination.vendoLocationId.isEmpty) return null;
@@ -267,20 +279,22 @@ class _ConnectionDetailScreenState
       option: option,
     );
     if (legs == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Route konnte nicht übernommen werden.'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Route konnte nicht übernommen werden.')),
+      );
       return;
     }
     // price/refreshToken intentionally dropped
     _adoptJourney(Journey(legs: legs), refresh: true);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      duration: const Duration(seconds: 5),
-      content: Text(
-        'Neue Route ab ${option.stop.station.name}'
-        '${option.ticketNote == AlightTicketNote.dTicketCovered ? '' : ' · ${option.ticketNote.label}'}',
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        content: Text(
+          'Neue Route ab ${option.stop.station.name}'
+          '${option.ticketNote == AlightTicketNote.dTicketCovered ? '' : ' · ${option.ticketNote.label}'}',
+        ),
       ),
-    ));
+    );
   }
 
   /// First non-walking leg after [i], or null — the train this leg connects to.
@@ -318,8 +332,7 @@ class _ConnectionDetailScreenState
             IconButton(
               icon: const Icon(Icons.qr_code_2),
               tooltip: 'Ticket anzeigen',
-              onPressed: () =>
-                  context.push('/ticket-view', extra: ticketRef),
+              onPressed: () => context.push('/ticket-view', extra: ticketRef),
             ),
           // Teilen + Öffnen folded into one button → a small menu asks which.
           PopupMenuButton<int>(
@@ -404,76 +417,86 @@ class _ConnectionDetailScreenState
           // trip is saved locally (there's nothing to track otherwise, and the
           // tracker reads the local library). Explicit and trip-scoped, per
           // the privacy ask in #11.
-          Builder(builder: (context) {
-            final key = SavedJourney(journey: journey, savedAtMs: 0).key;
-            final lib = ref.watch(libraryProvider);
-            if (!lib.hasJourney(key)) return const SizedBox.shrink();
-            final watched =
-                ref.read(libraryProvider.notifier).isJourneyWatched(key);
-            return IconButton(
-              icon: Icon(watched
-                  ? Icons.notifications_active
-                  : Icons.notifications_off_outlined),
-              tooltip: watched
-                  ? 'Benachrichtigungen aktiv — antippen zum Ausschalten'
-                  : 'Diese Reise überwachen',
-              onPressed: () {
-                ref
-                    .read(libraryProvider.notifier)
-                    .setJourneyWatched(key, !watched);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    duration: const Duration(seconds: 3),
-                    content: Text(watched
-                        ? 'Benachrichtigungen für diese Reise aus.'
-                        : 'Benachrichtigungen an: Erinnerungen, Verspätung, '
-                            'Gleiswechsel, Ausfall & Anschluss.'),
-                  ),
-                );
-                if (!watched) NotificationService.requestPermissions();
-              },
-            );
-          }),
-          Builder(builder: (context) {
-            final key =
-                SavedJourney(journey: journey, savedAtMs: 0).key;
-            // A trip saved to the DB account but no longer in the local
-            // library still IS saved — showing an empty bookmark there made it
-            // un-removable, and tapping it created a *second* DB trip (#15).
-            final saved = ref.watch(libraryProvider).hasJourney(key) ||
-                ref.watch(dbSavedReiseIdsProvider).containsKey(key);
-            return IconButton(
-              icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border),
-              tooltip: saved ? 'Reise entfernen' : 'Reise speichern',
-              onPressed: () {
-                final wasSaved = saved;
-                // Explicit add/remove, not toggle: when the trip is saved in
-                // the DB account but absent locally, a local toggle would ADD
-                // it — the opposite of what the filled bookmark promises.
-                if (wasSaved) {
-                  ref.read(libraryProvider.notifier).removeJourney(key);
-                } else {
-                  ref.read(libraryProvider.notifier).toggleJourney(journey);
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    duration: const Duration(seconds: 2),
-                    content:
-                        Text(wasSaved ? 'Reise entfernt' : 'Reise gespeichert'),
-                  ),
-                );
-                // Saving + 'Automatisch einchecken' on → also push the trip's
-                // train legs to Träwelling. No-op when off / not connected.
-                if (!wasSaved) {
-                  autoCheckinSavedJourney(context, ref, journey);
-                }
-                // When signed into a DB account, mirror the bookmark to the
-                // official "Meine Reisen" so it also lives in the DB account
-                // (and gets DB's delay tracking). Best-effort, never blocks UI.
-                _syncDbReise(ref, key, saved: !wasSaved);
-              },
-            );
-          }),
+          Builder(
+            builder: (context) {
+              final key = SavedJourney(journey: journey, savedAtMs: 0).key;
+              final lib = ref.watch(libraryProvider);
+              if (!lib.hasJourney(key)) return const SizedBox.shrink();
+              final watched = ref
+                  .read(libraryProvider.notifier)
+                  .isJourneyWatched(key);
+              return IconButton(
+                icon: Icon(
+                  watched
+                      ? Icons.notifications_active
+                      : Icons.notifications_off_outlined,
+                ),
+                tooltip: watched
+                    ? 'Benachrichtigungen aktiv — antippen zum Ausschalten'
+                    : 'Diese Reise überwachen',
+                onPressed: () {
+                  ref
+                      .read(libraryProvider.notifier)
+                      .setJourneyWatched(key, !watched);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      duration: const Duration(seconds: 3),
+                      content: Text(
+                        watched
+                            ? 'Benachrichtigungen für diese Reise aus.'
+                            : 'Benachrichtigungen an: Erinnerungen, Verspätung, '
+                                  'Gleiswechsel, Ausfall & Anschluss.',
+                      ),
+                    ),
+                  );
+                  if (!watched) NotificationService.requestPermissions();
+                },
+              );
+            },
+          ),
+          Builder(
+            builder: (context) {
+              final key = SavedJourney(journey: journey, savedAtMs: 0).key;
+              // A trip saved to the DB account but no longer in the local
+              // library still IS saved — showing an empty bookmark there made it
+              // un-removable, and tapping it created a *second* DB trip (#15).
+              final saved =
+                  ref.watch(libraryProvider).hasJourney(key) ||
+                  ref.watch(dbSavedReiseIdsProvider).containsKey(key);
+              return IconButton(
+                icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border),
+                tooltip: saved ? 'Reise entfernen' : 'Reise speichern',
+                onPressed: () {
+                  final wasSaved = saved;
+                  // Explicit add/remove, not toggle: when the trip is saved in
+                  // the DB account but absent locally, a local toggle would ADD
+                  // it — the opposite of what the filled bookmark promises.
+                  if (wasSaved) {
+                    ref.read(libraryProvider.notifier).removeJourney(key);
+                  } else {
+                    ref.read(libraryProvider.notifier).toggleJourney(journey);
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      duration: const Duration(seconds: 2),
+                      content: Text(
+                        wasSaved ? 'Reise entfernt' : 'Reise gespeichert',
+                      ),
+                    ),
+                  );
+                  // Saving + 'Automatisch einchecken' on → also push the trip's
+                  // train legs to Träwelling. No-op when off / not connected.
+                  if (!wasSaved) {
+                    autoCheckinSavedJourney(context, ref, journey);
+                  }
+                  // When signed into a DB account, mirror the bookmark to the
+                  // official "Meine Reisen" so it also lives in the DB account
+                  // (and gets DB's delay tracking). Best-effort, never blocks UI.
+                  _syncDbReise(ref, key, saved: !wasSaved);
+                },
+              );
+            },
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -481,110 +504,121 @@ class _ConnectionDetailScreenState
         // leg sections fresh (new keys), so all live data re-fetches.
         onRefresh: _refreshAll,
         child: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
-        // Always scrollable so the pull-to-refresh gesture works even when the
-        // content is short.
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          _summary(context),
-          _ownExperience(context),
-          _bikeNotice(context),
-          // Offline, the legs below are replayed from this journey's package
-          // (see the fallbacks in HafasService/CoachSequenceService/
-          // StationMapService). Say how old they are — cached data presented
-          // without its age is exactly what makes people distrust it (#29).
-          OfflineDataNotice(
-            journeyKey: SavedJourney(journey: journey, savedAtMs: 0).key,
-          ),
-          if (journey.hasCancelledLeg)
-            const _JourneyCancelBanner(partial: false)
-          else if (journey.hasPartialCancellation)
-            const _JourneyCancelBanner(partial: true),
-          // Notes about the connection as a whole, above the legs because they
-          // can be the only place saying what changed ("Der Zielhalt Berlin
-          // Hbf entfällt. Ausstieg in Berlin-Spandau möglich.") — the legs
-          // themselves sometimes carry nothing.
-          _LegNotes(notes: _visibleNotes(journey.disruptions)),
-          _serviceDays(context),
-          _buyButton(context, ref),
-          // Live companion cards (each self-hides when not applicable):
-          // Fahrgastrechte claim on a 60+ min late arrival, and one combined
-          // pre-departure card (countdown + "wann musst du los") that
-          // disappears once the train has left. The on-board progress lives
-          // folded into the summary block above (TripProgressInline).
-          FahrgastrechteCard(journey: journey),
-          DepartureCard(journey: journey),
-          if (missed != null)
-            _MissedConnectionCard(
-              rescue: missed,
-              onPressed: () =>
-                  _showMissedAlternatives(context, ref, missed),
+          padding: const EdgeInsets.only(bottom: 32),
+          // Always scrollable so the pull-to-refresh gesture works even when the
+          // content is short.
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            _summary(context),
+            _ownExperience(context),
+            _bikeNotice(context),
+            // Offline, the legs below are replayed from this journey's package
+            // (see the fallbacks in HafasService/CoachSequenceService/
+            // StationMapService). Say how old they are — cached data presented
+            // without its age is exactly what makes people distrust it (#29).
+            OfflineDataNotice(
+              journeyKey: SavedJourney(journey: journey, savedAtMs: 0).key,
             ),
-          // The legs behind a swapped one are the OLD plan until the re-search
-          // lands — say so rather than let them read as checked (#55-Umstieg).
-          if (_replanning)
-            const MessageCard(
-              tone: MessageTone.info,
-              body: 'Anschlüsse werden für die neue Ankunft gesucht …',
-            ),
-          for (var i = 0; i < legs.length; i++) ...[
-            if (i > 0) _transfer(context, ref, legs[i - 1], legs[i]),
-            if (legs[i].isWalking)
-              _walkLeg(context, ref, legs[i],
+            if (journey.hasCancelledLeg)
+              const _JourneyCancelBanner(partial: false)
+            else if (journey.hasPartialCancellation)
+              const _JourneyCancelBanner(partial: true),
+            // Notes about the connection as a whole, above the legs because they
+            // can be the only place saying what changed ("Der Zielhalt Berlin
+            // Hbf entfällt. Ausstieg in Berlin-Spandau möglich.") — the legs
+            // themselves sometimes carry nothing.
+            _LegNotes(notes: _visibleNotes(journey.disruptions)),
+            _serviceDays(context),
+            _buyButton(context, ref),
+            // Live companion cards (each self-hides when not applicable):
+            // Fahrgastrechte claim on a 60+ min late arrival, and one combined
+            // pre-departure card (countdown + "wann musst du los") that
+            // disappears once the train has left. The on-board progress lives
+            // folded into the summary block above (TripProgressInline).
+            FahrgastrechteCard(journey: journey),
+            DepartureCard(journey: journey),
+            if (missed != null)
+              _MissedConnectionCard(
+                rescue: missed,
+                onPressed: () => _showMissedAlternatives(context, ref, missed),
+              ),
+            // The legs behind a swapped one are the OLD plan until the re-search
+            // lands — say so rather than let them read as checked (#55-Umstieg).
+            if (_replanning)
+              const MessageCard(
+                tone: MessageTone.info,
+                body: 'Anschlüsse werden für die neue Ankunft gesucht …',
+              ),
+            for (var i = 0; i < legs.length; i++) ...[
+              if (i > 0) _transfer(context, ref, legs[i - 1], legs[i]),
+              if (legs[i].isWalking)
+                _walkLeg(
+                  context,
+                  ref,
+                  legs[i],
                   i > 0 ? legs[i - 1] : null,
-                  i + 1 < legs.length ? legs[i + 1] : null)
-            else ...[
-              // Which section of the train you're ON to be in, so the change
-              // here is a step across the platform (#27). Sits right under the
-              // transfer tile — vendo models the change as a FUSSWEG leg, so
-              // that tile is the walk rendered at i-1. Self-hides unless both
-              // Wagenreihungen back it up.
-              Builder(builder: (_) {
-                final prev = _prevTransitLeg(legs, i);
-                if (prev == null) return const SizedBox.shrink();
-                return TransferCoachHint(
-                  key: ValueKey('coach-hint-${prev.tripId}-${legs[i].tripId}'),
-                  arriving: prev,
-                  departing: legs[i],
-                  samePlatform: journey.samePlatformTransferInto(legs[i]),
-                );
-              }),
-              if (legs[i].cancelled ||
-                  legs[i].partiallyCancelled ||
-                  legs[i].endsEarly)
-                _LegCancelBanner(leg: legs[i]),
-              _LegNotes(notes: _visibleNotes(legs[i].disruptions)),
-              Builder(builder: (_) {
-                final prev = _prevTransitLeg(legs, i);
-                final readyAt = prev != null ? _liveArrivalOf(prev) : null;
-                final gap = prev != null
-                    ? _gapMinutes(readyAt, _liveDepartureOf(legs[i]))
-                    : null;
-                return _LegSection(
-                  // NB no _refreshTick in the key: a pull-to-refresh must NOT
-                  // remount the section (that wipes its shown data); it flows
-                  // in as refreshTick and triggers an in-place silent re-fetch.
-                  key: ValueKey('leg-$i-${legs[i].tripId}'),
-                  refreshTick: _refreshTick,
-                  leg: legs[i],
-                  index: i,
-                  nextTransitLeg: _nextTransitLeg(legs, i),
-                  incomingGapMinutes: gap,
-                  readyAt: readyAt,
-                  transferStationName: prev?.destination.name,
-                  samePlatformTransfer: journey.samePlatformTransferInto(legs[i]),
-                  earlierAlight: _earlierAlightInput(legs, i, prev),
-                  // A fresh trip fetch carries live delays → recompute the
-                  // transfer windows above so a shrunk gap shows immediately.
-                  onTripUpdated: () {
-                    if (mounted) setState(() {});
+                  i + 1 < legs.length ? legs[i + 1] : null,
+                )
+              else ...[
+                // Which section of the train you're ON to be in, so the change
+                // here is a step across the platform (#27). Sits right under the
+                // transfer tile — vendo models the change as a FUSSWEG leg, so
+                // that tile is the walk rendered at i-1. Self-hides unless both
+                // Wagenreihungen back it up.
+                Builder(
+                  builder: (_) {
+                    final prev = _prevTransitLeg(legs, i);
+                    if (prev == null) return const SizedBox.shrink();
+                    return TransferCoachHint(
+                      key: ValueKey(
+                        'coach-hint-${prev.tripId}-${legs[i].tripId}',
+                      ),
+                      arriving: prev,
+                      departing: legs[i],
+                      samePlatform: journey.samePlatformTransferInto(legs[i]),
+                    );
                   },
-                  onReplaceLeg: _replaceLeg,
-                );
-              }),
+                ),
+                if (legs[i].cancelled ||
+                    legs[i].partiallyCancelled ||
+                    legs[i].endsEarly)
+                  _LegCancelBanner(leg: legs[i]),
+                _LegNotes(notes: _visibleNotes(legs[i].disruptions)),
+                Builder(
+                  builder: (_) {
+                    final prev = _prevTransitLeg(legs, i);
+                    final readyAt = prev != null ? _liveArrivalOf(prev) : null;
+                    final gap = prev != null
+                        ? _gapMinutes(readyAt, _liveDepartureOf(legs[i]))
+                        : null;
+                    return _LegSection(
+                      // NB no _refreshTick in the key: a pull-to-refresh must NOT
+                      // remount the section (that wipes its shown data); it flows
+                      // in as refreshTick and triggers an in-place silent re-fetch.
+                      key: ValueKey('leg-$i-${legs[i].tripId}'),
+                      refreshTick: _refreshTick,
+                      leg: legs[i],
+                      index: i,
+                      nextTransitLeg: _nextTransitLeg(legs, i),
+                      incomingGapMinutes: gap,
+                      readyAt: readyAt,
+                      transferStationName: prev?.destination.name,
+                      samePlatformTransfer: journey.samePlatformTransferInto(
+                        legs[i],
+                      ),
+                      earlierAlight: _earlierAlightInput(legs, i, prev),
+                      // A fresh trip fetch carries live delays → recompute the
+                      // transfer windows above so a shrunk gap shows immediately.
+                      onTripUpdated: () {
+                        if (mounted) setState(() {});
+                      },
+                      onReplaceLeg: _replaceLeg,
+                    );
+                  },
+                ),
+              ],
             ],
           ],
-        ],
         ),
       ),
     );
@@ -593,8 +627,11 @@ class _ConnectionDetailScreenState
   /// Mirror a bookmark toggle to the signed-in DB account's "Meine Reisen".
   /// No-op when logged out, or when the journey lacks a recon context /
   /// location ids (then it stays a purely local bookmark).
-  Future<void> _syncDbReise(WidgetRef ref, String key,
-      {required bool saved}) async {
+  Future<void> _syncDbReise(
+    WidgetRef ref,
+    String key, {
+    required bool saved,
+  }) async {
     if (!ref.read(dbAuthProvider).isLoggedIn) return;
     final service = ref.read(dbAccountServiceProvider);
     final ids = ref.read(dbSavedReiseIdsProvider.notifier);
@@ -608,8 +645,11 @@ class _ConnectionDetailScreenState
         final from = journey.origin?.locationId;
         final to = journey.destination?.locationId;
         final dep = journey.plannedDeparture ?? journey.departure;
-        if (kontext == null || !kontext.contains('¶') ||
-            from == null || to == null || dep == null) {
+        if (kontext == null ||
+            !kontext.contains('¶') ||
+            from == null ||
+            to == null ||
+            dep == null) {
           return; // not enough to create a DB trip — local bookmark only
         }
         final rkUuid = await service.saveReise(
@@ -629,7 +669,9 @@ class _ConnectionDetailScreenState
       // changed. It's also the wrong list — saved trips are reiseIndizes, not
       // bought orders.
       await ref.read(reisenuebersichtProvider.notifier).refresh();
-    } catch (_) {/* best-effort — the local bookmark already succeeded */}
+    } catch (_) {
+      /* best-effort — the local bookmark already succeeded */
+    }
   }
 
   /// Prominent "Kaufen" call to action. Opens the EXACT connection on bahn.de
@@ -654,7 +696,8 @@ class _ConnectionDetailScreenState
           icon: const Icon(Icons.shopping_cart_outlined),
           label: Text(label),
           style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14)),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
           onPressed: () => _openOnBahn(context, ref),
         ),
       ),
@@ -669,7 +712,9 @@ class _ConnectionDetailScreenState
     String? url;
     try {
       url = await ref.read(vendoServiceProvider).shareJourney(journey);
-    } catch (_) {/* fall back below */}
+    } catch (_) {
+      /* fall back below */
+    }
     url ??= _searchLink(ref);
     if (url == null) {
       messenger.showSnackBar(
@@ -688,7 +733,9 @@ class _ConnectionDetailScreenState
     String? link;
     try {
       link = await ref.read(vendoServiceProvider).shareJourney(journey);
-    } catch (_) {/* fall back below */}
+    } catch (_) {
+      /* fall back below */
+    }
     link ??= _searchLink(ref);
     if (link == null) {
       messenger.showSnackBar(
@@ -714,7 +761,9 @@ class _ConnectionDetailScreenState
     String? link;
     try {
       link = await ref.read(vendoServiceProvider).shareJourney(journey);
-    } catch (_) {/* fall back below */}
+    } catch (_) {
+      /* fall back below */
+    }
     link ??= _searchLink(ref);
     if (link == null) {
       messenger.showSnackBar(
@@ -763,9 +812,11 @@ class _ConnectionDetailScreenState
     final from = journey.origin;
     final to = journey.destination;
     if (from == null || to == null || from.id.isEmpty || to.id.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Keine Alternativen — Start/Ziel unbekannt.'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Keine Alternativen — Start/Ziel unbekannt.'),
+        ),
+      );
       return;
     }
     final n = ref.read(journeySearchProvider.notifier);
@@ -793,10 +844,12 @@ class _ConnectionDetailScreenState
     final library = ref.read(libraryProvider.notifier);
     if (ref.read(libraryProvider).hasJourney(key)) {
       library.setJourneyWatched(key, false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        duration: Duration(seconds: 4),
-        content: Text('Benachrichtigungen für diese Reise aus.'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 4),
+          content: Text('Benachrichtigungen für diese Reise aus.'),
+        ),
+      );
     }
     final n = ref.read(journeySearchProvider.notifier);
     n.setFrom(rescue.from);
@@ -823,12 +876,11 @@ class _ConnectionDetailScreenState
     }
     final chosen = hub ?? await _pickStopoverHub(context);
     if (chosen == null || !context.mounted) return;
-    ref.read(stopoverPlanProvider.notifier).start(StopoverPlanArgs(
-          from: from,
-          hub: chosen,
-          to: to,
-          deadline: deadline,
-        ));
+    ref
+        .read(stopoverPlanProvider.notifier)
+        .start(
+          StopoverPlanArgs(from: from, hub: chosen, to: to, deadline: deadline),
+        );
     context.push('/stopover-plan');
   }
 
@@ -875,9 +927,10 @@ class _ConnectionDetailScreenState
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 4),
-              child: Text('Wo willst du Zeit verbringen?',
-                  style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              child: Text(
+                'Wo willst du Zeit verbringen?',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -889,12 +942,13 @@ class _ConnectionDetailScreenState
             ),
             for (final (i, station) in list.indexed)
               ListTile(
-                leading: Icon(i < transferCount
-                    ? Icons.swap_calls
-                    : Icons.pause_circle_outline),
+                leading: Icon(
+                  i < transferCount
+                      ? Icons.swap_calls
+                      : Icons.pause_circle_outline,
+                ),
                 title: Text(station.name),
-                subtitle:
-                    Text(i < transferCount ? 'Umstieg' : 'Zwischenhalt'),
+                subtitle: Text(i < transferCount ? 'Umstieg' : 'Zwischenhalt'),
                 onTap: () => Navigator.of(context).pop(station),
               ),
           ],
@@ -915,7 +969,8 @@ class _ConnectionDetailScreenState
     if (stops.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Zu wenige Haltestellen für ein Split-Ticket.')),
+          content: Text('Zu wenige Haltestellen für ein Split-Ticket.'),
+        ),
       );
       return;
     }
@@ -923,7 +978,9 @@ class _ConnectionDetailScreenState
     final dep = journey.plannedDeparture ?? journey.departure;
     final date = dep != null ? dep.toIso8601String().split('T').first : '';
 
-    ref.read(splitTicketProvider.notifier).analyze(
+    ref
+        .read(splitTicketProvider.notifier)
+        .analyze(
           stops: stops,
           date: date,
           directPrice: journey.price?.amount ?? 0,
@@ -931,7 +988,8 @@ class _ConnectionDetailScreenState
               '${journey.origin?.name ?? ''} → ${journey.destination?.name ?? ''}',
           // Stable per-connection key so re-opening the same connection resumes
           // the running analysis instead of restarting it.
-          jobKey: '${journey.origin?.id}-${journey.destination?.id}-'
+          jobKey:
+              '${journey.origin?.id}-${journey.destination?.id}-'
               '${(journey.plannedDeparture ?? journey.departure)?.toIso8601String()}',
         );
     context.push('/split-ticket', extra: journey);
@@ -957,20 +1015,24 @@ class _ConnectionDetailScreenState
     if (worst != null && worst <= 2) {
       final theme = Theme.of(context);
       final missed = worst < 0;
-      final color =
-          missed ? theme.colorScheme.error : const Color(0xFFCC8800);
+      final color = missed ? theme.colorScheme.error : const Color(0xFFCC8800);
       return Row(
         children: [
-          Icon(missed ? Icons.link_off : Icons.warning_amber_rounded,
-              size: 18, color: color),
+          Icon(
+            missed ? Icons.link_off : Icons.warning_amber_rounded,
+            size: 18,
+            color: color,
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               missed
                   ? 'Anschluss laut Live-Daten nicht erreichbar'
                   : 'Anschluss sehr knapp (${worst <= 0 ? 0 : worst} Min, live)',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: color, fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -995,8 +1057,9 @@ class _ConnectionDetailScreenState
     if (text == null) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final urgent = journey.bike.reservationRequired;
-    final color =
-        urgent ? AppColors.warning : theme.colorScheme.onSurfaceVariant;
+    final color = urgent
+        ? AppColors.warning
+        : theme.colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(
@@ -1034,14 +1097,18 @@ class _ConnectionDetailScreenState
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(
         children: [
-          Icon(Icons.history,
-              size: 16, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.history,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               'Bei dir: ${seen.onTime} von ${seen.trips} Fahrten pünktlich',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -1075,8 +1142,9 @@ class _ConnectionDetailScreenState
                   child: Text(
                     '${journey.origin?.name ?? ''} → '
                     '${journey.destination?.name ?? ''}',
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -1090,35 +1158,53 @@ class _ConnectionDetailScreenState
                   _summaryTime(context, 'ab', dep, depDelay),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(Icons.arrow_forward,
-                        size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
                 if (arr != null) _summaryTime(context, 'an', arr, arrDelay),
                 const Spacer(),
                 if (journey.price != null)
-                  Text(journey.price!.formatted,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary)),
+                  Text(
+                    journey.price!.formatted,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(Icons.schedule,
-                    size: 15, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.schedule,
+                  size: 15,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
-                Text(journey.durationString,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  journey.durationString,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Icon(Icons.swap_calls,
-                    size: 15, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.swap_calls,
+                  size: 15,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
-                Text(t == 0 ? 'Direkt' : '$t Umstieg${t > 1 ? 'e' : ''}',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  t == 0 ? 'Direkt' : '$t Umstieg${t > 1 ? 'e' : ''}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -1136,19 +1222,29 @@ class _ConnectionDetailScreenState
 
   /// "ab/an HH:MM" with a red "+N" when the leg endpoint is delayed.
   Widget _summaryTime(
-      BuildContext context, String label, DateTime time, int delaySec) {
+    BuildContext context,
+    String label,
+    DateTime time,
+    int delaySec,
+  ) {
     final theme = Theme.of(context);
     final mins = delaySec ~/ 60;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text('$label ',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        Text(time.hhmm,
-            style: theme.textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          '$label ',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        Text(
+          time.hhmm,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         // Delay as a clear pill (white on red/amber) next to *this* time — so a
         // late arrival shows behind the arrival time, not a tiny grey "+15".
         if (mins > 0)
@@ -1160,11 +1256,14 @@ class _ConnectionDetailScreenState
                 color: mins <= 5 ? Colors.orange.shade700 : Colors.red.shade700,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text('+$mins',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold)),
+              child: Text(
+                '+$mins',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
       ],
@@ -1200,8 +1299,11 @@ class _ConnectionDetailScreenState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.event_repeat,
-              size: 16, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.event_repeat,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -1210,8 +1312,9 @@ class _ConnectionDetailScreenState
               // Sep" and a period with exceptions ("16. Jul bis 30. Okt;
               // nicht 22. Aug bis 4. Sep").
               'Verkehrstage dieser Verbindung: $note',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -1226,12 +1329,17 @@ class _ConnectionDetailScreenState
   /// the next train leaves from the platform you're standing on. 3 minutes is
   /// then genuinely enough, so the amber "knapp" hint would be noise — but a
   /// train you cannot physically reach (≤2 min) stays red either way.
-  (Color?, String?) _transferTone(BuildContext context, int? mins,
-      {bool samePlatform = false}) {
+  (Color?, String?) _transferTone(
+    BuildContext context,
+    int? mins, {
+    bool samePlatform = false,
+  }) {
     if (mins == null) return (null, null);
     if (mins <= 2) {
-      return (Theme.of(context).colorScheme.error,
-          'Anschluss evtl. nicht erreichbar');
+      return (
+        Theme.of(context).colorScheme.error,
+        'Anschluss evtl. nicht erreichbar',
+      );
     }
     if (mins <= 5 && !samePlatform) return (const Color(0xFFCC8800), null);
     return (null, null);
@@ -1246,10 +1354,7 @@ class _ConnectionDetailScreenState
   /// itself, so the tile stays at the plain "mit Fußweg" it had.
   String _walkDetail(JourneyLeg leg) {
     final parts = <String>[
-      if (leg.samePlatformTransfer)
-        'gleicher Bahnsteig'
-      else
-        'mit Fußweg',
+      if (leg.samePlatformTransfer) 'gleicher Bahnsteig' else 'mit Fußweg',
       if (leg.walkingDuration != null)
         '${leg.walkingDuration!.inMinutes} min Weg',
       if (leg.walkingDistance != null) '${leg.walkingDistance} m',
@@ -1348,7 +1453,8 @@ class _ConnectionDetailScreenState
   /// The planned Gleis this leg leaves from, when it differs from the live one
   /// — i.e. there was a Gleiswechsel and we can name what it used to be.
   String? _changedFromPlatform(JourneyLeg leg, String? live) {
-    final planned = _movedBay(leg)?.planned ??
+    final planned =
+        _movedBay(leg)?.planned ??
         leg.plannedDeparturePlatform ??
         leg.departurePlatform;
     if (live == null || planned == null || planned == live) return null;
@@ -1358,8 +1464,13 @@ class _ConnectionDetailScreenState
   /// A FUSSWEG leg between two trains. The headline number is the *time you
   /// have* to change (arrival → next departure), NOT how long the walk takes;
   /// the walk itself is shown as the secondary detail.
-  Widget _walkLeg(BuildContext context, WidgetRef ref, JourneyLeg leg,
-      JourneyLeg? prev, JourneyLeg? next) {
+  Widget _walkLeg(
+    BuildContext context,
+    WidgetRef ref,
+    JourneyLeg leg,
+    JourneyLeg? prev,
+    JourneyLeg? next,
+  ) {
     // Available transfer time: from the train's arrival to the next departure.
     // Use the freshest (live) times so a delay shrinks the window; strike the
     // scheduled value when it no longer holds. The leg's own
@@ -1378,8 +1489,11 @@ class _ConnectionDetailScreenState
     final planGap = _gapMinutes(planArr, planDep);
     final shown = liveGap ?? planGap;
     final changed = liveGap != null && planGap != null && liveGap != planGap;
-    final (color, warn) =
-        _transferTone(context, shown, samePlatform: leg.samePlatformTransfer);
+    final (color, warn) = _transferTone(
+      context,
+      shown,
+      samePlatform: leg.samePlatformTransfer,
+    );
 
     final head = shown != null ? '$shown min zum Umsteigen' : 'Umstieg';
     // Which Gleis you arrive on and which one you leave from — live, and
@@ -1396,20 +1510,17 @@ class _ConnectionDetailScreenState
     final movedBay = next != null ? _movedBay(next) : null;
     final gleise = (arrG != null || depG != null)
         ? '$word ${arrG ?? '?'} → $word ${depG ?? '?'}'
-            '${wasG != null ? _insteadOf(wasG, movedBay) : ''}'
+              '${wasG != null ? _insteadOf(wasG, movedBay) : ''}'
         : null;
     final detail = [?gleise, ?movedBay?.note, _walkDetail(leg)].join(' · ');
     // Vendo models nearly every transfer as this walking leg, so the step-free
     // check has to sit here too, not just on the direct-transfer path (#73).
     final liftWarn = _stepFreeWarning(ref, leg.origin.name, [arrG, depG]);
-    final warnText =
-        [?warn, ?liftWarn].join(' · ');
+    final warnText = [?warn, ?liftWarn].join(' · ');
 
     return _transferTile(
       context,
-      icon: leg.samePlatformTransfer
-          ? Icons.swap_horiz
-          : Icons.directions_walk,
+      icon: leg.samePlatformTransfer ? Icons.swap_horiz : Icons.directions_walk,
       head: head,
       strikeBefore: changed ? '$planGap min' : null,
       headColor: color,
@@ -1419,80 +1530,97 @@ class _ConnectionDetailScreenState
       onTap: leg.origin.name.isEmpty
           ? null
           : () => _openTransferMap(
-                context,
-                ref,
-                leg.origin,
-                // Live Gleise (#50) — see [_livePlatformAtArrival].
-                prev != null ? _livePlatformAtArrival(prev) : null,
-                next != null ? _livePlatformAtDeparture(next) : null,
-                // Einstieg (primary) = the departing/next train; Ausstieg
-                // (secondary) = the arriving/prev train — each drawn to scale.
-                // SCHEDULED times throughout: the Wagenreihung is keyed by
-                // service date, and a live time that has slipped past midnight
-                // asks for the next day's run (#32).
-                depRef: (next?.line?.fahrtNr.isNotEmpty ?? false)
-                    ? (
-                        category: next!.line?.productName ?? '',
-                        trainNumber: next.line!.fahrtNr,
-                        time: next.plannedDeparture ?? next.departure,
-                      )
-                    : null,
-                arrRef: (prev?.line?.fahrtNr.isNotEmpty ?? false)
-                    ? (
-                        category: prev!.line?.productName ?? '',
-                        trainNumber: prev.line!.fahrtNr,
-                        time: prev.plannedArrival ?? prev.arrival,
-                      )
-                    : null,
-                // ORIGIN refs → each train's real composition, fetched at its
-                // origin departure (a stop the sequence endpoint always serves).
-                depFallbackRef: (next?.line?.fahrtNr.isNotEmpty ?? false)
-                    ? (
-                        category: next!.line?.productName ?? '',
-                        trainNumber: next.line!.fahrtNr,
-                        originEva: next.origin.id,
-                        departureTime: next.plannedDeparture ?? next.departure,
-                      )
-                    : null,
-                arrFallbackRef: (prev?.line?.fahrtNr.isNotEmpty ?? false)
-                    ? (
-                        category: prev!.line?.productName ?? '',
-                        trainNumber: prev.line!.fahrtNr,
-                        originEva: prev.origin.id,
-                        departureTime: prev.plannedDeparture ?? prev.departure,
-                      )
-                    : null,
-                product: next?.line?.product, // Einstieg (primary)
-                secondaryProduct: prev?.line?.product, // Ausstieg (secondary)
-                primaryTypes: {
-                  ...primaryPoiTypesForProduct(prev?.line?.product),
-                  ...primaryPoiTypesForProduct(next?.line?.product),
-                },
-              ),
+              context,
+              ref,
+              leg.origin,
+              // Live Gleise (#50) — see [_livePlatformAtArrival].
+              prev != null ? _livePlatformAtArrival(prev) : null,
+              next != null ? _livePlatformAtDeparture(next) : null,
+              // Einstieg (primary) = the departing/next train; Ausstieg
+              // (secondary) = the arriving/prev train — each drawn to scale.
+              // SCHEDULED times throughout: the Wagenreihung is keyed by
+              // service date, and a live time that has slipped past midnight
+              // asks for the next day's run (#32).
+              depRef: (next?.line?.fahrtNr.isNotEmpty ?? false)
+                  ? (
+                      category: next!.line?.productName ?? '',
+                      trainNumber: next.line!.fahrtNr,
+                      time: next.plannedDeparture ?? next.departure,
+                    )
+                  : null,
+              arrRef: (prev?.line?.fahrtNr.isNotEmpty ?? false)
+                  ? (
+                      category: prev!.line?.productName ?? '',
+                      trainNumber: prev.line!.fahrtNr,
+                      time: prev.plannedArrival ?? prev.arrival,
+                    )
+                  : null,
+              // ORIGIN refs → each train's real composition, fetched at its
+              // origin departure (a stop the sequence endpoint always serves).
+              depFallbackRef: (next?.line?.fahrtNr.isNotEmpty ?? false)
+                  ? (
+                      category: next!.line?.productName ?? '',
+                      trainNumber: next.line!.fahrtNr,
+                      originEva: next.origin.id,
+                      departureTime: next.plannedDeparture ?? next.departure,
+                    )
+                  : null,
+              arrFallbackRef: (prev?.line?.fahrtNr.isNotEmpty ?? false)
+                  ? (
+                      category: prev!.line?.productName ?? '',
+                      trainNumber: prev.line!.fahrtNr,
+                      originEva: prev.origin.id,
+                      departureTime: prev.plannedDeparture ?? prev.departure,
+                    )
+                  : null,
+              product: next?.line?.product, // Einstieg (primary)
+              secondaryProduct: prev?.line?.product, // Ausstieg (secondary)
+              primaryTypes: {
+                ...primaryPoiTypesForProduct(prev?.line?.product),
+                ...primaryPoiTypesForProduct(next?.line?.product),
+              },
+            ),
     );
   }
 
   /// Open the platform-to-platform map straight away (no intermediate screen):
   /// Einstieg Gleis green, Ausstieg Gleis red, both with their section bands.
-  void _openTransferMap(BuildContext context, WidgetRef ref, Station station,
-      String? arrGleis, String? depGleis,
-      {({String category, String trainNumber, DateTime? time})? depRef,
-      ({String category, String trainNumber, DateTime? time})? arrRef,
-      ({String category, String trainNumber, String originEva, DateTime? departureTime})?
-          depFallbackRef,
-      ({String category, String trainNumber, String originEva, DateTime? departureTime})?
-          arrFallbackRef,
-      String? product,
-      String? secondaryProduct,
-      Set<String>? primaryTypes}) {
+  void _openTransferMap(
+    BuildContext context,
+    WidgetRef ref,
+    Station station,
+    String? arrGleis,
+    String? depGleis, {
+    ({String category, String trainNumber, DateTime? time})? depRef,
+    ({String category, String trainNumber, DateTime? time})? arrRef,
+    ({
+      String category,
+      String trainNumber,
+      String originEva,
+      DateTime? departureTime,
+    })?
+    depFallbackRef,
+    ({
+      String category,
+      String trainNumber,
+      String originEva,
+      DateTime? departureTime,
+    })?
+    arrFallbackRef,
+    String? product,
+    String? secondaryProduct,
+    Set<String>? primaryTypes,
+  }) {
     final note = (arrGleis != null && depGleis != null)
         ? 'Ausstieg Gleis $arrGleis · Einstieg Gleis $depGleis'
         : depGleis != null
-            ? 'Einstieg Gleis $depGleis'
-            : arrGleis != null
-                ? 'Ausstieg Gleis $arrGleis'
-                : 'Umstieg in ${station.name}';
-    ref.read(dedicatedStationMapProvider.notifier).loadForStation(
+        ? 'Einstieg Gleis $depGleis'
+        : arrGleis != null
+        ? 'Ausstieg Gleis $arrGleis'
+        : 'Umstieg in ${station.name}';
+    ref
+        .read(dedicatedStationMapProvider.notifier)
+        .loadForStation(
           station,
           highlightGleis: depGleis, // Einstieg — primary, green
           role: GleisRole.board,
@@ -1516,14 +1644,20 @@ class _ConnectionDetailScreenState
   }
 
   Widget _transfer(
-      BuildContext context, WidgetRef ref, JourneyLeg prev, JourneyLeg next) {
+    BuildContext context,
+    WidgetRef ref,
+    JourneyLeg prev,
+    JourneyLeg next,
+  ) {
     if (prev.isWalking || next.isWalking) return const SizedBox(height: 8);
     // Time you actually have to change trains (arrival → next departure), from
     // the freshest live data. When a delay has eaten into the scheduled gap we
     // strike the old number and show what's really left.
     final liveGap = _gapMinutes(_liveArrivalOf(prev), _liveDepartureOf(next));
-    final planGap = _gapMinutes(prev.plannedArrival ?? prev.arrival,
-        next.plannedDeparture ?? next.departure);
+    final planGap = _gapMinutes(
+      prev.plannedArrival ?? prev.arrival,
+      next.plannedDeparture ?? next.departure,
+    );
     final shown = liveGap ?? planGap;
     final changed = liveGap != null && planGap != null && liveGap != planGap;
 
@@ -1536,8 +1670,11 @@ class _ConnectionDetailScreenState
     // Vendo models every transfer as a FUSSWEG leg, so this path is for the
     // other sources; the flag rides on the arriving side there.
     final samePlatform = next.samePlatformTransfer;
-    final (color, warn) =
-        _transferTone(context, shown, samePlatform: samePlatform);
+    final (color, warn) = _transferTone(
+      context,
+      shown,
+      samePlatform: samePlatform,
+    );
 
     // "Gleis 4 → Gleis 5" reads like a hike; DB knows 4 and 5 are two sides of
     // one island platform and says so.
@@ -1545,16 +1682,15 @@ class _ConnectionDetailScreenState
     final movedInfo = _movedBay(next);
     final gleisText = (arrGleis != null || depGleis != null)
         ? '$word ${arrGleis ?? '?'} → $word ${depGleis ?? '?'}'
-            '${wasGleis != null ? _insteadOf(wasGleis, movedInfo) : ''}'
-            '${movedInfo?.note != null ? ' · ${movedInfo!.note}' : ''}'
-            '${samePlatform ? ' · gleicher Bahnsteig' : ''}'
+              '${wasGleis != null ? _insteadOf(wasGleis, movedInfo) : ''}'
+              '${movedInfo?.note != null ? ' · ${movedInfo!.note}' : ''}'
+              '${samePlatform ? ' · gleicher Bahnsteig' : ''}'
         : (samePlatform ? 'gleicher Bahnsteig' : null);
 
     // A lift that is out at exactly this transfer (#73) — only asked for by the
     // profiles that depend on one, and only ever additive: no data, no warning.
     final liftWarn = _stepFreeWarning(ref, station.name, [arrGleis, depGleis]);
-    final warnText =
-        [?warn, ?liftWarn].join(' · ');
+    final warnText = [?warn, ?liftWarn].join(' · ');
 
     return _transferTile(
       context,
@@ -1570,38 +1706,38 @@ class _ConnectionDetailScreenState
       onTap: station.name.isEmpty
           ? null
           : () => _openTransferMap(
-                context,
-                ref,
-                station,
-                arrGleis,
-                depGleis,
-                // ORIGIN refs → real per-car compositions for both trains,
-                // fetched at each train's origin so the Ausstieg train draws to
-                // scale even where this transfer stop's Wagenreihung 404s.
-                // Scheduled times: keyed by service date (#32).
-                depFallbackRef: (next.line?.fahrtNr.isNotEmpty ?? false)
-                    ? (
-                        category: next.line?.productName ?? '',
-                        trainNumber: next.line!.fahrtNr,
-                        originEva: next.origin.id,
-                        departureTime: next.plannedDeparture ?? next.departure,
-                      )
-                    : null,
-                arrFallbackRef: (prev.line?.fahrtNr.isNotEmpty ?? false)
-                    ? (
-                        category: prev.line?.productName ?? '',
-                        trainNumber: prev.line!.fahrtNr,
-                        originEva: prev.origin.id,
-                        departureTime: prev.plannedDeparture ?? prev.departure,
-                      )
-                    : null,
-                product: next.line?.product, // Einstieg (primary)
-                secondaryProduct: prev.line?.product, // Ausstieg (secondary)
-                primaryTypes: {
-                  ...primaryPoiTypesForProduct(prev.line?.product),
-                  ...primaryPoiTypesForProduct(next.line?.product),
-                },
-              ),
+              context,
+              ref,
+              station,
+              arrGleis,
+              depGleis,
+              // ORIGIN refs → real per-car compositions for both trains,
+              // fetched at each train's origin so the Ausstieg train draws to
+              // scale even where this transfer stop's Wagenreihung 404s.
+              // Scheduled times: keyed by service date (#32).
+              depFallbackRef: (next.line?.fahrtNr.isNotEmpty ?? false)
+                  ? (
+                      category: next.line?.productName ?? '',
+                      trainNumber: next.line!.fahrtNr,
+                      originEva: next.origin.id,
+                      departureTime: next.plannedDeparture ?? next.departure,
+                    )
+                  : null,
+              arrFallbackRef: (prev.line?.fahrtNr.isNotEmpty ?? false)
+                  ? (
+                      category: prev.line?.productName ?? '',
+                      trainNumber: prev.line!.fahrtNr,
+                      originEva: prev.origin.id,
+                      departureTime: prev.plannedDeparture ?? prev.departure,
+                    )
+                  : null,
+              product: next.line?.product, // Einstieg (primary)
+              secondaryProduct: prev.line?.product, // Ausstieg (secondary)
+              primaryTypes: {
+                ...primaryPoiTypesForProduct(prev.line?.product),
+                ...primaryPoiTypesForProduct(next.line?.product),
+              },
+            ),
     );
   }
 
@@ -1616,7 +1752,10 @@ class _ConnectionDetailScreenState
   /// facility data, this is null and the transfer reads exactly as before. It
   /// never *removes* a warning the timetable already earned.
   String? _stepFreeWarning(
-      WidgetRef ref, String stationName, List<String?> gleise) {
+    WidgetRef ref,
+    String stationName,
+    List<String?> gleise,
+  ) {
     const needsLift = {
       TransferProfile.accessible,
       TransferProfile.child,
@@ -1625,11 +1764,14 @@ class _ConnectionDetailScreenState
     final profile = ref.watch(settingsProvider).transferProfile;
     if (!needsLift.contains(profile) || stationName.isEmpty) return null;
 
-    final broken = ref
-            .watch(stepFreeTransferProvider((
-              station: stationName,
-              gleise: gleise.whereType<String>().join(','),
-            )))
+    final broken =
+        ref
+            .watch(
+              stepFreeTransferProvider((
+                station: stationName,
+                gleise: gleise.whereType<String>().join(','),
+              )),
+            )
             .asData
             ?.value ??
         const <StationFacility>[];
@@ -1667,8 +1809,11 @@ class _ConnectionDetailScreenState
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           child: Row(
             children: [
-              Icon(icon,
-                  size: 18, color: headColor ?? theme.colorScheme.onSurfaceVariant),
+              Icon(
+                icon,
+                size: 18,
+                color: headColor ?? theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -1702,23 +1847,32 @@ class _ConnectionDetailScreenState
                     if (detail != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text(detail,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant)),
+                        child: Text(
+                          detail,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
                     if (warn != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded,
-                                size: 14, color: theme.colorScheme.error),
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 14,
+                              color: theme.colorScheme.error,
+                            ),
                             const SizedBox(width: 4),
                             Flexible(
-                              child: Text(warn,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.error,
-                                      fontWeight: FontWeight.w600)),
+                              child: Text(
+                                warn,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -1728,10 +1882,13 @@ class _ConnectionDetailScreenState
               ),
               if (onTap != null) ...[
                 const SizedBox(width: 8),
-                Icon(Icons.map_outlined,
-                    size: 18, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.map_outlined,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
               ],
-              if (trailing != null) trailing,
+              ?trailing,
             ],
           ),
         ),
@@ -1875,7 +2032,8 @@ class _LegSectionState extends ConsumerState<_LegSection>
     final now = DateTime.now();
     DateTime? nextEvent;
     for (final so in trip.stopovers) {
-      final t = so.departure ??
+      final t =
+          so.departure ??
           so.plannedDeparture ??
           so.arrival ??
           so.plannedArrival;
@@ -1886,8 +2044,13 @@ class _LegSectionState extends ConsumerState<_LegSection>
     }
     if (nextEvent == null) return;
     var delay = nextEvent.difference(now) - const Duration(seconds: 60);
-    if (delay < const Duration(seconds: 30)) delay = const Duration(seconds: 30);
-    if (delay > const Duration(minutes: 10)) delay = const Duration(minutes: 10);
+    if (delay < const Duration(seconds: 30)) {
+      delay = const Duration(seconds: 30);
+    }
+
+    if (delay > const Duration(minutes: 10)) {
+      delay = const Duration(minutes: 10);
+    }
     _refreshTimer = Timer(delay, () {
       if (mounted) _fetchFresh(id, silent: true);
     });
@@ -1918,7 +2081,6 @@ class _LegSectionState extends ConsumerState<_LegSection>
   Future<void> _load() async {
     final id = widget.leg.tripId;
     if (id == null) {
-      if (mounted) setState(() => _loading = false);
       return;
     }
     // Serve cached data instantly, then refresh silently in the background.
@@ -1958,10 +2120,12 @@ class _LegSectionState extends ConsumerState<_LegSection>
         trip = trip.copyWith(line: trip.line.withName(label));
       }
       _tripCache[id] = trip;
-      if (mounted) setState(() {
-        _trip = trip;
-        _tripError = null;
-      });
+      if (mounted) {
+        setState(() {
+          _trip = trip;
+          _tripError = null;
+        });
+      }
       // Post-await (never during build) → safe to nudge the parent to recompute
       // transfer windows from the live arrival/departure this fetch just added.
       widget.onTripUpdated?.call();
@@ -1977,12 +2141,13 @@ class _LegSectionState extends ConsumerState<_LegSection>
         _coachCache[id] = cs;
         if (mounted) setState(() => _coach = cs);
       }
-    } catch (_) {/* optional */}
+    } catch (_) {
+      /* optional */
+    }
     if (mounted && !silent) setState(() => _loading = false);
     // Re-arm the stop-aligned refresh from the freshest trip we hold.
     if (mounted && _trip != null) _scheduleNextRefresh(_trip!);
   }
-
 
   void _openStopMap(Stopover stop) {
     if (stop.stop.name.isEmpty) return;
@@ -1992,10 +2157,14 @@ class _LegSectionState extends ConsumerState<_LegSection>
     // and the next stop on the run (the direction of travel — buses stop on the
     // right). See `pickPole` (#55).
     final stops = _trip?.stopovers ?? const <Stopover>[];
-    final here = stops.indexWhere((s) =>
-        (s.stop.id.isNotEmpty && s.stop.id == stop.stop.id) ||
-        s.stop.name == stop.stop.name);
-    final next = (here >= 0 && here + 1 < stops.length) ? stops[here + 1] : null;
+    final here = stops.indexWhere(
+      (s) =>
+          (s.stop.id.isNotEmpty && s.stop.id == stop.stop.id) ||
+          s.stop.name == stop.stop.name,
+    );
+    final next = (here >= 0 && here + 1 < stops.length)
+        ? stops[here + 1]
+        : null;
     final nextLat = next?.stop.latitude, nextLon = next?.stop.longitude;
 
     // On a wing train, when this is the stop you board at, narrow the map's
@@ -2006,7 +2175,7 @@ class _LegSectionState extends ConsumerState<_LegSection>
     final coach = _coach;
     final isLegBoarding =
         (stop.stop.id.isNotEmpty && stop.stop.id == leg.origin.id) ||
-            (stop.stop.name.isNotEmpty && stop.stop.name == leg.origin.name);
+        (stop.stop.name.isNotEmpty && stop.stop.name == leg.origin.name);
     // Where the RIDER gets off this leg — not the train's terminus. On an
     // intermediate boarding/alighting stop (Büchen for an ICE that starts in
     // Hamburg) the stopover's own isOrigin/isTerminus are both false, so the
@@ -2014,13 +2183,12 @@ class _LegSectionState extends ConsumerState<_LegSection>
     // truth for who boards/alights here. (#50-Karte)
     final isLegAlighting =
         (stop.stop.id.isNotEmpty && stop.stop.id == leg.destination.id) ||
-            (stop.stop.name.isNotEmpty &&
-                stop.stop.name == leg.destination.name);
+        (stop.stop.name.isNotEmpty && stop.stop.name == leg.destination.name);
     final gleisRole = isLegBoarding
         ? GleisRole.board
         : isLegAlighting
-            ? GleisRole.alight
-            : GleisRole.none;
+        ? GleisRole.alight
+        : GleisRole.none;
     if (coach != null && coach.splits && isLegBoarding) {
       final portion = coach.portionTo(leg.destination.name);
       final range = portion?.sectorRange;
@@ -2033,7 +2201,9 @@ class _LegSectionState extends ConsumerState<_LegSection>
       }
     }
 
-    ref.read(dedicatedStationMapProvider.notifier).loadForStation(
+    ref
+        .read(dedicatedStationMapProvider.notifier)
+        .loadForStation(
           stop.stop,
           highlightGleis: stop.platform,
           lineName: leg.line?.name.trim(),
@@ -2067,7 +2237,8 @@ class _LegSectionState extends ConsumerState<_LegSection>
           // Also hand the leg's ORIGIN ref so the map can fetch the composition
           // itself even when [coach] wasn't preloaded — the origin departure is
           // a stop the vehicle-sequence endpoint always serves.
-          fallbackRef: (leg.line?.fahrtNr != null && leg.line!.fahrtNr.isNotEmpty)
+          fallbackRef:
+              (leg.line?.fahrtNr != null && leg.line!.fahrtNr.isNotEmpty)
               ? (
                   category: leg.line?.productName ?? '',
                   trainNumber: leg.line!.fahrtNr,
@@ -2092,9 +2263,8 @@ class _LegSectionState extends ConsumerState<_LegSection>
       // Swipe/step control to cycle this segment's other departures and swap
       // the train in place. Only when a swap target exists (onReplaceLeg) and
       // it's a real train leg.
-      final switcher = (widget.onReplaceLeg != null &&
-              !leg.isWalking &&
-              leg.line != null)
+      final switcher =
+          (widget.onReplaceLeg != null && !leg.isWalking && leg.line != null)
           ? LegAlternativeSwitcher(
               key: _switcherKey,
               leg: leg,
@@ -2111,8 +2281,7 @@ class _LegSectionState extends ConsumerState<_LegSection>
         trip: trip,
         coach: _coach,
         onStopTap: _openStopMap,
-        boardingId:
-            leg.origin.id.isNotEmpty ? leg.origin.id : leg.origin.name,
+        boardingId: leg.origin.id.isNotEmpty ? leg.origin.id : leg.origin.name,
         alightingId: leg.destination.id.isNotEmpty
             ? leg.destination.id
             : leg.destination.name,
@@ -2122,8 +2291,9 @@ class _LegSectionState extends ConsumerState<_LegSection>
         predictionStrip: (!leg.isWalking && leg.line != null)
             ? LegPredictionBadge(leg: leg, nextLeg: widget.nextTransitLeg)
             : null,
-        legDestinationName:
-            leg.destination.name.isNotEmpty ? leg.destination.name : null,
+        legDestinationName: leg.destination.name.isNotEmpty
+            ? leg.destination.name
+            : null,
       );
       if (switcher == null) return detail;
       // The ENTIRE Fahrtblock is the swipe surface: grab anywhere on the block
@@ -2156,13 +2326,15 @@ class _LegSectionState extends ConsumerState<_LegSection>
               trip: degraded,
               coach: _coach,
               onStopTap: _openStopMap,
-              boardingId:
-                  leg.origin.id.isNotEmpty ? leg.origin.id : leg.origin.name,
+              boardingId: leg.origin.id.isNotEmpty
+                  ? leg.origin.id
+                  : leg.origin.name,
               alightingId: leg.destination.id.isNotEmpty
                   ? leg.destination.id
                   : leg.destination.name,
-              legDestinationName:
-                  leg.destination.name.isNotEmpty ? leg.destination.name : null,
+              legDestinationName: leg.destination.name.isNotEmpty
+                  ? leg.destination.name
+                  : null,
             ),
           ],
         );
@@ -2177,15 +2349,18 @@ class _LegSectionState extends ConsumerState<_LegSection>
       child: ListTile(
         leading: _loading
             ? const SizedBox(
-                width: 20, height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2))
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : (line != null
-                ? ProductBadge(label: line.productBadge)
-                : const Icon(Icons.train)),
+                  ? ProductBadge(label: line.productBadge)
+                  : const Icon(Icons.train)),
         title: Text(line != null ? line.lineNumberWithFahrt : 'Zug'),
         subtitle: Text(
-            '${leg.origin.name} → ${leg.destination.name}'
-            '${leg.direction != null ? '  ·  Richtung ${leg.direction}' : ''}'),
+          '${leg.origin.name} → ${leg.destination.name}'
+          '${leg.direction != null ? '  ·  Richtung ${leg.direction}' : ''}',
+        ),
         trailing: (!_loading && _tripError != null)
             ? IconButton(
                 icon: const Icon(Icons.refresh),
@@ -2249,10 +2424,7 @@ class _MissedConnectionCard extends StatelessWidget {
   final MissedConnectionRescue rescue;
   final VoidCallback onPressed;
 
-  const _MissedConnectionCard({
-    required this.rescue,
-    required this.onPressed,
-  });
+  const _MissedConnectionCard({required this.rescue, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -2275,9 +2447,9 @@ class _MissedConnectionCard extends StatelessWidget {
                         ? 'Anschluss nicht geschafft?'
                         : 'Zug nicht geschafft?',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: colors.onSecondaryContainer,
-                        ),
+                      fontWeight: FontWeight.w700,
+                      color: colors.onSecondaryContainer,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -2288,10 +2460,7 @@ class _MissedConnectionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            FilledButton(
-              onPressed: onPressed,
-              child: const Text('Verpasst'),
-            ),
+            FilledButton(onPressed: onPressed, child: const Text('Verpasst')),
           ],
         ),
       ),
@@ -2310,10 +2479,10 @@ class _JourneyCancelBanner extends StatelessWidget {
         : 'Diese Verbindung fällt aus';
     final body = partial
         ? 'Auf einem Abschnitt entfällt ein Halt. Prüfe die markierten '
-            'Halte und weiche bei Bedarf auf eine andere Abfahrt aus.'
+              'Halte und weiche bei Bedarf auf eine andere Abfahrt aus.'
         : 'Mindestens ein Zug dieser Verbindung fährt nicht. Wische über den '
-            'betroffenen Fahrtblock oder tippe „Weitere Abfahrten“, um auf '
-            'eine andere Abfahrt zu wechseln.';
+              'betroffenen Fahrtblock oder tippe „Weitere Abfahrten“, um auf '
+              'eine andere Abfahrt zu wechseln.';
     // One shared shape for every "the app is telling you something" block, so
     // a cancellation reads louder than a note by its tone, not by inventing its
     // own panel (#38).
@@ -2337,7 +2506,7 @@ class _LegCancelBanner extends StatelessWidget {
   static String? _hhmm(DateTime? t) => t == null
       ? null
       : ' um ${t.hour.toString().padLeft(2, '0')}:'
-          '${t.minute.toString().padLeft(2, '0')}';
+            '${t.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -2354,15 +2523,13 @@ class _LegCancelBanner extends StatelessWidget {
     final endsAt = leg.replacementDestination?.name;
     final label = endsAt != null
         ? '$line endet vorzeitig in $endsAt'
-            '${_hhmm(leg.replacementArrival) ?? ''}'
-            '${leg.replacementArrivalPlatform != null
-                ? ', Gleis ${leg.replacementArrivalPlatform}'
-                : ''}'
+              '${_hhmm(leg.replacementArrival) ?? ''}'
+              '${leg.replacementArrivalPlatform != null ? ', Gleis ${leg.replacementArrivalPlatform}' : ''}'
         : partial
-            ? (dropped.isEmpty
-                ? '$line: Halt entfällt'
-                : '$line: Halt entfällt – ${dropped.join(', ')}')
-            : '$line fällt aus';
+        ? (dropped.isEmpty
+              ? '$line: Halt entfällt'
+              : '$line: Halt entfällt – ${dropped.join(', ')}')
+        : '$line fällt aus';
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -2373,15 +2540,21 @@ class _LegCancelBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(partial ? Icons.warning_amber_rounded : Icons.cancel,
-              color: color, size: 18),
+          Icon(
+            partial ? Icons.warning_amber_rounded : Icons.cancel,
+            color: color,
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 13.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -2433,12 +2606,17 @@ class _LegNotesState extends State<_LegNotes> {
                       _open
                           ? 'Hinweise ausblenden'
                           : '${notes.length} ${notes.length == 1 ? 'Hinweis' : 'Hinweise'}',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: muted, fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: muted,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                  Icon(_open ? Icons.expand_less : Icons.expand_more,
-                      size: 18, color: muted),
+                  Icon(
+                    _open ? Icons.expand_less : Icons.expand_more,
+                    size: 18,
+                    color: muted,
+                  ),
                 ],
               ),
             ),
@@ -2458,9 +2636,12 @@ class _LegNotesState extends State<_LegNotes> {
                           Text('•', style: TextStyle(color: muted)),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(n,
-                                style: theme.textTheme.bodySmall
-                                    ?.copyWith(color: muted)),
+                            child: Text(
+                              n,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: muted,
+                              ),
+                            ),
                           ),
                         ],
                       ),

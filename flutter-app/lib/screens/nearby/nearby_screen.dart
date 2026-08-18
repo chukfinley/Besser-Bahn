@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
+// import 'package:flutter/physics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/departure_board_provider.dart';
@@ -181,9 +181,6 @@ class _SnappyTabPhysics extends ScrollPhysics {
       _SnappyTabPhysics(parent: buildParent(ancestor));
 
   @override
-  SpringDescription get spring => SpringDescription.withDampingRatio(
-        mass: 0.5,
-        stiffness: 220,
-        ratio: 1.1,
-      );
+  SpringDescription get spring =>
+      SpringDescription.withDampingRatio(mass: 0.5, stiffness: 220, ratio: 1.1);
 }

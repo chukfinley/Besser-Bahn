@@ -54,7 +54,7 @@ typedef PlatformCorrection = ({
 /// answer the app shows exactly what it showed before.
 class RegionalTransitService {
   RegionalTransitService({http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
 
   final http.Client _client;
 
@@ -104,8 +104,10 @@ class RegionalTransitService {
 
   static void _markDead(RegionalProfile p) {
     _deadUntil[p.id] = DateTime.now().add(_deadFor);
-    AppLog.log('${p.id} als tot markiert für ${_deadFor.inMinutes} min',
-        tag: 'regional');
+    AppLog.log(
+      '${p.id} als tot markiert für ${_deadFor.inMinutes} min',
+      tag: 'regional',
+    );
   }
 
   /// Clear the circuit breaker — the static dead-list survives between tests
@@ -139,7 +141,10 @@ class RegionalTransitService {
   final Map<String, Future<List<RegionalDeparture>>> _boardsInflight = {};
 
   Future<Map<String, dynamic>?> _call(
-      RegionalProfile profile, String method, Map<String, dynamic> req) async {
+    RegionalProfile profile,
+    String method,
+    Map<String, dynamic> req,
+  ) async {
     final body = {
       'lang': 'de',
       'svcReqL': [
@@ -167,8 +172,10 @@ class RegionalTransitService {
           )
           .timeout(_timeout);
       if (res.statusCode != 200) {
-        AppLog.log('${profile.id} $method HTTP ${res.statusCode}',
-            tag: 'regional');
+        AppLog.log(
+          '${profile.id} $method HTTP ${res.statusCode}',
+          tag: 'regional',
+        );
         // A 5xx / gateway error is the endpoint being down, not this one call
         // being wrong — take it out of rotation so the next leg is instant.
         if (res.statusCode >= 500) _markDead(profile);
@@ -178,8 +185,10 @@ class RegionalTransitService {
           json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       final svc = (data['svcResL'] as List<dynamic>?)?.firstOrNull;
       if (svc is! Map<String, dynamic> || svc['err'] != 'OK') {
-        AppLog.log('${profile.id} $method err ${svc is Map ? svc['err'] : '?'}',
-            tag: 'regional');
+        AppLog.log(
+          '${profile.id} $method err ${svc is Map ? svc['err'] : '?'}',
+          tag: 'regional',
+        );
         return null;
       }
       return svc['res'] as Map<String, dynamic>?;
@@ -204,7 +213,10 @@ class RegionalTransitService {
   }
 
   Future<String?> _resolveLocation(
-      RegionalProfile profile, String key, Station stop) async {
+    RegionalProfile profile,
+    String key,
+    Station stop,
+  ) async {
     final res = await _call(profile, 'LocMatch', {
       'input': {
         'loc': {'type': 'S', 'name': '${stop.name}?'},
@@ -212,8 +224,8 @@ class RegionalTransitService {
         'field': 'S',
       },
     });
-    final locs = ((res?['match'] as Map<String, dynamic>?)?['locL']
-            as List<dynamic>?) ??
+    final locs =
+        ((res?['match'] as Map<String, dynamic>?)?['locL'] as List<dynamic>?) ??
         const [];
     String? best;
     double bestMetres = double.infinity;
@@ -234,9 +246,10 @@ class RegionalTransitService {
     // 300 m: the same stop as seen by two datasets, never the next one along.
     final resolved = bestMetres <= 300 ? best : null;
     AppLog.log(
-        '${profile.id} loc "${stop.name}" → ${resolved ?? 'kein Treffer'}'
-        '${resolved != null ? ' (${bestMetres.round()} m)' : ''}',
-        tag: 'regional');
+      '${profile.id} loc "${stop.name}" → ${resolved ?? 'kein Treffer'}'
+      '${resolved != null ? ' (${bestMetres.round()} m)' : ''}',
+      tag: 'regional',
+    );
     _locations[key] = resolved;
     _locationsInflight.remove(key);
     return resolved;
@@ -255,7 +268,10 @@ class RegionalTransitService {
   }
 
   Future<String?> _resolveEfaStop(
-      RegionalProfile profile, String key, Station stop) async {
+    RegionalProfile profile,
+    String key,
+    Station stop,
+  ) async {
     final data = await _efaGet(profile, 'XML_STOPFINDER_REQUEST', {
       'name_sf': stop.name,
       'type_sf': 'any',
@@ -282,29 +298,43 @@ class RegionalTransitService {
         }
       }
       // No coordinate: only acceptable if nothing better turns up.
-      if (best == null) best = id;
+      best ??= id;
     }
     final resolved = (bestMetres <= 300 || bestMetres == double.infinity)
         ? best
         : null;
-    AppLog.log('${profile.id} efa stop "${stop.name}" → ${resolved ?? 'nichts'}',
-        tag: 'regional');
+    AppLog.log(
+      '${profile.id} efa stop "${stop.name}" → ${resolved ?? 'nichts'}',
+      tag: 'regional',
+    );
     _locations[key] = resolved;
     _locationsInflight.remove(key);
     return resolved;
   }
 
   Future<List<RegionalDeparture>> _efaBoard(
-      RegionalProfile profile, String stopId, DateTime around) {
+    RegionalProfile profile,
+    String stopId,
+    DateTime around,
+  ) {
     final bucket = around.millisecondsSinceEpoch ~/ (15 * 60 * 1000);
     final key = '${profile.id}/$stopId@$bucket';
     final cached = _boards[key];
     if (cached != null) return Future.value(cached);
-    return _boardsInflight[key] ??= _fetchEfaBoard(profile, key, stopId, around);
+    return _boardsInflight[key] ??= _fetchEfaBoard(
+      profile,
+      key,
+      stopId,
+      around,
+    );
   }
 
-  Future<List<RegionalDeparture>> _fetchEfaBoard(RegionalProfile profile,
-      String key, String stopId, DateTime around) async {
+  Future<List<RegionalDeparture>> _fetchEfaBoard(
+    RegionalProfile profile,
+    String key,
+    String stopId,
+    DateTime around,
+  ) async {
     final from = around.subtract(const Duration(minutes: 5));
     final data = await _efaGet(profile, 'XML_DM_REQUEST', {
       'name_dm': stopId,
@@ -316,15 +346,21 @@ class RegionalTransitService {
       'itdTime': '${_two(from.hour)}${_two(from.minute)}',
     });
     final list = parseEfaBoard(data);
-    AppLog.log('${profile.id} efa board $stopId: ${list.length} departures, '
-        '${list.where((d) => d.moved).length} moved', tag: 'regional');
+    AppLog.log(
+      '${profile.id} efa board $stopId: ${list.length} departures, '
+      '${list.where((d) => d.moved).length} moved',
+      tag: 'regional',
+    );
     _boards[key] = list;
     _boardsInflight.remove(key);
     return list;
   }
 
   Future<Map<String, dynamic>?> _efaGet(
-      RegionalProfile profile, String path, Map<String, String> params) async {
+    RegionalProfile profile,
+    String path,
+    Map<String, String> params,
+  ) async {
     final uri = Uri.parse('${profile.endpoint}/$path').replace(
       queryParameters: {
         'outputFormat': 'rapidJSON',
@@ -333,12 +369,20 @@ class RegionalTransitService {
       },
     );
     try {
-      final res = await _client.get(uri, headers: const {
-        'Accept': 'application/json',
-        'User-Agent': _userAgent,
-      }).timeout(_timeout);
+      final res = await _client
+          .get(
+            uri,
+            headers: const {
+              'Accept': 'application/json',
+              'User-Agent': _userAgent,
+            },
+          )
+          .timeout(_timeout);
       if (res.statusCode != 200) {
-        AppLog.log('${profile.id} $path HTTP ${res.statusCode}', tag: 'regional');
+        AppLog.log(
+          '${profile.id} $path HTTP ${res.statusCode}',
+          tag: 'regional',
+        );
         if (res.statusCode >= 500) _markDead(profile);
         return null;
       }
@@ -363,22 +407,27 @@ class RegionalTransitService {
       final transport = e['transportation'];
       final t = transport is Map<String, dynamic> ? transport : const {};
       final dest = t['destination'];
-      final planned = DateTime.tryParse(e['departureTimePlanned'] as String? ?? '');
-      out.add(RegionalDeparture(
-        line: ((t['number'] ?? t['name']) as String? ?? '').trim(),
-        direction: (dest is Map<String, dynamic>
-                ? dest['name'] as String? ?? ''
-                : '')
-            .trim(),
-        // EFA timestamps are UTC ("…Z"); the board is matched in local time.
-        plannedTime: planned == null
-            ? null
-            : planned.toLocal().hour * 60 + planned.toLocal().minute,
-        plannedPlatform: _efaText(p['plannedPlatformName']) ??
-            _efaText(p['platformName']),
-        livePlatform: _efaText(p['platformName']) ?? _efaText(p['platform']),
-        notes: _efaNotes(e['infos']),
-      ));
+      final planned = DateTime.tryParse(
+        e['departureTimePlanned'] as String? ?? '',
+      );
+      out.add(
+        RegionalDeparture(
+          line: ((t['number'] ?? t['name']) as String? ?? '').trim(),
+          direction:
+              (dest is Map<String, dynamic>
+                      ? dest['name'] as String? ?? ''
+                      : '')
+                  .trim(),
+          // EFA timestamps are UTC ("…Z"); the board is matched in local time.
+          plannedTime: planned == null
+              ? null
+              : planned.toLocal().hour * 60 + planned.toLocal().minute,
+          plannedPlatform:
+              _efaText(p['plannedPlatformName']) ?? _efaText(p['platformName']),
+          livePlatform: _efaText(p['platformName']) ?? _efaText(p['platform']),
+          notes: _efaNotes(e['infos']),
+        ),
+      );
     }
     return out;
   }
@@ -394,7 +443,8 @@ class RegionalTransitService {
     if (infos is! List) return const [];
     final out = <String>[];
     for (final i in infos.whereType<Map<String, dynamic>>()) {
-      final head = _efaText(i['subtitle']) ??
+      final head =
+          _efaText(i['subtitle']) ??
           _efaText(i['title']) ??
           _efaText(i['content']);
       if (head == null || out.contains(head)) continue;
@@ -406,7 +456,10 @@ class RegionalTransitService {
 
   /// The departure board at [extId] around [around].
   Future<List<RegionalDeparture>> _board(
-      RegionalProfile profile, String extId, DateTime around) {
+    RegionalProfile profile,
+    String extId,
+    DateTime around,
+  ) {
     final bucket = around.millisecondsSinceEpoch ~/ (15 * 60 * 1000);
     final key = '${profile.id}/$extId@$bucket';
     final cached = _boards[key];
@@ -415,7 +468,11 @@ class RegionalTransitService {
   }
 
   Future<List<RegionalDeparture>> _fetchBoard(
-      RegionalProfile profile, String key, String extId, DateTime around) async {
+    RegionalProfile profile,
+    String key,
+    String extId,
+    DateTime around,
+  ) async {
     // Start the board a few minutes early so a bus running late is still on it.
     final from = around.subtract(const Duration(minutes: 5));
     final res = await _call(profile, 'StationBoard', {
@@ -426,8 +483,11 @@ class RegionalTransitService {
       'maxJny': 80,
     });
     final list = parseBoard(res);
-    AppLog.log('${profile.id} board $extId: ${list.length} departures, '
-        '${list.where((d) => d.moved).length} moved', tag: 'regional');
+    AppLog.log(
+      '${profile.id} board $extId: ${list.length} departures, '
+      '${list.where((d) => d.moved).length} moved',
+      tag: 'regional',
+    );
     _boards[key] = list;
     _boardsInflight.remove(key);
     return list;
@@ -443,22 +503,25 @@ class RegionalTransitService {
     final himL = himRaw is List<dynamic> ? himRaw : const [];
     final jnyRaw = res['jnyL'];
     final out = <RegionalDeparture>[];
-    for (final j in (jnyRaw is List<dynamic> ? jnyRaw : const [])
-        .whereType<Map<String, dynamic>>()) {
+    for (final j
+        in (jnyRaw is List<dynamic> ? jnyRaw : const [])
+            .whereType<Map<String, dynamic>>()) {
       final stop = j['stbStop'] as Map<String, dynamic>?;
       if (stop == null) continue;
       final prodX = j['prodX'];
       final prod = (prodX is int && prodX >= 0 && prodX < prodL.length)
           ? prodL[prodX] as Map<String, dynamic>?
           : null;
-      out.add(RegionalDeparture(
-        line: (prod?['name'] as String? ?? '').trim(),
-        direction: (j['dirTxt'] as String? ?? '').trim(),
-        plannedTime: _hhmmss(stop['dTimeS'] as String?),
-        plannedPlatform: _platform(stop, 'S'),
-        livePlatform: _platform(stop, 'R'),
-        notes: _himHeads(himL, [j['msgL'], stop['msgL']]),
-      ));
+      out.add(
+        RegionalDeparture(
+          line: (prod?['name'] as String? ?? '').trim(),
+          direction: (j['dirTxt'] as String? ?? '').trim(),
+          plannedTime: _hhmmss(stop['dTimeS'] as String?),
+          plannedPlatform: _platform(stop, 'S'),
+          livePlatform: _platform(stop, 'R'),
+          notes: _himHeads(himL, [j['msgL'], stop['msgL']]),
+        ),
+      );
     }
     return out;
   }
@@ -524,8 +587,10 @@ class RegionalTransitService {
     for (final profile in regionalProfilesFor(lat, lon)) {
       if (_isDead(profile)) continue;
       if (DateTime.now().isAfter(deadline)) {
-        AppLog.log('regional budget aufgebraucht, Rest übersprungen',
-            tag: 'regional');
+        AppLog.log(
+          'regional budget aufgebraucht, Rest übersprungen',
+          tag: 'regional',
+        );
         break;
       }
       final extId = profile.backend == RegionalBackend.efa
@@ -590,14 +655,18 @@ class RegionalTransitService {
     // backends: DB calls this ride "Rungholtplatz", NAH.SH calls it "Suchsdorf",
     // and a direction filter would then throw the right departure away.
     final best = near.map((e) => e.diff).reduce(math.min);
-    var pool = [for (final e in near) if (e.diff == best) e.d];
+    var pool = [
+      for (final e in near)
+        if (e.diff == best) e.d,
+    ];
 
     // Only if the exact time still leaves more than one (two lines-22 in the
     // same minute) does the destination break the tie — and a differing label
     // then just means "can't tell", never a hard "no".
     if (pool.length > 1 && wantedTo != null) {
-      final byDir =
-          pool.where((d) => _directionMatches(d.direction, wantedTo)).toList();
+      final byDir = pool
+          .where((d) => _directionMatches(d.direction, wantedTo))
+          .toList();
       if (byDir.length == 1) pool = byDir;
     }
     if (pool.length != 1) return null;
@@ -618,7 +687,10 @@ class RegionalTransitService {
   }
 
   static PlatformCorrection? _correctionOf(
-      RegionalDeparture d, String source, String? dbPlatform) {
+    RegionalDeparture d,
+    String source,
+    String? dbPlatform,
+  ) {
     if (d.moved) {
       return (
         // What DB itself says, when we know it — that is the value the rider
@@ -657,11 +729,14 @@ class RegionalTransitService {
   static String? _closureNote(RegionalDeparture d) {
     final bay = d.plannedPlatform;
     if (bay == null) return null;
-    final bayRe = RegExp(r'(^|\D)' + RegExp.escape(bay) + r'(\D|$)',
-        caseSensitive: false);
+    final bayRe = RegExp(
+      r'(^|\D)' + RegExp.escape(bay) + r'(\D|$)',
+      caseSensitive: false,
+    );
     for (final n in d.notes) {
       final low = n.toLowerCase();
-      final closed = low.contains('sperr') ||
+      final closed =
+          low.contains('sperr') ||
           low.contains('gesperrt') ||
           low.contains('entfäll') ||
           low.contains('nicht bedient') ||
@@ -697,10 +772,8 @@ class RegionalTransitService {
     return t.isEmpty ? null : t;
   }
 
-  static String _date(DateTime t) =>
-      '${t.year}${_two(t.month)}${_two(t.day)}';
-  static String _time(DateTime t) =>
-      '${_two(t.hour)}${_two(t.minute)}00';
+  static String _date(DateTime t) => '${t.year}${_two(t.month)}${_two(t.day)}';
+  static String _time(DateTime t) => '${_two(t.hour)}${_two(t.minute)}00';
   static String _two(int v) => v.toString().padLeft(2, '0');
 
   /// HAFAS "HHMMSS" → minutes since midnight. A leading day offset ("1093900",

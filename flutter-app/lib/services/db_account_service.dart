@@ -35,7 +35,7 @@ class DbAccountException implements Exception {
 /// are intentionally separate at DB.
 class DbBahnBonusAuthorizationRequired extends DbAccountException {
   const DbBahnBonusAuthorizationRequired()
-      : super('BahnBonus muss einmalig verknüpft werden', 403);
+    : super('BahnBonus muss einmalig verknüpft werden', 403);
 }
 
 /// Authenticated client for the signed-in user's DB account: profile,
@@ -52,19 +52,20 @@ class DbAccountService {
   /// [client] is injectable so tests can drive the real request path
   /// (coalescing, ETags, retries) against a mock transport.
   DbAccountService({FlutterSecureStorage? storage, http.Client? client})
-      : _client = client ?? http.Client(),
-        _storage = storage ??
-            const FlutterSecureStorage(
-              // On iOS, allow reads after the device has been unlocked once
-              // since boot — required so a token refresh fired by the app's
-              // resume path doesn't fail with "data is locked". On Android,
-              // flutter_secure_storage 10.x uses its own ciphers by default
-              // (the legacy EncryptedSharedPreferences flag is deprecated and
-              // ignored), so no aOptions needed.
-              iOptions: IOSOptions(
-                accessibility: KeychainAccessibility.first_unlock,
-              ),
-            );
+    : _client = client ?? http.Client(),
+      _storage =
+          storage ??
+          const FlutterSecureStorage(
+            // On iOS, allow reads after the device has been unlocked once
+            // since boot — required so a token refresh fired by the app's
+            // resume path doesn't fail with "data is locked". On Android,
+            // flutter_secure_storage 10.x uses its own ciphers by default
+            // (the legacy EncryptedSharedPreferences flag is deprecated and
+            // ignored), so no aOptions needed.
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock,
+            ),
+          );
 
   final FlutterSecureStorage _storage;
   final http.Client _client;
@@ -195,7 +196,8 @@ class DbAccountService {
     final code = returned.queryParameters['code'];
     final returnedState = returned.queryParameters['state'];
     if (code == null) {
-      final err = returned.queryParameters['error_description'] ??
+      final err =
+          returned.queryParameters['error_description'] ??
           returned.queryParameters['error'] ??
           'Kein Autorisierungscode erhalten';
       throw DbAccountException(err);
@@ -213,17 +215,19 @@ class DbAccountService {
     String code,
     String verifier,
   ) async {
-    final res = await _client.post(
-      Uri.parse(DbAccountConstants.tokenUrl),
-      headers: {'Accept': 'application/json'},
-      body: {
-        'grant_type': 'authorization_code',
-        'client_id': DbAccountConstants.clientId,
-        'redirect_uri': DbAccountConstants.redirectUrl,
-        'code_verifier': verifier,
-        'code': code,
-      },
-    ).timeout(_timeout);
+    final res = await _client
+        .post(
+          Uri.parse(DbAccountConstants.tokenUrl),
+          headers: {'Accept': 'application/json'},
+          body: {
+            'grant_type': 'authorization_code',
+            'client_id': DbAccountConstants.clientId,
+            'redirect_uri': DbAccountConstants.redirectUrl,
+            'code_verifier': verifier,
+            'code': code,
+          },
+        )
+        .timeout(_timeout);
     if (res.statusCode != 200) {
       throw DbAccountException(
         'Anmeldung fehlgeschlagen: ${res.body}',
@@ -257,8 +261,9 @@ class DbAccountService {
   /// race: exactly one token rotation happens and all callers share its
   /// outcome.
   Future<_RefreshOutcome> _refresh() {
-    return _refreshInFlight ??=
-        _doRefresh().whenComplete(() => _refreshInFlight = null);
+    return _refreshInFlight ??= _doRefresh().whenComplete(
+      () => _refreshInFlight = null,
+    );
   }
 
   /// Outcome of a refresh attempt. `transient` means the request itself
@@ -274,15 +279,17 @@ class DbAccountService {
     }
     final http.Response res;
     try {
-      res = await _client.post(
-        Uri.parse(DbAccountConstants.tokenUrl),
-        headers: {'Accept': 'application/json'},
-        body: {
-          'grant_type': 'refresh_token',
-          'refresh_token': refresh,
-          'client_id': DbAccountConstants.clientId,
-        },
-      ).timeout(_timeout);
+      res = await _client
+          .post(
+            Uri.parse(DbAccountConstants.tokenUrl),
+            headers: {'Accept': 'application/json'},
+            body: {
+              'grant_type': 'refresh_token',
+              'refresh_token': refresh,
+              'client_id': DbAccountConstants.clientId,
+            },
+          )
+          .timeout(_timeout);
     } on TimeoutException {
       AppLog.log('refresh: timeout (transient)', tag: 'db-account');
       return _RefreshOutcome.transient;
@@ -391,15 +398,17 @@ class DbAccountService {
     final refresh = await _read(_kBahnBonusRefresh);
     if (refresh == null) return _RefreshOutcome.rejected;
     try {
-      final res = await _client.post(
-        Uri.parse(DbAccountConstants.tokenUrl),
-        headers: {'Accept': 'application/json'},
-        body: {
-          'grant_type': 'refresh_token',
-          'refresh_token': refresh,
-          'client_id': DbAccountConstants.bahnbonusOAuthClientId,
-        },
-      ).timeout(_timeout);
+      final res = await _client
+          .post(
+            Uri.parse(DbAccountConstants.tokenUrl),
+            headers: {'Accept': 'application/json'},
+            body: {
+              'grant_type': 'refresh_token',
+              'refresh_token': refresh,
+              'client_id': DbAccountConstants.bahnbonusOAuthClientId,
+            },
+          )
+          .timeout(_timeout);
       if (res.statusCode == 200) {
         await _storeBahnBonusTokens(
           json.decode(res.body) as Map<String, dynamic>,
@@ -450,36 +459,38 @@ class DbAccountService {
       );
     }
     if (code == null) {
-      final message = returned.queryParameters['error_description'] ??
+      final message =
+          returned.queryParameters['error_description'] ??
           returned.queryParameters['error'] ??
           'BahnBonus-Autorisierung abgebrochen';
       throw DbAccountException(message);
     }
-    final res = await _client.post(
-      Uri.parse(DbAccountConstants.tokenUrl),
-      headers: {'Accept': 'application/json'},
-      body: {
-        'grant_type': 'authorization_code',
-        'client_id': DbAccountConstants.bahnbonusOAuthClientId,
-        'redirect_uri': DbAccountConstants.bahnbonusRedirectUrl,
-        'code_verifier': verifier,
-        'code': code,
-      },
-    ).timeout(_timeout);
+    final res = await _client
+        .post(
+          Uri.parse(DbAccountConstants.tokenUrl),
+          headers: {'Accept': 'application/json'},
+          body: {
+            'grant_type': 'authorization_code',
+            'client_id': DbAccountConstants.bahnbonusOAuthClientId,
+            'redirect_uri': DbAccountConstants.bahnbonusRedirectUrl,
+            'code_verifier': verifier,
+            'code': code,
+          },
+        )
+        .timeout(_timeout);
     if (res.statusCode != 200) {
       throw DbAccountException(
         'BahnBonus-Autorisierung fehlgeschlagen',
         res.statusCode,
       );
     }
-    await _storeBahnBonusTokens(
-      json.decode(res.body) as Map<String, dynamic>,
-    );
+    await _storeBahnBonusTokens(json.decode(res.body) as Map<String, dynamic>);
   }
 
   Future<void> _ensureBahnBonusAccess({required bool connect}) async {
     await _loadBahnBonusTokens();
-    final stillValid = _bahnBonusAccessToken != null &&
+    final stillValid =
+        _bahnBonusAccessToken != null &&
         (_bahnBonusExpiresAt == null ||
             DateTime.now().isBefore(
               _bahnBonusExpiresAt!.subtract(const Duration(seconds: 20)),
@@ -488,9 +499,7 @@ class DbAccountService {
     final refresh = await _refreshBahnBonus();
     if (refresh == _RefreshOutcome.success) return;
     if (refresh == _RefreshOutcome.transient) {
-      throw const DbAccountException(
-        'BahnBonus ist temporär nicht erreichbar',
-      );
+      throw const DbAccountException('BahnBonus ist temporär nicht erreichbar');
     }
     if (!connect) throw const DbBahnBonusAuthorizationRequired();
     await _authorizeBahnBonus();
@@ -512,8 +521,10 @@ class DbAccountService {
     await _delete(_kCorrelationId);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final keys =
-          prefs.getKeys().where((k) => k.startsWith(_kEtagPrefix)).toList();
+      final keys = prefs
+          .getKeys()
+          .where((k) => k.startsWith(_kEtagPrefix))
+          .toList();
       for (final k in keys) {
         await prefs.remove(k);
       }
@@ -530,8 +541,9 @@ class DbAccountService {
       if (parts.length < 2) return null;
       final payload = parts[1];
       final normalized = base64Url.normalize(payload);
-      final map = json.decode(utf8.decode(base64Url.decode(normalized)))
-          as Map<String, dynamic>;
+      final map =
+          json.decode(utf8.decode(base64Url.decode(normalized)))
+              as Map<String, dynamic>;
       return map['kundenkontoid'] as String? ?? map['kundenkontoId'] as String?;
     } catch (_) {
       return null;
@@ -565,19 +577,18 @@ class DbAccountService {
   /// level). Anything we leave off would mark our traffic as non-Navigator
   /// at the edge.
   Map<String, String> _headers(String media) => {
-        'Authorization': 'Bearer $_accessToken',
-        'Accept': media,
-        'Accept-Language': 'de',
-        'User-Agent': 'DBNavigator/Android/26.9.0',
-        'X-App-Version': '26.9.0',
-        'X-Correlation-ID': _correlationId ?? _uuid(),
-        // ignore: use_null_aware_elements — null-aware map entries don't
-        // allow nullable values yet (Dart 3.10), so keep the explicit if.
-        if (_deviceOsName != null) 'X-Device-OS-Name': _deviceOsName!,
-        if (_deviceOsVersion != null) 'X-Device-OS-Version': _deviceOsVersion!,
-        if (_deviceModel != null) 'X-Device-Model': _deviceModel!,
-        'X-Instana-Android': _uuid(),
-      };
+    'Authorization': 'Bearer $_accessToken',
+    'Accept': media,
+    'Accept-Language': 'de',
+    'User-Agent': 'DBNavigator/Android/26.9.0',
+    'X-App-Version': '26.9.0',
+    'X-Correlation-ID': _correlationId ?? _uuid(),
+
+    'X-Device-OS-Name': ?_deviceOsName,
+    'X-Device-OS-Version': ?_deviceOsVersion,
+    'X-Device-Model': ?_deviceModel,
+    'X-Instana-Android': _uuid(),
+  };
 
   /// Lazily reads the real device model + Android SDK level once per process
   /// and reuses the result. iOS/desktop/web fall through with `Android` /
@@ -667,23 +678,29 @@ class DbAccountService {
     bool bypassEtag = false,
   }) {
     if (method != 'GET') {
-      return _dispatch(method, url,
-          media: media,
-          body: body,
-          retryOn401: retryOn401,
-          extraHeaders: extraHeaders,
-          bypassEtag: bypassEtag);
+      return _dispatch(
+        method,
+        url,
+        media: media,
+        body: body,
+        retryOn401: retryOn401,
+        extraHeaders: extraHeaders,
+        bypassEtag: bypassEtag,
+      );
     }
     // Forced and conditional reads must not share: joining a conditional call
     // could answer a forced refresh with a 304.
     return _coalescer.run(
       'GET $url${bypassEtag ? ' !etag' : ''}',
-      () => _dispatch(method, url,
-          media: media,
-          body: body,
-          retryOn401: retryOn401,
-          extraHeaders: extraHeaders,
-          bypassEtag: bypassEtag),
+      () => _dispatch(
+        method,
+        url,
+        media: media,
+        body: body,
+        retryOn401: retryOn401,
+        extraHeaders: extraHeaders,
+        bypassEtag: bypassEtag,
+      ),
     );
   }
 
@@ -776,12 +793,15 @@ class DbAccountService {
         tag: 'db-account',
       );
       await Future.delayed(delay);
-      return _dispatch(method, url,
-          media: media,
-          body: body,
-          retryOn401: false,
-          extraHeaders: extraHeaders,
-          bypassEtag: bypassEtag);
+      return _dispatch(
+        method,
+        url,
+        media: media,
+        body: body,
+        retryOn401: false,
+        extraHeaders: extraHeaders,
+        bypassEtag: bypassEtag,
+      );
     }
 
     // DB's mob backend returns **403** (not 401) when the access token has
@@ -795,12 +815,15 @@ class DbAccountService {
       );
       final r = await _refresh();
       if (r == _RefreshOutcome.success) {
-        return _dispatch(method, url,
-            media: media,
-            body: body,
-            retryOn401: false,
-            extraHeaders: extraHeaders,
-            bypassEtag: bypassEtag);
+        return _dispatch(
+          method,
+          url,
+          media: media,
+          body: body,
+          retryOn401: false,
+          extraHeaders: extraHeaders,
+          bypassEtag: bypassEtag,
+        );
       }
       // Only wipe the stored tokens when Keycloak EXPLICITLY rejected the
       // refresh — the previous behaviour wiped them on any failure (incl. a
@@ -877,8 +900,12 @@ class DbAccountService {
     }
     final url = '${DbAccountConstants.mobBase}/kundenkonten/$id';
     return _coalescer.run('PROFILE $url', () async {
-      final res = await _dispatch('POST', url,
-          media: DbAccountConstants.profileMedia, body: const []);
+      final res = await _dispatch(
+        'POST',
+        url,
+        media: DbAccountConstants.profileMedia,
+        body: const [],
+      );
       final profile = DbProfile.fromJson(_decode(res, 'kundenkonto'));
       AppLog.log('profile ${profile.kundennummer}', tag: 'db-account');
       return profile;
@@ -893,8 +920,11 @@ class DbAccountService {
     final id = await _kontoId();
     if (id == null) return null;
     final res = await _send(
-        'GET', '${DbAccountConstants.mobBase}/kundenkonten/$id/bbStatus',
-        media: DbAccountConstants.bahnbonusMedia, bypassEtag: forceFresh);
+      'GET',
+      '${DbAccountConstants.mobBase}/kundenkonten/$id/bbStatus',
+      media: DbAccountConstants.bahnbonusMedia,
+      bypassEtag: forceFresh,
+    );
     if (res.statusCode == 404) return null;
     // 304 used to fall into _decode and throw "bbStatus HTTP 304" — an error
     // the UI then had to paper over with the cache. It's not an error.
@@ -914,14 +944,14 @@ class DbAccountService {
     final today = now ?? DateTime.now();
     final date = today.toIso8601String().split('T').first;
     final startDate = '${today.year.toString().padLeft(4, '0')}-01-01';
-    final uri =
-        Uri.parse('${DbAccountConstants.bahnbonusCo2Base}/statistics').replace(
-      queryParameters: {
-        'interval': 'YEARLY',
-        'startDate': startDate,
-        'endDate': date,
-      },
-    );
+    final uri = Uri.parse('${DbAccountConstants.bahnbonusCo2Base}/statistics')
+        .replace(
+          queryParameters: {
+            'interval': 'YEARLY',
+            'startDate': startDate,
+            'endDate': date,
+          },
+        );
     final res = await _sendBahnBonus(uri, connect: connect);
     if (res.statusCode == 304 || res.statusCode == 404) return null;
     return _parseCo2(res, today);
@@ -948,18 +978,20 @@ class DbAccountService {
   }) async {
     await _ensureDeviceInfo();
     await _ensureBahnBonusAccess(connect: connect);
-    final res = await _client.get(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $_bahnBonusAccessToken',
-        'Accept': 'application/json',
-        'Accept-Language': 'de',
-        'DB-Client-Id': DbAccountConstants.bahnbonusClientId,
-        'DB-Api-Key': DbAccountConstants.bahnbonusApiKey,
-        'User-Agent':
-            'BahnBonus/3.6.3 Android/${_deviceOsVersion ?? 'unknown'}',
-      },
-    ).timeout(_timeout);
+    final res = await _client
+        .get(
+          uri,
+          headers: {
+            'Authorization': 'Bearer $_bahnBonusAccessToken',
+            'Accept': 'application/json',
+            'Accept-Language': 'de',
+            'DB-Client-Id': DbAccountConstants.bahnbonusClientId,
+            'DB-Api-Key': DbAccountConstants.bahnbonusApiKey,
+            'User-Agent':
+                'BahnBonus/3.6.3 Android/${_deviceOsVersion ?? 'unknown'}',
+          },
+        )
+        .timeout(_timeout);
     if ((res.statusCode == 401 || res.statusCode == 403) && retry) {
       final refresh = await _refreshBahnBonus();
       if (refresh == _RefreshOutcome.success) {
@@ -982,15 +1014,21 @@ class DbAccountService {
   /// context value: `login` on cold-start restore, `manual` on user-pulled
   /// refresh, `auto` on background revalidation. [forceFresh] skips the
   /// conditional header so a `manual` pull can't be answered 304.
-  Future<List<DbBahnCard>?> bahncards(
-      {String trigger = 'login', bool forceFresh = false}) async {
-    AppLog.log('bahncards: GET emobilebahncards trigger=$trigger…',
-        tag: 'db-account');
+  Future<List<DbBahnCard>?> bahncards({
+    String trigger = 'login',
+    bool forceFresh = false,
+  }) async {
+    AppLog.log(
+      'bahncards: GET emobilebahncards trigger=$trigger…',
+      tag: 'db-account',
+    );
     final res = await _send(
-        'GET', '${DbAccountConstants.mobBase}/emobilebahncards',
-        media: DbAccountConstants.bahncardsMedia,
-        extraHeaders: {'call-trigger': trigger},
-        bypassEtag: forceFresh);
+      'GET',
+      '${DbAccountConstants.mobBase}/emobilebahncards',
+      media: DbAccountConstants.bahncardsMedia,
+      extraHeaders: {'call-trigger': trigger},
+      bypassEtag: forceFresh,
+    );
     AppLog.log(
       'bahncards HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
       tag: 'db-account',
@@ -1031,20 +1069,28 @@ class DbAccountService {
   /// [parseReisenuebersicht]. Returns null on 304 Not Modified. [forceFresh]
   /// skips the conditional header — used by pull-to-refresh, and after we
   /// ourselves changed the account's trips (a 304 would hide our own write).
-  Future<Map<String, dynamic>?> reisenuebersichtJson(
-      {bool onlyCurrent = false, bool forceFresh = false}) async {
+  Future<Map<String, dynamic>?> reisenuebersichtJson({
+    bool onlyCurrent = false,
+    bool forceFresh = false,
+  }) async {
     final p = await profile();
     final profilId = p.kundenprofilId;
     if (profilId == null) {
       throw const DbAccountException('Kundenprofil-ID unbekannt');
     }
     final uri = Uri.parse('${DbAccountConstants.mobBase}/reisenuebersicht')
-        .replace(queryParameters: {
-      'kundenprofilId': profilId,
-      'nurAktuelleAuftraege': onlyCurrent.toString(),
-    });
-    final res = await _send('GET', uri.toString(),
-        media: DbAccountConstants.reisenMedia, bypassEtag: forceFresh);
+        .replace(
+          queryParameters: {
+            'kundenprofilId': profilId,
+            'nurAktuelleAuftraege': onlyCurrent.toString(),
+          },
+        );
+    final res = await _send(
+      'GET',
+      uri.toString(),
+      media: DbAccountConstants.reisenMedia,
+      bypassEtag: forceFresh,
+    );
     if (res.statusCode == 304) return null;
     return _decode(res, 'reisenuebersicht');
   }
@@ -1052,23 +1098,25 @@ class DbAccountService {
   /// Same parsing the live `reisenuebersicht()` method does, but on a JSON
   /// that may have come from disk-cache instead of a fresh response.
   static DbReisenUebersicht parseReisenuebersicht(Map<String, dynamic> data) {
-    final orders = (data['auftragsIndizes'] as List<dynamic>? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .map(DbReiseIndex.fromJson)
-        .toList()
-      ..sort(
-        (a, b) => (b.aenderungsDatum ?? DateTime(0)).compareTo(
-          a.aenderungsDatum ?? DateTime(0),
-        ),
-      );
-    final saved = (data['reiseIndizes'] as List<dynamic>? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .map(DbSavedReiseIndex.fromJson)
-        .toList()
-      ..sort(
-        (a, b) => (b.startDatum ?? b.aenderungsDatum ?? DateTime(0))
-            .compareTo(a.startDatum ?? a.aenderungsDatum ?? DateTime(0)),
-      );
+    final orders =
+        (data['auftragsIndizes'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(DbReiseIndex.fromJson)
+            .toList()
+          ..sort(
+            (a, b) => (b.aenderungsDatum ?? DateTime(0)).compareTo(
+              a.aenderungsDatum ?? DateTime(0),
+            ),
+          );
+    final saved =
+        (data['reiseIndizes'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(DbSavedReiseIndex.fromJson)
+            .toList()
+          ..sort(
+            (a, b) => (b.startDatum ?? b.aenderungsDatum ?? DateTime(0))
+                .compareTo(a.startDatum ?? a.aenderungsDatum ?? DateTime(0)),
+          );
     return DbReisenUebersicht(orders: orders, saved: saved);
   }
 
@@ -1151,7 +1199,8 @@ class DbAccountService {
     String auftragsnummer,
     String kundenwunschId,
   ) async {
-    final url = '${DbAccountConstants.mobBase}/auftrag/$auftragsnummer'
+    final url =
+        '${DbAccountConstants.mobBase}/auftrag/$auftragsnummer'
         '/kundenwunsch/$kundenwunschId';
     final res = await _send('GET', url, media: DbAccountConstants.auftragMedia);
     if (res.statusCode == 304) return null;

@@ -60,9 +60,8 @@ class SplitTicketProgress {
     this.currentSegment = '',
   });
 
-  double get progress => totalCombinations > 0
-      ? processedCombinations / totalCombinations
-      : 0;
+  double get progress =>
+      totalCombinations > 0 ? processedCombinations / totalCombinations : 0;
 }
 
 enum BahnCardType {
@@ -77,7 +76,7 @@ enum BahnCardType {
   final String classValue;
   const BahnCardType(this.label, this.apiValue, this.classValue);
 
-  /// DB Vendo reduction token "<ART> <KLASSE>" for the `reisende` payload.
+  /// DB Vendo reduction token `ART KLASSE` for the `reisende` payload.
   String get vendoErmaessigung => this == BahnCardType.none
       ? 'KEINE_ERMAESSIGUNG KLASSENLOS'
       : '$apiValue $classValue';

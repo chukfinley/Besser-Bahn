@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../../core/auto_refresh.dart';
+import '../../core/extensions.dart';
 import '../../models/library_models.dart';
 import '../../models/station.dart';
 import '../../models/trip.dart';
@@ -12,11 +14,9 @@ import '../../providers/library_provider.dart';
 import '../../providers/station_map_provider.dart';
 import '../../providers/train_lookup_provider.dart';
 import '../../services/hafas_service.dart';
-import '../../core/extensions.dart';
-import '../../core/auto_refresh.dart';
-import '../../widgets/bahnhof_search_bar.dart';
 import '../../widgets/app_menu_button.dart';
 import '../../widgets/app_nav_bar.dart';
+import '../../widgets/bahnhof_search_bar.dart';
 import '../../widgets/station_search_field.dart';
 import '../../widgets/traewelling_logo.dart';
 import '../../widgets/trwl_checkin_sheet.dart';
@@ -95,10 +95,9 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
     if (query.isEmpty) return;
     _searchedQuery = query;
     if (unfocus) _focusNode.unfocus();
-    ref.read(trainLookupProvider.notifier).lookupTrain(
-          query,
-          fromStationId: _fromStation?.id,
-        );
+    ref
+        .read(trainLookupProvider.notifier)
+        .lookupTrain(query, fromStationId: _fromStation?.id);
   }
 
   SavedTrain _savedTrainFor(TrainLookupState state) {
@@ -117,10 +116,9 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
     _controller.text = train.query;
     _searchedQuery = train.query;
     _focusNode.unfocus();
-    ref.read(trainLookupProvider.notifier).lookupTrain(
-          train.query,
-          fromStationId: train.fromStationId,
-        );
+    ref
+        .read(trainLookupProvider.notifier)
+        .lookupTrain(train.query, fromStationId: train.fromStationId);
   }
 
   @override
@@ -142,25 +140,29 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
     // rider's eye already is.
     final actions = <Widget>[
       if (state.trip != null)
-        Builder(builder: (context) {
-          final train = _savedTrainFor(state);
-          final saved = ref.watch(libraryProvider).hasTrain(train.key);
-          return IconButton(
-            visualDensity: VisualDensity.compact,
-            icon: Icon(saved ? Icons.star : Icons.star_border,
-                color: saved ? Colors.amber.shade700 : null),
-            tooltip: saved ? 'Zug entfernen' : 'Zug speichern',
-            onPressed: () {
-              ref.read(libraryProvider.notifier).toggleTrain(train);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  duration: const Duration(seconds: 2),
-                  content: Text(saved ? 'Zug entfernt' : 'Zug gespeichert'),
-                ),
-              );
-            },
-          );
-        }),
+        Builder(
+          builder: (context) {
+            final train = _savedTrainFor(state);
+            final saved = ref.watch(libraryProvider).hasTrain(train.key);
+            return IconButton(
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                saved ? Icons.star : Icons.star_border,
+                color: saved ? Colors.amber.shade700 : null,
+              ),
+              tooltip: saved ? 'Zug entfernen' : 'Zug speichern',
+              onPressed: () {
+                ref.read(libraryProvider.notifier).toggleTrain(train);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    duration: const Duration(seconds: 2),
+                    content: Text(saved ? 'Zug entfernt' : 'Zug gespeichert'),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       if (state.trip != null)
         IconButton(
           visualDensity: VisualDensity.compact,
@@ -199,17 +201,23 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 8,
+                ),
                 hintText: 'z.B. ICE 148, RE 70, Bus 310',
                 prefixIcon: const Icon(Icons.train, size: 18),
-                prefixIconConstraints:
-                    const BoxConstraints(minWidth: 36, minHeight: 36),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
                 // Keep the suffix inside the dense field's height (an
                 // unconstrained IconButton is 48 px and taller than the field,
                 // which made the Zug search bar bigger than the other two).
-                suffixIconConstraints:
-                    const BoxConstraints(minWidth: 36, minHeight: 36),
+                suffixIconConstraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
                 // The spinner takes the suffix while a lookup runs — with no
                 // search button left, this is the only place the field itself
                 // can say it is working.
@@ -241,13 +249,13 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
                         },
                       ),
               ),
-                textInputAction: TextInputAction.search,
-                onChanged: _onQueryChanged,
-                // Still honoured, and it beats the debounce: a rider who
-                // hits Enter has said they are done typing.
-                onSubmitted: (_) => _search(),
-              ),
+              textInputAction: TextInputAction.search,
+              onChanged: _onQueryChanged,
+              // Still honoured, and it beats the debounce: a rider who
+              // hits Enter has said they are done typing.
+              onSubmitted: (_) => _search(),
             ),
+          ),
           // Optional station field for buses/trams
           if (_showStationField)
             Padding(
@@ -274,8 +282,11 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
                       padding: const EdgeInsets.only(top: 4),
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle, size: 14,
-                              color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.check_circle,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             _fromStation!.name,
@@ -297,9 +308,7 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
           const SizedBox(height: 8),
 
           // Content
-          Expanded(
-            child: _buildContent(context, state, theme),
-          ),
+          Expanded(child: _buildContent(context, state, theme)),
         ],
       ),
     );
@@ -314,7 +323,7 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         itemCount: trains.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final train = trains[index];
           return ActionChip(
@@ -328,7 +337,10 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
   }
 
   Widget _buildContent(
-      BuildContext context, TrainLookupState state, ThemeData theme) {
+    BuildContext context,
+    TrainLookupState state,
+    ThemeData theme,
+  ) {
     if (state.isLoading) {
       return const Center(
         child: Column(
@@ -349,12 +361,17 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.search_off, size: 48,
-                  color: theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.search_off,
+                size: 48,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(height: 16),
-              Text(state.error!,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge),
+              Text(
+                state.error!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge,
+              ),
               if (_fromStation == null) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -384,27 +401,33 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.train, size: 64,
-                  color: theme.colorScheme.onSurfaceVariant.withAlpha(80)),
+              Icon(
+                Icons.train,
+                size: 64,
+                color: theme.colorScheme.onSurfaceVariant.withAlpha(80),
+              ),
               const SizedBox(height: 16),
               Text(
                 'Zugnummer eingeben',
                 style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant),
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Live-Position, Verspätungen, Gleiswechsel\nund Wagenreihung auf einen Blick.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant),
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
                 'Tipp: Für Busse & Tram tippe auf 📍 um eine Haltestelle anzugeben.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant),
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -425,14 +448,16 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
             coach: state.coachSequence,
             onStopTap: (stop) {
               if (stop.stop.name.isEmpty) return;
-              ref.read(dedicatedStationMapProvider.notifier).loadForStation(
+              ref
+                  .read(dedicatedStationMapProvider.notifier)
+                  .loadForStation(
                     stop.stop,
                     highlightGleis: stop.platform,
                     role: stop.isTerminus
                         ? GleisRole.alight
                         : stop.isOrigin
-                            ? GleisRole.board
-                            : GleisRole.none,
+                        ? GleisRole.board
+                        : GleisRole.none,
                     // The map fetches this train's Wagenreihung for this stop,
                     // so the to-scale train shows at every stop.
                     coachRef: trip.line.fahrtNr.isNotEmpty
@@ -453,8 +478,7 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
                         ? trip.direction.trim()
                         : null,
                     nextStopAt: _nextStopAt(trip, stop),
-                    primaryTypes:
-                        primaryPoiTypesForProduct(trip.line.product),
+                    primaryTypes: primaryPoiTypesForProduct(trip.line.product),
                   );
               // push (not go) → full-screen with a back button + swipe-back.
               context.push('/station-map');
@@ -469,17 +493,22 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
   /// what decides which side of the road a bus calls at (#55).
   LatLng? _nextStopAt(Trip trip, Stopover stop) {
     final stops = trip.stopovers;
-    final i = stops.indexWhere((s) =>
-        (s.stop.id.isNotEmpty && s.stop.id == stop.stop.id) ||
-        s.stop.name == stop.stop.name);
+    final i = stops.indexWhere(
+      (s) =>
+          (s.stop.id.isNotEmpty && s.stop.id == stop.stop.id) ||
+          s.stop.name == stop.stop.name,
+    );
     if (i < 0 || i + 1 >= stops.length) return null;
     final next = stops[i + 1].stop;
     final lat = next.latitude, lon = next.longitude;
     return (lat != null && lon != null) ? LatLng(lat, lon) : null;
   }
 
-  Widget _buildSearchResults(BuildContext context,
-      List<TrainSearchResult> results, ThemeData theme) {
+  Widget _buildSearchResults(
+    BuildContext context,
+    List<TrainSearchResult> results,
+    ThemeData theme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -488,7 +517,8 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
           child: Text(
             '${results.length} Ergebnisse – bitte auswählen:',
             style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant),
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Expanded(
@@ -501,7 +531,9 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
                 child: ListTile(
                   leading: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(6),
@@ -517,14 +549,17 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
                       ),
                     ),
                   ),
-                  title: Text(result.lineName,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(
+                    result.lineName,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   subtitle: Text('→ ${result.direction}'),
                   trailing: result.plannedWhen != null
                       ? Text(
                           result.plannedWhen!.hhmm,
-                          style: theme.textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w500),
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
                         )
                       : null,
                   onTap: () {

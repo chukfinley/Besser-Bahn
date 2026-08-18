@@ -37,8 +37,12 @@ The current development toolchain uses:
 
 ## Build
 
+`RB` means **reproducible build**. The `rb-strip-buildid.sh` script is required
+for reproducible builds and must run **after** `flutter pub get` and **before**
+`flutter build`.
+
 ```sh
 cd flutter-app
 flutter pub get
-./scripts/rb-strip-buildid.sh                 # REQUIRED for RB — see below
+./scripts/rb-strip-buildid.sh
 flutter build apk --release --split-per-abi   # or appbundle, as released

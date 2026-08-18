@@ -1,5 +1,7 @@
 # Besser Bahn
 
+[![Flutter CI](https://github.com/YousefAbaas/Besser-Bahn/actions/workflows/flutter-ci.yml/badge.svg)](https://github.com/YousefAbaas/Besser-Bahn/actions/workflows/flutter-ci.yml)
+
 **Privacy-first railway companion for Germany, built with Flutter.**
 
 Besser Bahn is a privacy-focused mobile application for frequent railway travelers in Germany. It combines journey planning, live departure information, real-time disruption data, maps, connection reliability, split-ticket analysis, and optional DB account integration in a single Flutter application.

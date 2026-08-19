@@ -41,6 +41,7 @@ import '../../utils/split_stops.dart';
 import '../../utils/transfer_risk.dart';
 import '../../widgets/departure_card.dart';
 import '../../widgets/fahrgastrechte_card.dart';
+import '../../widgets/journey_reliability_card.dart';
 import '../../widgets/offline_package_bar.dart';
 import '../../widgets/prediction_badge.dart';
 import '../../widgets/product_badge.dart';
@@ -510,6 +511,7 @@ class _ConnectionDetailScreenState
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             _summary(context),
+            JourneyReliabilityCard(journey: journey),
             _ownExperience(context),
             _bikeNotice(context),
             // Offline, the legs below are replayed from this journey's package

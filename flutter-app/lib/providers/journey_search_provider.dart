@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_log.dart';
 import '../core/journey_cache.dart';
+import '../core/search_history_cache.dart';
 import '../models/journey.dart';
+import '../models/journey_search.dart';
 import '../models/search_options.dart';
 import '../models/station.dart';
 import '../utils/arrival_buffer.dart';
@@ -242,6 +244,7 @@ class JourneySearchState {
 }
 
 class JourneySearchNotifier extends Notifier<JourneySearchState> {
+  final SearchHistoryCache _historyCache = SearchHistoryCache();
   @override
   JourneySearchState build() => JourneySearchState();
 
@@ -368,6 +371,13 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
           from = results.first;
 
           state = state.copyWith(from: from);
+          await _historyCache.add(
+            JourneySearch(
+              from: state.from?.name ?? '',
+              to: state.to?.name ?? '',
+              date: state.dateTime ?? DateTime.now(),
+            ),
+          );
         }
       }
 

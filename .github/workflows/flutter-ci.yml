@@ -24,10 +24,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The SDK version comes from pubspec.yaml (`environment: flutter:`), the
+      # same line IzzyOnDroid's reproducible-build script parses. Pinning it a
+      # second time here would let CI drift away from the release toolchain.
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.44.3"
+          flutter-version-file: flutter-app/pubspec.yaml
           channel: stable
           cache: true
 

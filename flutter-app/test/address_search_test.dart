@@ -26,7 +26,7 @@ Map<String, dynamic> _adr(String name, double lat, double lon,
       // An address really does come back with an evaNr — but a pseudo one
       // (98x/99x), with no board and no station map behind it. Only
       // locationType says what this is.
-      if (evaNr != null) 'evaNr': evaNr,
+      'evaNr': ?evaNr,
       'locationId': 'A=2@O=$name@X=${(lon * 1e6).round()}@'
           'Y=${(lat * 1e6).round()}@U=91@L=981033693@p=1779965474@',
       'coordinates': {'latitude': lat, 'longitude': lon},

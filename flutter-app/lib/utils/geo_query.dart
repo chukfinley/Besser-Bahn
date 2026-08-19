@@ -4,7 +4,7 @@ class GeoQuery {
   final double longitude;
 
   /// A name carried by the link (OSM/Google put the place name in the URL), so
-  /// the picked stop can be shown as "near <place>" instead of bare numbers.
+  /// the picked stop can be shown as `"near <place>"` instead of bare numbers.
   final String? label;
 
   const GeoQuery(this.latitude, this.longitude, {this.label});

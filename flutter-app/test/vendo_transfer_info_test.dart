@@ -32,14 +32,14 @@ Map<String, dynamic> _leg({
 }) =>
     {
       'typ': typ,
-      if (kurztext != null) 'kurztext': kurztext,
+      'kurztext': ?kurztext,
       'abgangsOrt': {'name': from, 'evaNr': '1'},
       'ankunftsOrt': {'name': to, 'evaNr': '2'},
-      if (abgang != null) 'abgangsDatum': abgang,
-      if (ankunft != null) 'ankunftsDatum': ankunft,
-      if (dauer != null) 'abschnittsDauer': dauer,
-      if (verfuegbareZeit != null) 'verfuegbareZeit': verfuegbareZeit,
-      if (distanz != null) 'distanz': distanz,
+      'abgangsDatum': ?abgang,
+      'ankunftsDatum': ?ankunft,
+      'abschnittsDauer': ?dauer,
+      'verfuegbareZeit': ?verfuegbareZeit,
+      'distanz': ?distanz,
       'weiterfahrtAmGleichenBahnsteig': weiterfahrtAmGleichenBahnsteig,
       'halte': const [],
     };

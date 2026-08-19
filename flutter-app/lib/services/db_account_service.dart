@@ -573,9 +573,9 @@ class DbAccountService {
         'X-Correlation-ID': _correlationId ?? _uuid(),
         // ignore: use_null_aware_elements — null-aware map entries don't
         // allow nullable values yet (Dart 3.10), so keep the explicit if.
-        if (_deviceOsName != null) 'X-Device-OS-Name': _deviceOsName!,
-        if (_deviceOsVersion != null) 'X-Device-OS-Version': _deviceOsVersion!,
-        if (_deviceModel != null) 'X-Device-Model': _deviceModel!,
+        'X-Device-OS-Name': ?_deviceOsName,
+        'X-Device-OS-Version': ?_deviceOsVersion,
+        'X-Device-Model': ?_deviceModel,
         'X-Instana-Android': _uuid(),
       };
 

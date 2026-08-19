@@ -23,8 +23,8 @@ Map<String, dynamic> _halt(
       'istZusatzhalt': zusatz,
       if (cancelled)
         'ersatzhaltNotiz': {'text': 'Halt entfällt', 'typ': 'GECANCELT'},
-      if (echtzeitNotizen != null) 'echtzeitNotizen': echtzeitNotizen,
-      if (serviceNotiz != null) 'serviceNotiz': serviceNotiz,
+      'echtzeitNotizen': ?echtzeitNotizen,
+      'serviceNotiz': ?serviceNotiz,
     };
 
 Future<dynamic> _trip(Map<String, dynamic> body) {

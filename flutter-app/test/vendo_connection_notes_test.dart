@@ -11,9 +11,9 @@ Map<String, dynamic> _conn({
     {
       'verbindung': {
         'kontext': 'ctx-1',
-        if (topNotiz != null) 'topNotiz': topNotiz,
-        if (echtzeitNotizen != null) 'echtzeitNotizen': echtzeitNotizen,
-        if (himNotizen != null) 'himNotizen': himNotizen,
+        'topNotiz': ?topNotiz,
+        'echtzeitNotizen': ?echtzeitNotizen,
+        'himNotizen': ?himNotizen,
         'verbindungsAbschnitte': [
           {
             'typ': 'FAHRZEUG',

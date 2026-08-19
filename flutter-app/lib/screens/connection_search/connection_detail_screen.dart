@@ -1731,7 +1731,7 @@ class _ConnectionDetailScreenState
                 Icon(Icons.map_outlined,
                     size: 18, color: theme.colorScheme.primary),
               ],
-              if (trailing != null) trailing,
+              ?trailing,
             ],
           ),
         ),
@@ -1958,10 +1958,12 @@ class _LegSectionState extends ConsumerState<_LegSection>
         trip = trip.copyWith(line: trip.line.withName(label));
       }
       _tripCache[id] = trip;
-      if (mounted) setState(() {
+      if (mounted) {
+        setState(() {
         _trip = trip;
         _tripError = null;
       });
+      }
       // Post-await (never during build) → safe to nudge the parent to recompute
       // transfer windows from the live arrival/departure this fetch just added.
       widget.onTripUpdated?.call();

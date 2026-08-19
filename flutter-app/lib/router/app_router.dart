@@ -10,7 +10,6 @@ import '../screens/nearby/nearby_screen.dart';
 import '../screens/train_lookup/train_lookup_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/ticket_detail_screen.dart';
-import '../screens/connection_search/connection_detail_screen.dart' show TicketRef;
 import '../screens/connection_search/connection_search_screen.dart';
 import '../screens/connection_search/best_price_screen.dart';
 import '../screens/connection_search/stopover_plan_screen.dart';

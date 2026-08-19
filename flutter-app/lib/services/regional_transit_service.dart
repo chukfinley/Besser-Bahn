@@ -282,7 +282,7 @@ class RegionalTransitService {
         }
       }
       // No coordinate: only acceptable if nothing better turns up.
-      if (best == null) best = id;
+      best ??= id;
     }
     final resolved = (bestMetres <= 300 || bestMetres == double.infinity)
         ? best

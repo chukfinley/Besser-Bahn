@@ -225,7 +225,7 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
         // Clear the floating nav bar — it hovers over this list.
         padding: EdgeInsets.only(bottom: 32 + AppNavBar.insetOf(context)),
         itemCount: departures.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+        separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
         itemBuilder: (context, index) {
           return _DepartureTile(
             departure: departures[index],

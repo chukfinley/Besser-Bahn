@@ -11,8 +11,8 @@ import 'package:http/testing.dart';
 /// the whole reason for asking.
 String _body({int points = 28, int? distance = 683, int? traveltime = 492}) =>
     json.encode({
-      if (distance != null) 'distance': distance,
-      if (traveltime != null) 'traveltime': traveltime,
+      'distance': ?distance,
+      'traveltime': ?traveltime,
       'gpsPositions': [
         for (var i = 0; i < points; i++)
           {'latitude': 50.9435 - i * 0.0001, 'longitude': 6.9595 + i * 0.00001},

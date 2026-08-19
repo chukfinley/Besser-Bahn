@@ -261,7 +261,7 @@ class _BayDeparturesSheetState extends ConsumerState<BayDeparturesSheet> {
                       : ListView.separated(
                           controller: scrollController,
                           itemCount: deps.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
                           itemBuilder: (_, i) => _DepartureRow(
                             dep: deps[i],
                             showBay: !(res?.matchedBay ?? true),

@@ -6,10 +6,7 @@ import '../models/journey.dart';
 class JourneyReliabilityCard extends StatelessWidget {
   final Journey journey;
 
-  const JourneyReliabilityCard({
-    super.key,
-    required this.journey,
-  });
+  const JourneyReliabilityCard({super.key, required this.journey});
 
   String _title(JourneyReliabilityLevel level) {
     switch (level) {
@@ -72,11 +69,7 @@ class JourneyReliabilityCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  _icon(reliability.level),
-                  color: color,
-                  size: 22,
-                ),
+                Icon(_icon(reliability.level), color: color, size: 22),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -109,8 +102,7 @@ class JourneyReliabilityCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: reliability.score / 100,
                 minHeight: 7,
-                backgroundColor:
-                    theme.colorScheme.surfaceContainerHighest,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),

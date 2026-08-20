@@ -37,23 +37,80 @@ As a contributor to Besser Bahn, I worked on reliability, API integration, testi
 * Verified the migration with static analysis and the automated test suite.
 * Kept generated platform files and IDE artifacts out of the source changes.
 
-### DB / Vendo API Integration
+## DB Vendo API Investigation
 
-* Improved route and price parsing in the Vendo service.
-* Improved handling of DB upstream HTTP responses and actionable error messages.
-* Ensured request bodies are sent in the format expected by the upstream DB endpoint.
-* Added graceful handling for route-calculation failures so map functionality can continue when an upstream route request fails.
-* Improved parsing of journey, price, walking-route, and best-price response data.
+A significant part of the Besser Bahn work involved integrating and validating
+the DB Navigator mobile backend (Vendo) using real production responses.
 
-### Testing & CI
+Rather than relying exclusively on mocked fixtures, the integration was
+validated with dedicated live probes to verify undocumented response structures
+before mapping them into the application's domain models.
 
-* Added a GitHub Actions workflow for automated Flutter analysis and tests.
-* CI runs for relevant Flutter application changes on `main`, `chore/**`, and pull requests.
-* Added and maintained tests covering journey search, rerouting, transfer information, walking routes, station search, address search, split-ticket data, and related services.
-* Verified the upgraded application with **850 automated tests passing** and clean Flutter analysis.
+### Validated Vendo capabilities
 
+* **Journey search:** validated real journey responses and extracted stable
+  `zuglaufId` values for individual train runs.
+* **Zuglauf details:** validated the `/mob/zuglauf/{zuglaufId}` endpoint against
+  real ICE and regional train runs.
+* **Track polylines:** verified that Vendo returns detailed route geometry via
+  `polylineGroup.polylineDesc[].coordinates`.
+* **Real train example:** ICE 953 from Köln Hbf to Berlin Hbf returned **1,274
+  polyline points**, from approximately Köln (50.943038, 6.959700) to Berlin
+  (52.525841, 13.368874).
+* **Regional train example:** S6 train 30691 from Köln Hbf to Köln Messe/Deutz
+  returned **287 polyline points**.
+* **Stop data:** validated real stop-level data including stations, planned
+  platforms, realtime platforms, occupancy information, and arrival/departure
+  timestamps.
+* **Schedule metadata:** verified that `fahrplan.regulaererFahrplan` is not
+  guaranteed to be a structured object; for some real trains DB returns a
+  string such as `nicht täglich`. The parser therefore handles the upstream
+  type defensively.
+* **Occupancy data:** verified that `auslastungsInfos` can contain separate
+  first- and second-class entries with DB-provided availability text.
+* **Best-price endpoint:** validated daily price intervals, DB's
+  `istBestpreis` flag, connection contexts, price-less intervals, and
+  part-trip prices.
+
+### Validation approach
+
+The live investigation was performed with isolated Flutter test probes rather
+than changing production behavior blindly.
+
+The probes were used to:
+
+1. obtain real journey responses from the Vendo backend;
+2. extract real `zuglaufId` values;
+3. request individual train runs through the Vendo `zuglauf` endpoint;
+4. inspect the actual response structure and runtime types;
+5. validate parsing against both long-distance and regional trains;
+6. verify the returned polyline geometry and stop metadata;
+7. convert the discovered behavior into deterministic automated tests.
+
+This approach helped distinguish documented assumptions from behavior actually
+observed in the upstream production API.
+
+### Real-world Zuglauf validation
+
+Live Zuglauf responses were successfully retrieved and parsed for real
+connections including:
+
+**ICE 953 — Köln Hbf → Berlin Hbf**
+
+- 8 stops
+- Real `zuglaufId`
+- Platform information
+- Occupancy information for both classes
+- Service-day metadata
+- 1,274 route-polyline points
+
+The route geometry was parsed from Vendo's response structure:
+
+```text
+polylineGroup
+└── polylineDesc
+    └── coordinates
 ### Engineering Practices
-
 * Used focused commits describing individual engineering changes.
 * Kept generated platform files and IDE-specific files out of feature commits.
 * Used `git diff --check` and staged-diff inspection before committing.

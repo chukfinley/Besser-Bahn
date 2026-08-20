@@ -19,23 +19,105 @@ The application is designed to work without tracking, advertising, or a mandator
 | Mobile           | Flutter / Dart                                        |
 | State management | Riverpod                                              |
 | Navigation       | GoRouter                                              |
-| Networking       | REST/HTTP integrations                                |
+| Networking       | REST / HTTP integrations                              |
 | Maps             | OpenStreetMap-based mapping                           |
 | Local data       | Local persistence and offline caching                 |
-| Testing          | Flutter unit/widget tests                             |
+| Testing          | Flutter unit and widget tests                         |
 | CI               | GitHub Actions                                        |
-| Architecture     | Service / provider / model based Flutter architecture |
+| Architecture     | Service / provider / model-based Flutter architecture |
+
+## Quality Status
+
+The current codebase has been validated as a clean quality milestone.
+
+| Check             | Result             |
+| ----------------- | ------------------ |
+| `flutter analyze` | ✅ No issues found  |
+| `flutter test`    | ✅ 857 tests passed |
+| Quality release   | `v0.1.0-quality`   |
+
+The `v0.1.0-quality` release provides a stable baseline for continued development.
+
+## Features
+
+### 🔎 Journey Search
+
+* Connection search between two stations with station autocomplete.
+* Supports **coordinates and map links** as origins or destinations (`53.43, 14.53`, `geo:`, OpenStreetMap, Organic Maps, and Google Maps links) with nearby station resolution.
+* Detailed multi-leg connections including transfers, platforms, stops, and real-time delays.
+* **Connection and punctuality badges** for transfers, calculated using a self-hosted prediction model.
+* Sorting by **reliability**, rather than only by duration.
+* Highlights for **fastest, cheapest, and most reliable** connections.
+
+### 🔔 Live Journey Monitoring
+
+Per-journey monitoring can be enabled or disabled from the connection view.
+
+When enabled, the application can notify the user about:
+
+* Significant delay changes.
+* Platform changes at the user's station.
+* Train cancellations.
+* At-risk connections.
+* Arrival reminders.
+* Optional GPS-based exit alerts.
+
+#### Connection Rescue
+
+When a transfer becomes unlikely, Besser Bahn can calculate the next reachable connection based on the live arrival of the incoming train.
+
+The app can then suggest switching to the next viable connection and show the resulting impact on the journey.
+
+The monitoring workflow runs locally on the device without a server that tracks the user's journey.
+
+### 🚉 Station
+
+A combined station area provides:
+
+* **Train** — detailed information for an individual service, including stops, platforms, and delays.
+* **Departures** — live departure board with map support.
+* **Map** — interactive station map with platforms, elevators, and points of interest.
+
+### 🧭 Maps & Live Data
+
+* Exact track polylines based on DB-provided route geometry.
+* German basemap using BKG TopPlus-Open.
+* Offline map-tile caching on the device.
+* **Coach sequence and available seats** with carriage and seat-map information where available.
+* **Split-train detection** to identify the train section passengers should board.
+* Current location and nearby stations using GPS.
+
+### 💶 Split-Ticket Analysis
+
+* Finds potentially cheaper ticket combinations for a selected connection.
+* Supports **BahnCard 25/50**, first/second class, and **Deutschlandticket** scenarios.
+* Provides direct booking links for individual ticket segments.
+* Sends a local notification when analysis is complete.
+
+### 👤 Optional DB Account
+
+The application can optionally connect to a user's DB account.
+
+The account integration supports:
+
+* **My Tickets** — booked tickets including barcode presentation for inspection.
+* **BahnCard** — card and inspection views with offline availability.
+* **BahnBonus** — points and status information.
+* **Saved journeys** — synchronization with journeys saved in the DB account.
+* OAuth2 with **PKCE**, without storing the user's DB password in the application.
+
+The DB account is completely optional; the rest of the application remains usable without an account.
 
 ## My Contributions
 
-As a contributor to Besser Bahn, I worked on reliability, API integration, testing, and the Flutter toolchain.
+As a contributor to Besser Bahn, I worked on reliability, API integration, testing, Flutter tooling, and journey-search infrastructure.
 
-### Flutter 3.44.3 Upgrade
+### Flutter Upgrade
 
 * Upgraded the application to **Flutter 3.44.3**.
 * Stabilized affected application and test code across the Flutter upgrade.
 * Verified the migration with static analysis and the automated test suite.
-* Kept generated platform files and IDE artifacts out of the source changes.
+* Kept generated platform files and IDE artifacts out of feature changes.
 
 ## DB Vendo API Investigation
 
@@ -47,6 +129,23 @@ validated with dedicated live probes to verify undocumented response structures
 before mapping them into the application's domain models.
 
 ### Validated Vendo capabilities
+
+### Journey Search & Offline Caching
+
+* Improved Riverpod-based journey-search state and provider integration.
+* Added offline caching for journey search results.
+* Added JSON serialization and deserialization for cached journey results.
+* Improved arrival-time searches, transport filters, transfer constraints, and journey sorting.
+* Added progressive loading of earlier and later connections.
+* Added fallback handling for relaxed transfer constraints when the initial search produces no connections.
+
+### Testing & CI
+
+* Added a GitHub Actions workflow for automated Flutter analysis and tests.
+* CI runs for relevant Flutter application changes on `main`, `chore/**`, and pull requests.
+* Added and maintained tests covering journey search, rerouting, transfer information, walking routes, station search, address search, split-ticket data, and related services.
+* Verified the current codebase with **857 automated tests passing** and clean Flutter analysis.
+
 
 * **Journey search:** validated real journey responses and extracted stable
   `zuglaufId` values for individual train runs.
@@ -114,220 +213,63 @@ polylineGroup
 * Used focused commits describing individual engineering changes.
 * Kept generated platform files and IDE-specific files out of feature commits.
 * Used `git diff --check` and staged-diff inspection before committing.
-* Merged the validated Flutter upgrade into `main` only after the working tree was clean.
+* Validated changes with static analysis and automated tests before pushing to `main`.
+* Maintained a tagged quality milestone with `v0.1.0-quality`.
 
-> This repository is also useful as a practical example of working with an existing Flutter codebase: understanding unfamiliar services, modifying API integrations, maintaining tests, upgrading dependencies, and validating changes through CI.
-
-
-
-
-## Funktionen
-
-### 🔎 Suche
-- Verbindungssuche zwischen zwei Stationen mit Stationsautovervollständigung
-- Auch **Koordinaten oder Kartenlinks** als Start/Ziel (`53.43, 14.53`, `geo:`,
-  OpenStreetMap-, Organic-Maps-, Google-Maps-Links) → Haltestellen in der Nähe
-- Mehrteilige Verbindungsdetails: alle Umstiege, Gleise, Halte und Echtzeit-Verspätungen
-- **Anschluss- und Pünktlichkeits-Badges** je Umstieg, berechnet von einem
-  selbst gehosteten Vorhersage-Modell
-- Sortierung nach **Zuverlässigkeit** — nicht nur nach Dauer, sondern danach,
-  wie wahrscheinlich die Reise wirklich aufgeht
-- **⚡ Schnellste · 💶 Günstigste · 🛡️ Sicherste · ⭐ Bester Kompromiss** werden
-  in der Trefferliste markiert (nur wenn sie sich wirklich unterscheiden)
-
-### 🔔 Live-Reisebegleitung
-Pro Reise ein-/ausschaltbar („Reise überwachen" in der Verbindungsansicht),
-App im Vordergrund, Erinnerungen aktiviert:
-- Push bei **Verspätungssprung, Gleiswechsel am eigenen Halt, Zugausfall** und
-  **gefährdetem Anschluss**
-- **Anschlussrettung**: Bei knappem Umstieg erscheint automatisch der nächste
-  *erreichbare* Zug (gerechnet ab der Live-Ankunft des einfahrenden Zuges) samt
-  „Wechseln" auf einen Tipp — inklusive der Folge, falls der Anschluss platzt
-  („1:05 Std später am Ziel")
-- **Ankunfts-Wecker** und optionaler GPS-Ausstiegsalarm
-- **Umsteigeprofil** (Schnell · Normal · Gepäck · Kind · Fahrrad · Barrierearm ·
-  Mehr Zeit): „8 Minuten Umstieg" wird nicht für alle gleich bewertet — ändert
-  nur die Warnschwelle, nicht die Fahrplanzeiten. Bleibt auf dem Gerät.
-- **Umleitung / geänderter Zuglauf** wird als solche gekennzeichnet, inklusive
-  Zusatzhalten und entfallenen Halten
-- Läuft ausschließlich auf dem Gerät: kein Server, der die Reise mitliest
-
-### 🚉 Bahnhof
-Ein kombinierter Tab mit interner Umschaltung zwischen:
-- **Zug** – Zuglauf einer einzelnen Fahrt mit allen Halten, Gleisen und Verspätungen
-- **Abfahrten** – Live-Abfahrtstafel eines Bahnhofs, inklusive Kartenansicht
-- **Karte** – interaktive Bahnhofskarte (Bahnsteige, Aufzüge, POIs)
-
-### 🧭 Karten & Live-Daten
-- Streckenverlauf als exakte Gleis-Polylinie, die die DB selbst zeichnet
-- Neutraler deutscher Basemap-Hintergrund (BKG TopPlus-Open, grau)
-- Offline-Kachel-Cache auf dem Gerät
-- **Wagenreihung & freie Sitzplätze** – Sitzplatzkarte und Wagenreihenfolge je Zug
-- **Flügelzug-Erkennung** – zeigt an, in welchen Zugteil man einsteigen muss
-- „Mein Standort" und Stationen in der Nähe per GPS
-
-### 💶 Split-Ticket
-- Findet günstigere Ticket-Kombinationen für eine gefundene Verbindung
-- Berücksichtigt **BahnCard** (25/50, 1./2. Klasse) und **Deutschland-Ticket**
-- Direkte Buchungslinks für jedes Teil-Ticket (oberstes Angebot = das richtige)
-- OS-Benachrichtigung, sobald die Analyse fertig ist
-
-### 👤 DB-Konto (optional)
-Das eigene DB-Konto lässt sich verbinden — die App spricht dann dasselbe
-Backend wie der DB Navigator:
-- **Meine Tickets** – gebuchte Fahrkarten inklusive **Barcode zum Vorzeigen**
-  bei der Kontrolle
-- **BahnCard** – Kartenansicht und Kontrollansicht, offline verfügbar
-- **BahnBonus** – Punkte- und Statusstand
-- **Gemerkte Reisen** synchronisieren mit „Meine Reisen" im DB-Konto
-- Login per OAuth2 (PKCE, kein Passwort in der App); komplett optional — ohne
-  Konto funktioniert alles andere unverändert
-
-### 🤝 Träwelling
-- Login per OAuth2 (PKCE, kein Passwort in der App)
-- Per-Bein-Check-in direkt aus der Verbindungsansicht
-- Auto-Check-in: ein Tipp auf das Träwelling-Symbol im Zug checkt ein
-- Feed & Freunde, einstellbare Standard-Sichtbarkeit
-
-### 📚 Reisen
-- Lokale Bibliothek: Favoriten, zuletzt gesucht, gespeicherte Routen und Züge
-- Häufige Suchen werden automatisch als Favorit markiert
-
-### 🔗 Teilen
-- Offizielles „Reise teilen": erzeugt einen echten DB-Buchungslink für genau
-  diese Verbindung (nicht nur eine Suche)
-
-## Datenschutz
-
-- **Kein Tracking, kein Firebase, kein Google Analytics, keine Werbung**
-- Suchanfragen, Favoriten und Tokens bleiben auf dem Gerät
-- Das Vorhersage-Backend läuft auf Servern in Deutschland (Hetzner, DSGVO-konform)
-- Siehe [PRIVACY-POLICY.md](PRIVACY-POLICY.md)
-
-## Installation
-
-### Android
-Gehe zur [Releases-Seite](https://github.com/chukfinley/Besser-Bahn/releases)
-und lade die neueste Version herunter.
-
-### iOS
-Ich besitze weder einen Mac noch ein iOS-Gerät, um die App für iOS zu
-kompilieren. Wenn du die App erfolgreich für iOS bauen kannst, melde dich gerne —
-ich stelle die iOS-Version dann offiziell hier bereit.
-
-## Fehler melden
-
-[Neues Issue anlegen](https://github.com/chukfinley/Besser-Bahn/issues/new/choose)
-— es gibt zwei Formulare (Fehler / Idee), beide fragen **App-Version** und
-**Installationsquelle** ab. Beides ist Pflicht, und zwar aus einem praktischen
-Grund: die Version steht in der App unter **Einstellungen → ganz oben**, und die
-Quelle entscheidet, wie alt dein Stand ist (IzzyOnDroid liegt oft ein paar Tage
-hinter einem GitHub-Release). Mit beidem lässt sich in Sekunden sehen, ob der
-Fehler längst behoben ist — ohne beginnt jede Meldung mit einer Rückfrage.
-
-Hilft zusätzlich sehr: **Einstellungen → Debug-Log → Teilen** (enthält die
-Live-API-Aufrufe; Tokens werden nicht geloggt).
-
-## Wie es funktioniert
-
-Die App nutzt **keine offizielle Endkunden-API** der Deutschen Bahn. Stattdessen
-spricht sie bevorzugt das Backend der **DB-Navigator-App** an
-(`app.services-bahn.de/mob`), das die echten Fahrplan-, Preis-, Wagenreihungs-
-und Streckendaten liefert. Als Rückfallebene dienen die bahn.de-Web-API und ein
-öffentlicher HAFAS-Spiegel.
-
-Die **Anschluss- und Pünktlichkeits-Vorhersage** kommt von einem separaten,
-selbst gehosteten Dienst (`bahn.chuk.dev`), der ein Verspätungsmodell bereitstellt.
-
-Die Split-Ticket-Logik zerlegt eine Verbindung in alle möglichen Teilstrecken
-und findet per dynamischer Programmierung die günstigste Kombination, die die
-gesamte Strecke abdeckt — inklusive BahnCard- und Deutschland-Ticket-Rabatten.
-
-## Projektstruktur
-
-| Verzeichnis          | Inhalt                                                        |
-| -------------------- | ------------------------------------------------------------- |
-| `flutter-app/`       | Die App (Flutter, Riverpod, GoRouter)                         |
-| `prediction-service/`| Selbst gehostete Verspätungs-/Anschluss-Vorhersage-API        |
-| `api-tests/`         | Health-Checks für alle genutzten Upstream-Endpunkte           |
-| `docs/`              | Projekt-Webseite                                              |
-| `main.py`            | Split-Ticket-Logik auch als eigenständiges Python-CLI         |
+> This repository demonstrates practical work on an existing Flutter codebase: understanding unfamiliar services, modifying API integrations, maintaining tests, upgrading dependencies, implementing offline caching, and validating changes through CI.
 
 ## Development
 
-### App bauen
+### Prerequisites
+
+* Flutter SDK
+* Dart SDK
+* Android Studio or another Flutter-compatible IDE
+
+### Run locally
 
 ```bash
-git clone https://github.com/chukfinley/Besser-Bahn
-cd Besser-Bahn/flutter-app
 flutter pub get
 flutter run
 ```
 
-Voraussetzung: Flutter (SDK ^3.10) auf dem System installiert.
-
-### Endpunkt-Health-Check
-
-Vor Arbeiten an Netzwerk-/Datencode prüft `api-tests/healthcheck.py`, ob alle
-Upstream-Endpunkte noch die erwartete Antwortform liefern:
+### Verify the project
 
 ```bash
-cd api-tests && python3 healthcheck.py
+flutter analyze
+flutter test
 ```
 
-### Split-Ticket als CLI
+## CI
 
-Die Split-Ticket-Analyse läuft auch ohne App:
+The project uses GitHub Actions to automatically validate Flutter changes.
 
-```bash
-uv run main.py "https://www.bahn.de/buchung/start?vbid=..." [--age 30] [--bahncard BC25_2] [--deutschland-ticket]
-```
+The CI workflow runs static analysis and the automated test suite for relevant branches and pull requests.
 
-## Empfohlene Open-Source Bahn-Projekte und Tools
+## Quality Release
 
-*   **Traewelldroid** – Check-in-App für ÖPNV/Fernverkehr in Europa, basiert auf
-    Open-Data-Schnittstellen.
-    [Codeberg](https://codeberg.org/traewelldroid/traewelldroid)
-*   **Transportr** – quelloffene ÖPNV-App für viele Regionen weltweit.
-    [GitHub](https://github.com/grote/Transportr)
-*   **OpenRailwayMap** – detaillierte interaktive Karte des weltweiten
-    Eisenbahnnetzes auf OSM-Basis. [Website](https://openrailwaymap.org/)
-*   **bahn.expert** – tiefe Analyse von Zugverbindungen, Verspätungen und
-    Pünktlichkeitsstatistiken. [Website](https://bahn.expert/)
+### `v0.1.0-quality`
 
-## Datenschutz im Bahnverkehr
+This release represents a verified quality milestone for the project.
 
-Organisationen wie Digitalcourage setzen sich für Transparenz und Nutzerrechte ein:
+Highlights:
 
-*   **Klage gegen die Deutsche Bahn wegen Datenerfassung im DB Navigator** –
-    Digitalcourage hat die DB verklagt, weil der „DB Navigator" persönliche Daten
-    ohne ausreichende Einwilligung weitergibt.
-    [Details bei Digitalcourage](https://digitalcourage.de/pressemitteilungen/2025/bahn-klage-termin)
+* Clean Flutter analyzer result.
+* 857 automated tests passing.
+* Improved journey-search provider integration.
+* Offline journey-result caching.
+* Journey-result JSON serialization.
+* Improved DB / Vendo API handling.
+* Improved Riverpod provider integration.
 
-## Spenden
+## Roadmap
 
-Wenn diese App dir hilft, bei deinen Bahnreisen Geld zu sparen, freue ich mich
-über eine Spende — sie sichert Weiterentwicklung und Wartung. Die
-Spendenmöglichkeiten findest du über den „Sponsor"-Button oben auf dieser
-GitHub-Seite.
+* Continue improving journey reliability prediction.
+* Expand offline capabilities.
+* Improve live disruption and connection-rescue workflows.
+* Continue strengthening automated test coverage.
+* Improve platform-specific UX and accessibility.
 
-## Beitragen
+## License
 
-Beiträge sind willkommen! Öffne ein Issue oder einen Pull Request, wenn du
-Verbesserungen vorschlagen möchtest.
-
-## Lizenz
-
-Lizenziert unter der DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE — siehe
-[LICENSE.txt](LICENSE.txt).
-
-## Haftungsausschluss
-
-Diese App ist ein inoffizielles Projekt und steht in keiner Verbindung zur
-Deutschen Bahn AG. Die Nutzung erfolgt auf eigene Gefahr. Die gefundenen
-Split-Tickets entsprechen den Beförderungsbedingungen der Deutschen Bahn.
-
-## Danksagung
-
-Großer Dank an Lukas Weihrauch und sein Video, das die Inspiration für dieses
-Projekt lieferte: [https://youtu.be/SxKtI8f5QTU](https://youtu.be/SxKtI8f5QTU)
+See the repository license for the current licensing terms.

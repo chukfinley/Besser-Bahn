@@ -87,163 +87,175 @@ class JourneyCard extends ConsumerWidget {
         onLongPress: () => _share(context, ref),
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Prediction strip (Anschluss / Pünktlichkeit) on the left.
-              PredictionBadge(journey: journey),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
+              // "Schnellste / Günstigste / Sicherste" (#11.9) as a left-aligned
+              // header over the whole card. It used to be a centred chip at the
+              // top of the inner column, where it read as floating on the seam
+              // between two cards; as a header it sits clearly inside its card.
+              if (highlights.isNotEmpty) ...[
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
                   children: [
-                    if (highlights.isNotEmpty) ...[
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: [
-                          for (final h in highlights)
-                            _HighlightChip(highlight: h),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    // Bike rules (#68) — a separate line from the highlight chips on
-                    // purpose: those answer "which one should I take?", this is a
-                    // condition of taking it at all. Only for riders with a bike in
-                    // the search, and only when DB said something.
-                    if (ref.watch(settingsProvider).searchParty.hasBike) ...[
-                      if (journey.bike.label case final label?) ...[
-                        _BikeChip(
-                          label: label,
-                          urgent: journey.bike.reservationRequired,
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-                    ],
-                    // "Einzeln buchen spart 12,00 €" (#67) — only in a result list,
-                    // where the comparison search actually ran, and only when the
-                    // difference is worth a booking split.
-                    if (fromResults) ...[
-                      if (groupSavingFor(
-                            ref.watch(groupSavingsProvider).asData?.value ??
-                                const [],
-                            journey,
-                          )
-                          case final saving?) ...[
-                        _GroupSavingChip(saving: saving),
-                        const SizedBox(height: 6),
-                      ],
-                    ],
-                    // Cancellation banner — full width, red, above everything else so
-                    // a dead connection can't be mistaken for a normal one.
-                    if (journey.hasCancelledLeg ||
-                        journey.hasPartialCancellation) ...[
-                      _CancelBanner(partial: !journey.hasCancelledLeg),
-                      const SizedBox(height: 6),
-                    ],
-                    // Route row: origin (left) and destination (right). No arrow —
-                    // a search always runs left→right, so it adds nothing.
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            journey.origin?.name ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            journey.destination?.name ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.end,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Time row
-                    Row(
-                      children: [
-                        // Departure
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _timeWithDelay(
-                              context,
-                              journey.plannedDeparture,
-                              journey.legs.firstOrNull?.departureDelay,
-                            ),
-                          ],
-                        ),
-
-                        // Duration — bigger; the transfer count is obvious from the
-                        // train pills below, so no "N Umstiege" text here.
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              journey.durationString,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Arrival — with the slack before the appointment under it,
-                        // where the number it is measured against already stands.
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            _timeWithDelay(
-                              context,
-                              journey.plannedArrival,
-                              journey.legs.lastOrNull?.arrivalDelay,
-                            ),
-                            if (buffer != null)
-                              _BufferChip(
-                                buffer: buffer,
-                                minMinutes: minBuffer,
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    // Per-train length comparison (one row each) on the left; price
-                    // pinned top-right with the rows free to extend below it.
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _LegLengthBar(legs: transitLegs)),
-                        if (journey.price != null) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            journey.price!.formatted,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                    for (final h in highlights) _HighlightChip(highlight: h),
                   ],
                 ),
+                const SizedBox(height: 8),
+              ],
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Prediction strip (Anschluss / Pünktlichkeit) on the left.
+                  PredictionBadge(journey: journey),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // Bike rules (#68) — a separate line from the highlight chips on
+                        // purpose: those answer "which one should I take?", this is a
+                        // condition of taking it at all. Only for riders with a bike in
+                        // the search, and only when DB said something.
+                        if (ref
+                            .watch(settingsProvider)
+                            .searchParty
+                            .hasBike) ...[
+                          if (journey.bike.label case final label?) ...[
+                            _BikeChip(
+                              label: label,
+                              urgent: journey.bike.reservationRequired,
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                        ],
+                        // "Einzeln buchen spart 12,00 €" (#67) — only in a result list,
+                        // where the comparison search actually ran, and only when the
+                        // difference is worth a booking split.
+                        if (fromResults) ...[
+                          if (groupSavingFor(
+                                ref.watch(groupSavingsProvider).asData?.value ??
+                                    const [],
+                                journey,
+                              )
+                              case final saving?) ...[
+                            _GroupSavingChip(saving: saving),
+                            const SizedBox(height: 6),
+                          ],
+                        ],
+                        // Cancellation banner — full width, red, above everything else so
+                        // a dead connection can't be mistaken for a normal one.
+                        if (journey.hasCancelledLeg ||
+                            journey.hasPartialCancellation) ...[
+                          _CancelBanner(partial: !journey.hasCancelledLeg),
+                          const SizedBox(height: 6),
+                        ],
+                        // Route row: origin (left) and destination (right). No arrow —
+                        // a search always runs left→right, so it adds nothing.
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                journey.origin?.name ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                journey.destination?.name ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.end,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+
+                        // Time row
+                        Row(
+                          children: [
+                            // Departure
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _timeWithDelay(
+                                  context,
+                                  journey.plannedDeparture,
+                                  journey.legs.firstOrNull?.departureDelay,
+                                ),
+                              ],
+                            ),
+
+                            // Duration — bigger; the transfer count is obvious from the
+                            // train pills below, so no "N Umstiege" text here.
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  journey.durationString,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // Arrival — with the slack before the appointment under it,
+                            // where the number it is measured against already stands.
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _timeWithDelay(
+                                  context,
+                                  journey.plannedArrival,
+                                  journey.legs.lastOrNull?.arrivalDelay,
+                                ),
+                                if (buffer != null)
+                                  _BufferChip(
+                                    buffer: buffer,
+                                    minMinutes: minBuffer,
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        // Per-train length comparison (one row each) on the left; price
+                        // pinned top-right with the rows free to extend below it.
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _LegLengthBar(legs: transitLegs)),
+                            if (journey.price != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                journey.price!.formatted,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

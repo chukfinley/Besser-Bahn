@@ -183,6 +183,7 @@ class VendoService {
       'fahrplan HTTP ${res.statusCode} (${res.bodyBytes.length}B)',
       tag: 'vendo',
     );
+
     if (res.statusCode != 200) {
       // Surface the upstream body — DB encodes the real reason (bot block,
       // bad location id, rate limit) in the JSON, not just the status code.
@@ -669,16 +670,119 @@ class VendoService {
   /// `{lat, lng}` points, or null if the backend carries no geometry.
   Future<List<Map<String, double>>?> fetchTripPolyline(String zuglaufId) async {
     final url = '$_base/zuglauf/${Uri.encodeComponent(zuglaufId)}';
+
     final res = await _client
         .get(Uri.parse(url), headers: _headers(_zuglaufMedia))
         .timeout(const Duration(seconds: 10));
+
     if (res.statusCode != 200) {
       throw VendoException('Vendo zuglauf HTTP ${res.statusCode}');
     }
+
     final data =
         json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final realtime = data['echtzeitNotizen'];
+
+    AppLog.log(
+      'zuglauf echtzeitNotizen type: ${realtime.runtimeType}',
+      tag: 'vendo',
+    );
+
+    if (realtime is List) {
+      AppLog.log(
+        'zuglauf echtzeitNotizen count: ${realtime.length}',
+        tag: 'vendo',
+      );
+
+      for (final note in realtime.take(5)) {
+        AppLog.log('zuglauf echtzeitNotiz: $note', tag: 'vendo');
+      }
+    } else {
+      AppLog.log('zuglauf echtzeitNotizen value: $realtime', tag: 'vendo');
+    }
+    AppLog.log('zuglauf top-level keys: ${data.keys.toList()}', tag: 'vendo');
+    final fahrplan = data['fahrplan'];
+
+    if (fahrplan is Map<String, dynamic>) {
+      AppLog.log(
+        'zuglauf fahrplan keys: ${fahrplan.keys.toList()}',
+        tag: 'vendo',
+      );
+      final tageOhneFahrt = fahrplan['tageOhneFahrt'];
+
+      AppLog.log(
+        'zuglauf tageOhneFahrt runtimeType: '
+        '${tageOhneFahrt.runtimeType}',
+        tag: 'vendo',
+      );
+
+      AppLog.log('zuglauf tageOhneFahrt value: $tageOhneFahrt', tag: 'vendo');
+      final regulaerer = fahrplan['regulaererFahrplan'];
+
+      AppLog.log(
+        'zuglauf regulaererFahrplan runtimeType: '
+        '${regulaerer.runtimeType}',
+        tag: 'vendo',
+      );
+
+      AppLog.log('zuglauf regulaererFahrplan value: $regulaerer', tag: 'vendo');
+
+      if (regulaerer is Map<String, dynamic>) {
+        AppLog.log(
+          'zuglauf regulaererFahrplan keys: '
+          '${regulaerer.keys.toList()}',
+          tag: 'vendo',
+        );
+      } else if (regulaerer is List) {
+        AppLog.log(
+          'zuglauf regulaererFahrplan list length: '
+          '${regulaerer.length}',
+          tag: 'vendo',
+        );
+
+        if (regulaerer.isNotEmpty && regulaerer.first is Map<String, dynamic>) {
+          AppLog.log(
+            'zuglauf first regular entry keys: '
+            '${(regulaerer.first as Map<String, dynamic>).keys.toList()}',
+            tag: 'vendo',
+          );
+        }
+      }
+    }
+
+    final halte = data['halte'];
+
+    if (halte is List) {
+      AppLog.log('zuglauf halte count: ${halte.length}', tag: 'vendo');
+
+      if (halte.isNotEmpty && halte.last is Map<String, dynamic>) {
+        final lastHalt = halte.last as Map<String, dynamic>;
+
+        AppLog.log('zuglauf last halt ort: ${lastHalt['ort']}', tag: 'vendo');
+
+        AppLog.log(
+          'zuglauf last halt abgangsDatum: '
+          '${lastHalt['abgangsDatum']}',
+          tag: 'vendo',
+        );
+
+        AppLog.log(
+          'zuglauf last halt ezGleis: '
+          '${lastHalt['ezGleis']}',
+          tag: 'vendo',
+        );
+
+        AppLog.log(
+          'zuglauf last halt gleis: '
+          '${lastHalt['gleis']}',
+          tag: 'vendo',
+        );
+      }
+    }
     final points = _parsePolyline(data);
+
     AppLog.log('zuglauf polyline ${points?.length ?? 0} pts', tag: 'vendo');
+
     return points;
   }
 
@@ -854,8 +958,18 @@ class VendoService {
     // that reliably trips the backend's per-client limit and every leg fails
     // together — which is what made the detail view collapse to the minimal
     // card for *all* connections at once, then recover minutes later (#14).
+
+    final stopwatch = Stopwatch()..start();
+
     final res = await _zuglaufGate.run(
       () => _getWithRetry(url, _zuglaufMedia, tag: 'zuglauf'),
+    );
+
+    stopwatch.stop();
+
+    AppLog.log(
+      'zuglauf E2E = ${stopwatch.elapsedMilliseconds} ms',
+      tag: 'vendo',
     );
     return json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
   }
@@ -866,7 +980,8 @@ class VendoService {
 
   /// GET honouring 429 + `Retry-After`. The backend answers a tripped limit
   /// with `{"domain":"MOB","code":"RETRY","status":"ERROR"}` and a
-  /// `Retry-After` (~18s observed), i.e. it tells us exactly when to come
+  /// `Retry-After` (~18s observed), i.e. it tells us ex
+  /// actly when to come
   /// back — treating that as a hard failure throws away a request that would
   /// have succeeded. Mirrors DbAccountService's existing 429 backoff.
   Future<http.Response> _getWithRetry(
@@ -875,27 +990,44 @@ class VendoService {
     required String tag,
     int attempt = 0,
   }) async {
+    final stopwatch = Stopwatch()..start();
+
     final res = await _client
         .get(Uri.parse(url), headers: _headers(media))
         .timeout(const Duration(seconds: 10));
+
+    stopwatch.stop();
+
+    AppLog.log(
+      'zuglauf API attempt ${attempt + 1} = '
+      '${stopwatch.elapsedMilliseconds} ms',
+      tag: 'vendo',
+    );
+
     if (res.statusCode == 429 && attempt < _maxRetries) {
       final retryAfter = int.tryParse(res.headers['retry-after'] ?? '');
+
       // No Retry-After → exponential backoff (2s, 4s). Cap the honoured wait:
       // a rider staring at a spinner won't sit through a 60s hint.
       final delay = Duration(
         seconds: (retryAfter ?? (2 << attempt)).clamp(1, 20),
       );
+
       AppLog.log(
         '429 on $tag → backoff ${delay.inSeconds}s '
         '(attempt ${attempt + 1}/$_maxRetries)',
         tag: 'vendo',
       );
+
       await Future.delayed(delay);
+
       return _getWithRetry(url, media, tag: tag, attempt: attempt + 1);
     }
+
     if (res.statusCode != 200) {
       throw VendoException('Vendo $tag HTTP ${res.statusCode}');
     }
+
     return res;
   }
 
@@ -1404,6 +1536,31 @@ class VendoService {
     collect(a['echtzeitNotizen']);
     for (final h in halte.whereType<Map<String, dynamic>>()) {
       // See _parseTripFromZuglauf: stop-level notes live in `echtzeitNotizen`.
+      for (final halt in halte.whereType<Map<String, dynamic>>()) {
+        final ort = halt['ort'] as Map<String, dynamic>?;
+
+        AppLog.log('halt ${ort?['name']}', tag: 'vendo');
+
+        final auslastung = halt['auslastungsInfos'];
+
+        AppLog.log(
+          '  auslastungsInfos type: ${auslastung.runtimeType}',
+          tag: 'vendo',
+        );
+
+        if (auslastung is List) {
+          AppLog.log(
+            '  auslastungsInfos count: ${auslastung.length}',
+            tag: 'vendo',
+          );
+
+          for (final info in auslastung.take(3)) {
+            AppLog.log('  auslastung: $info', tag: 'vendo');
+          }
+        } else {
+          AppLog.log('  auslastungsInfos value: $auslastung', tag: 'vendo');
+        }
+      }
       collect(h['echtzeitNotizen']);
     }
 

@@ -1,6 +1,7 @@
 # Besser Bahn
 
 [![Flutter CI](https://github.com/YousefAbaas/Besser-Bahn/actions/workflows/flutter-ci.yml/badge.svg)](https://github.com/YousefAbaas/Besser-Bahn/actions/workflows/flutter-ci.yml)
+[![API Contract Health](https://github.com/YousefAbaas/Besser-Bahn/actions/workflows/api-contract-health.yml/badge.svg)](https://github.com/YousefAbaas/Besser-Bahn/actions/workflows/api-contract-health.yml)
 
 **Privacy-first railway companion for Germany, built with Flutter.**
 
@@ -38,6 +39,48 @@ The current codebase has been validated as a clean quality milestone.
 
 The `v0.1.0-quality` release provides a stable baseline for continued development.
 
+## API Contract Monitoring
+
+Besser-Bahn depends on multiple external railway, mapping, and mobility APIs.
+To detect upstream contract changes before they become user-facing failures,
+the repository runs a scheduled API healthcheck through GitHub Actions.
+
+The healthcheck validates real upstream behavior rather than relying only on
+mocked responses. It covers journey search, live departure and arrival boards,
+train-run data, platform changes, pricing, transfer information, walking routes,
+seat maps, route geometry, station data, regional transport APIs, and selected
+DB account and mobility endpoints.
+
+The monitor distinguishes between:
+
+* **Hard contract checks** — unexpected API changes fail the workflow.
+* **Expected operational blocks** — known upstream protections such as Akamai
+  blocking are reported explicitly instead of being treated as parser failures.
+* **Flaky or unavailable external services** — isolated warnings do not hide the
+  overall contract status.
+
+### Current validation
+
+The latest healthcheck completed successfully with:
+
+* **All hard checks passed**
+* **67 DB mobile endpoint surfaces validated**
+* Live Vendo journey, departure, arrival, Zuglauf, and pricing validation
+* Real platform-change and cancellation semantics verified
+* Train polyline and seat-map data verified
+* Regional HAFAS/EFA sources monitored
+* Station map and OpenStreetMap/DELFI data validated
+* DB OAuth/account endpoints checked for expected authentication behavior
+* Known Akamai blocking of the Wagenreihung endpoint reported explicitly
+
+This monitoring is designed to answer a practical engineering question:
+
+> Has an upstream API changed in a way that could silently break the app?
+
+The workflow can be triggered manually from GitHub Actions and also runs on a
+daily schedule.
+
+[View API Contract Health workflow](https://github.com/YousefAbaas/Besser-Bahn/actions/workflows/api-contract-health.yml)
 ## Features
 
 ### 🔎 Journey Search

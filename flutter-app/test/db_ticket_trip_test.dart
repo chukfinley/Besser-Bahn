@@ -10,33 +10,33 @@ final _now = DateTime.now();
 Station _st(String name) => Station(id: 'eva-$name', name: name);
 
 Journey _journey({required DateTime dep, required DateTime arr}) => Journey(
-      legs: [
-        JourneyLeg(
-          origin: _st('Berlin Hbf'),
-          destination: _st('Wolfsburg Hbf'),
-          plannedDeparture: dep,
-          departure: dep,
-          plannedArrival: arr,
-          arrival: arr,
-        ),
-      ],
-    );
+  legs: [
+    JourneyLeg(
+      origin: _st('Berlin Hbf'),
+      destination: _st('Wolfsburg Hbf'),
+      plannedDeparture: dep,
+      departure: dep,
+      plannedArrival: arr,
+      arrival: arr,
+    ),
+  ],
+);
 
 DbTicket _ticket({DateTime? gueltigBis}) => DbTicket(
-      auftragsnummer: 'A1',
-      kundenwunschId: 'K1',
-      status: 'GUELTIG',
-      klasse: 'KLASSE_2',
-      reisendeText: '1 Erwachsener',
-      gueltigBis: gueltigBis,
-    );
+  auftragsnummer: 'A1',
+  kundenwunschId: 'K1',
+  status: 'GUELTIG',
+  klasse: 'KLASSE_2',
+  reisendeText: '1 Erwachsener',
+  gueltigBis: gueltigBis,
+);
 
 DbTicketTrip _trip({Journey? journey, DbTicket? ticket}) => DbTicketTrip(
-      index: const DbReiseIndex(auftragsnummer: 'A1', kundenwunschIds: ['K1']),
-      ticketKey: 'A1/K1',
-      ticket: ticket,
-      journey: journey,
-    );
+  index: const DbReiseIndex(auftragsnummer: 'A1', kundenwunschIds: ['K1']),
+  ticketKey: 'A1/K1',
+  ticket: ticket,
+  journey: journey,
+);
 
 void main() {
   group('a bought ticket knows whether its trip is over (#23)', () {
@@ -85,7 +85,8 @@ void main() {
 
     test('gueltigBis carries an unparsable Verbindung', () {
       final trip = _trip(
-          ticket: _ticket(gueltigBis: _now.subtract(const Duration(days: 2))));
+        ticket: _ticket(gueltigBis: _now.subtract(const Duration(days: 2))),
+      );
       expect(trip.isPast, isTrue);
     });
 

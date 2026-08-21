@@ -31,7 +31,9 @@ String statsToCsv(TravelStats stats, List<PurchasedSplit> splits) {
   b.writeln(_row(['Pünktlich (%)', (stats.onTimeRate * 100).round()]));
   b.writeln(_row(['Verspätung gesamt (Min)', stats.totalDelayMinutes]));
   b.writeln(_row(['Schlimmste Verspätung (Min)', stats.worstDelayMinutes]));
-  b.writeln(_row(['Längste Fahrt (km)', stats.longestTripKm.toStringAsFixed(1)]));
+  b.writeln(
+    _row(['Längste Fahrt (km)', stats.longestTripKm.toStringAsFixed(1)]),
+  );
   b.writeln(_row(['Anschlüsse erreicht', stats.connectionsMade]));
   b.writeln(_row(['Anschlüsse verpasst', stats.connectionsMissed]));
 
@@ -55,12 +57,14 @@ String statsToCsv(TravelStats stats, List<PurchasedSplit> splits) {
     b.writeln();
     b.writeln(_row(['Split-Ticket', 'Direktpreis', 'Split-Preis', 'Gespart']));
     for (final s in splits) {
-      b.writeln(_row([
-        s.routeLabel,
-        s.directPrice.toStringAsFixed(2),
-        s.splitPrice.toStringAsFixed(2),
-        s.savings.toStringAsFixed(2),
-      ]));
+      b.writeln(
+        _row([
+          s.routeLabel,
+          s.directPrice.toStringAsFixed(2),
+          s.splitPrice.toStringAsFixed(2),
+          s.savings.toStringAsFixed(2),
+        ]),
+      );
     }
     final total = splits.fold<double>(0, (a, s) => a + s.savings);
     b.writeln(_row(['Gesamt gespart', '', '', total.toStringAsFixed(2)]));
@@ -86,8 +90,10 @@ String journeysToGpx(List<Journey> journeys) {
 
   final b = StringBuffer()
     ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
-    ..writeln('<gpx version="1.1" creator="Besser-Bahn" '
-        'xmlns="http://www.topografix.com/GPX/1/1">');
+    ..writeln(
+      '<gpx version="1.1" creator="Besser-Bahn" '
+      'xmlns="http://www.topografix.com/GPX/1/1">',
+    );
   for (final j in journeys) {
     final pts = <List<double>>[];
     for (final leg in j.legs) {
@@ -133,7 +139,9 @@ String journeysToGeoJson(List<Journey> journeys) {
         // GeoJSON order is [lon, lat]; skip a repeated point (arrival == next
         // departure at the same station).
         final pt = [end.longitude!, end.latitude!];
-        if (coords.isEmpty || coords.last[0] != pt[0] || coords.last[1] != pt[1]) {
+        if (coords.isEmpty ||
+            coords.last[0] != pt[0] ||
+            coords.last[1] != pt[1]) {
           coords.add(pt);
         }
       }
@@ -149,8 +157,7 @@ String journeysToGeoJson(List<Journey> journeys) {
       'geometry': {'type': 'LineString', 'coordinates': coords},
     });
   }
-  return const JsonEncoder.withIndent('  ').convert({
-    'type': 'FeatureCollection',
-    'features': features,
-  });
+  return const JsonEncoder.withIndent(
+    '  ',
+  ).convert({'type': 'FeatureCollection', 'features': features});
 }

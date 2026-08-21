@@ -13,27 +13,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _kiel =
-    Station(id: '8000199', name: 'Kiel Hbf', locationId: 'A=1@L=8000199@');
-const _muenchen =
-    Station(id: '8000261', name: 'München Hbf', locationId: 'A=1@L=8000261@');
+const _kiel = Station(
+  id: '8000199',
+  name: 'Kiel Hbf',
+  locationId: 'A=1@L=8000199@',
+);
+const _muenchen = Station(
+  id: '8000261',
+  name: 'München Hbf',
+  locationId: 'A=1@L=8000261@',
+);
 
 Journey _journey(DateTime departure) => Journey(
-      legs: [
-        JourneyLeg(
-          origin: _kiel,
-          destination: _muenchen,
-          departure: departure,
-          plannedDeparture: departure,
-          arrival: departure.add(const Duration(hours: 9)),
-          plannedArrival: departure.add(const Duration(hours: 9)),
-        ),
-      ],
-    );
+  legs: [
+    JourneyLeg(
+      origin: _kiel,
+      destination: _muenchen,
+      departure: departure,
+      plannedDeparture: departure,
+      arrival: departure.add(const Duration(hours: 9)),
+      plannedArrival: departure.add(const Duration(hours: 9)),
+    ),
+  ],
+);
 
 JourneyResult _results() => JourneyResult(
-      journeys: [_journey(DateTime.now().add(const Duration(hours: 1)))],
-    );
+  journeys: [_journey(DateTime.now().add(const Duration(hours: 1)))],
+);
 
 /// The screen is under test, not the delay model — no call to bahn.chuk.dev.
 class _NoPredictions extends PredictionService {
@@ -44,7 +50,10 @@ class _NoPredictions extends PredictionService {
 /// The station dropdown must not reach for the network if a field is touched.
 class _NoStations extends HafasService {
   @override
-  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => [];
+  Future<List<Station>> searchStations(
+    String query, {
+    bool stopsOnly = false,
+  }) async => [];
 }
 
 /// Lands a canned result exactly the way the real notifier does — serial
@@ -82,10 +91,12 @@ class _FakeSearch extends JourneySearchNotifier {
   /// the case that separates "a search landed" from "the list grew".
   Future<void> pretendPaging() async {
     state = state.copyWith(
-      result: JourneyResult(journeys: [
-        ...?state.result?.journeys,
-        _journey(DateTime.now().add(const Duration(hours: 3))),
-      ]),
+      result: JourneyResult(
+        journeys: [
+          ...?state.result?.journeys,
+          _journey(DateTime.now().add(const Duration(hours: 3))),
+        ],
+      ),
     );
   }
 }
@@ -94,14 +105,13 @@ JourneySearchState _seed({
   JourneyResult? result,
   DateTime? dateTime,
   SearchOptions options = const SearchOptions(),
-}) =>
-    JourneySearchState(
-      from: _kiel,
-      to: _muenchen,
-      result: result,
-      dateTime: dateTime,
-      options: options,
-    );
+}) => JourneySearchState(
+  from: _kiel,
+  to: _muenchen,
+  result: result,
+  dateTime: dateTime,
+  options: options,
+);
 
 Future<_FakeSearch> _pump(
   WidgetTester tester,
@@ -133,9 +143,9 @@ Future<_FakeSearch> _pump(
 /// Whether the form is folded. Read off the widget that drives the animation —
 /// finders can't tell: [AnimatedCrossFade] keeps BOTH children mounted, which
 /// is precisely how the text fields survive the fold.
-CrossFadeState _fold(WidgetTester tester) =>
-    tester.widget<AnimatedCrossFade>(find.byType(AnimatedCrossFade))
-        .crossFadeState;
+CrossFadeState _fold(WidgetTester tester) => tester
+    .widget<AnimatedCrossFade>(find.byType(AnimatedCrossFade))
+    .crossFadeState;
 
 /// What the rider actually gets: the height the form occupies on screen.
 double _formHeight(WidgetTester tester) =>
@@ -210,15 +220,23 @@ void main() {
       expect(_fieldTexts(tester), ['Kiel Hbf', 'München Hbf']);
       // The date is still the one that was searched with, not reset to "Jetzt".
       expect(
-          find.text(DateFormat('dd.MM. HH:mm').format(when)), findsOneWidget);
+        find.text(DateFormat('dd.MM. HH:mm').format(when)),
+        findsOneWidget,
+      );
       expect(find.text('Jetzt'), findsNothing);
     });
 
-    testWidgets('the summary names the day and the arrival search',
-        (tester) async {
+    testWidgets('the summary names the day and the arrival search', (
+      tester,
+    ) async {
       final tomorrow = DateTime.now().add(const Duration(days: 1));
-      final when =
-          DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 20, 37);
+      final when = DateTime(
+        tomorrow.year,
+        tomorrow.month,
+        tomorrow.day,
+        20,
+        37,
+      );
       await _pump(
         tester,
         JourneySearchState(
@@ -253,10 +271,10 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('an empty result keeps the form there to widen the search',
-        (tester) async {
-      await _pump(tester, _seed(),
-          landing: const JourneyResult(journeys: []));
+    testWidgets('an empty result keeps the form there to widen the search', (
+      tester,
+    ) async {
+      await _pump(tester, _seed(), landing: const JourneyResult(journeys: []));
       await _tapSearch(tester);
 
       // Folding here would hide the only thing that fixes "keine Verbindungen".
@@ -270,8 +288,9 @@ void main() {
       expect(_fold(tester), CrossFadeState.showFirst);
     });
 
-    testWidgets('paging the list does not fold a reopened form',
-        (tester) async {
+    testWidgets('paging the list does not fold a reopened form', (
+      tester,
+    ) async {
       final notifier = await _pump(tester, _seed());
       await _tapSearch(tester);
       expect(_fold(tester), CrossFadeState.showSecond);
@@ -287,8 +306,9 @@ void main() {
   });
 
   group('the summary line survives narrow screens', () {
-    testWidgets('long station names clip instead of overflowing',
-        (tester) async {
+    testWidgets('long station names clip instead of overflowing', (
+      tester,
+    ) async {
       await _pump(
         tester,
         JourneySearchState(
@@ -312,8 +332,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('no overflow while the height is mid-animation',
-        (tester) async {
+    testWidgets('no overflow while the height is mid-animation', (
+      tester,
+    ) async {
       await _pump(tester, _seed(), size: const Size(320, 640));
       await tester.tap(find.byType(FilledButton));
       // Step through the fold instead of settling past it: the shrinking box

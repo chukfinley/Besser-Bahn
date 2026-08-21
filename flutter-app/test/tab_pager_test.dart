@@ -143,8 +143,10 @@ Rect? _pageRect(WidgetTester tester, String label) {
 }
 
 /// Every tab you can see right now.
-Set<String> _onScreen(WidgetTester tester) =>
-    {for (final l in _labels) if (_pageRect(tester, l) != null) l};
+Set<String> _onScreen(WidgetTester tester) => {
+  for (final l in _labels)
+    if (_pageRect(tester, l) != null) l,
+};
 
 void main() {
   testWidgets('the tabs lie side by side — mid-change you see both', (
@@ -177,7 +179,10 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(_onScreen(tester), {'REISEN'});
-    expect(_pageRect(tester, 'REISEN')!.left, moreOrLessEquals(0, epsilon: 0.5));
+    expect(
+      _pageRect(tester, 'REISEN')!.left,
+      moreOrLessEquals(0, epsilon: 0.5),
+    );
   });
 
   testWidgets('a jump from Suche to Profil pans across the tabs in between', (
@@ -240,7 +245,10 @@ void main() {
     await tester.pump(); // let the goBranch rebuild land mid-settle
     await tester.pumpAndSettle();
 
-    expect(_pageRect(tester, 'REISEN')!.left, moreOrLessEquals(0, epsilon: 0.5));
+    expect(
+      _pageRect(tester, 'REISEN')!.left,
+      moreOrLessEquals(0, epsilon: 0.5),
+    );
     expect(router.state.uri.path, '/journeys');
 
     // And the other way round: the tap-driven pan crosses tabs 2 and 3, but
@@ -289,7 +297,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(router.state.uri.path, '/nearby');
-    expect(_pageRect(tester, 'BAHNHOF')!.left, moreOrLessEquals(0, epsilon: 0.5));
+    expect(
+      _pageRect(tester, 'BAHNHOF')!.left,
+      moreOrLessEquals(0, epsilon: 0.5),
+    );
   });
 
   testWidgets('the nav bar still leaves the Bahnhof tab', (tester) async {

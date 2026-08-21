@@ -24,9 +24,7 @@ class PriceComparison extends StatelessWidget {
             const Text('Direktpreis:'),
             Text(
               '${directPrice.toStringAsFixed(2)} €',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -34,18 +32,14 @@ class PriceComparison extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Split-Ticket-Preis:',
-            ),
+            const Text('Split-Ticket-Preis:'),
             Text(
               splitPrice == double.infinity
                   ? 'N/A'
                   : '${splitPrice.toStringAsFixed(2)} €',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: hasBetterOption
-                    ? Colors.green
-                    : Colors.grey,
+                color: hasBetterOption ? Colors.green : Colors.grey,
               ),
             ),
           ],
@@ -57,9 +51,7 @@ class PriceComparison extends StatelessWidget {
             children: [
               const Text(
                 'Deine Ersparnis:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               Text(
                 '${savings.toStringAsFixed(2)} €',

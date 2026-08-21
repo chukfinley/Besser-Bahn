@@ -37,16 +37,22 @@ void main() {
         TransferProfile.slow,
       ]) {
         final felt = p.effectiveGap(gap);
-        expect(felt, lessThanOrEqualTo(previous),
-            reason: '${p.label} must not feel roomier than the profile before');
+        expect(
+          felt,
+          lessThanOrEqualTo(previous),
+          reason: '${p.label} must not feel roomier than the profile before',
+        );
         previous = felt;
       }
     });
 
     test('a negative gap (already too late) stays negative for everyone', () {
       for (final p in TransferProfile.values) {
-        expect(p.effectiveGap(-3), lessThan(0),
-            reason: '${p.label}: missing by 3 min is missed on any profile');
+        expect(
+          p.effectiveGap(-3),
+          lessThan(0),
+          reason: '${p.label}: missing by 3 min is missed on any profile',
+        );
       }
     });
 

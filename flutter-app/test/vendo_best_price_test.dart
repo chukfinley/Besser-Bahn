@@ -14,53 +14,55 @@ Map<String, dynamic> _interval({
   bool istBestpreis = false,
   bool istTeilpreis = false,
   int conns = 1,
-}) =>
-    {
-      'intervallAb': ab,
-      'intervallBis': bis,
-      'istBestpreis': istBestpreis,
-      'istTeilpreis': istTeilpreis,
-      'hinRueckPauschalpreis': false,
-      if (betrag != null)
-        'angebotsPreis': {'waehrung': 'EUR', 'betrag': betrag},
-      'verbindungen': [
-        for (var i = 0; i < conns; i++)
-          {
-            'verbindung': {
-              'kontext': 'ctx-$i',
-              'verbindungsAbschnitte': [
-                {
-                  'typ': 'FAHRZEUG',
-                  'kurztext': 'ICE',
-                  'zugNummer': '541',
-                  'abgangsOrt': {'name': 'Köln Hbf', 'evaNr': '8000207'},
-                  'ankunftsOrt': {'name': 'Berlin Hbf', 'evaNr': '8011160'},
-                  'abgangsDatum': ab,
-                  'ankunftsDatum': bis,
-                  'halte': const [],
-                }
-              ],
+}) => {
+  'intervallAb': ab,
+  'intervallBis': bis,
+  'istBestpreis': istBestpreis,
+  'istTeilpreis': istTeilpreis,
+  'hinRueckPauschalpreis': false,
+  if (betrag != null) 'angebotsPreis': {'waehrung': 'EUR', 'betrag': betrag},
+  'verbindungen': [
+    for (var i = 0; i < conns; i++)
+      {
+        'verbindung': {
+          'kontext': 'ctx-$i',
+          'verbindungsAbschnitte': [
+            {
+              'typ': 'FAHRZEUG',
+              'kurztext': 'ICE',
+              'zugNummer': '541',
+              'abgangsOrt': {'name': 'Köln Hbf', 'evaNr': '8000207'},
+              'ankunftsOrt': {'name': 'Berlin Hbf', 'evaNr': '8011160'},
+              'abgangsDatum': ab,
+              'ankunftsDatum': bis,
+              'halte': const [],
             },
-            'angebote': {
-              'preise': {
-                'gesamt': {
-                  'ab': {'betrag': betrag ?? 0, 'waehrung': 'EUR'}
-                }
-              }
+          ],
+        },
+        'angebote': {
+          'preise': {
+            'gesamt': {
+              'ab': {'betrag': betrag ?? 0, 'waehrung': 'EUR'},
             },
-          }
-      ],
-    };
+          },
+        },
+      },
+  ],
+};
 
 String _body(List<Map<String, dynamic>> intervals) =>
     json.encode({'tagesbestPreisIntervalle': intervals, 'nachrichten': []});
 
-Future<BestPriceDay> _fetch(List<Map<String, dynamic>> intervals,
-    {void Function(http.Request)? onRequest}) async {
-  final svc = VendoService(client: MockClient((req) async {
-    onRequest?.call(req);
-    return http.Response.bytes(utf8.encode(_body(intervals)), 200);
-  }));
+Future<BestPriceDay> _fetch(
+  List<Map<String, dynamic>> intervals, {
+  void Function(http.Request)? onRequest,
+}) async {
+  final svc = VendoService(
+    client: MockClient((req) async {
+      onRequest?.call(req);
+      return http.Response.bytes(utf8.encode(_body(intervals)), 200);
+    }),
+  );
   return svc.fetchBestPrices(
     fromLocationId: 'A=1@L=8000207@',
     toLocationId: 'A=1@L=8011160@',
@@ -71,21 +73,24 @@ Future<BestPriceDay> _fetch(List<Map<String, dynamic>> intervals,
 /// The live Köln→Berlin day from the issue.
 final _liveDay = [
   _interval(
-      ab: '2026-07-22T00:00:00+02:00',
-      bis: '2026-07-22T07:00:00+02:00',
-      betrag: 47.99,
-      conns: 5),
+    ab: '2026-07-22T00:00:00+02:00',
+    bis: '2026-07-22T07:00:00+02:00',
+    betrag: 47.99,
+    conns: 5,
+  ),
   _interval(
-      ab: '2026-07-22T07:00:00+02:00',
-      bis: '2026-07-22T10:00:00+02:00',
-      betrag: 67.99,
-      conns: 5),
+    ab: '2026-07-22T07:00:00+02:00',
+    bis: '2026-07-22T10:00:00+02:00',
+    betrag: 67.99,
+    conns: 5,
+  ),
   _interval(
-      ab: '2026-07-22T19:00:00+02:00',
-      bis: '2026-07-23T00:00:00+02:00',
-      betrag: 29.99,
-      istBestpreis: true,
-      conns: 4),
+    ab: '2026-07-22T19:00:00+02:00',
+    bis: '2026-07-23T00:00:00+02:00',
+    betrag: 29.99,
+    istBestpreis: true,
+    conns: 4,
+  ),
 ];
 
 void main() {
@@ -95,47 +100,66 @@ void main() {
       // keeps two visits to the same day one cache entry, on a backend that
       // rate-limits hard.
       late Map<String, dynamic> body;
-      await _fetch(_liveDay, onRequest: (req) {
-        body = json.decode(utf8.decode(req.bodyBytes))
-            as Map<String, dynamic>;
-      });
+      await _fetch(
+        _liveDay,
+        onRequest: (req) {
+          body =
+              json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
+        },
+      );
       final wunsch = (body['reiseHin'] as Map)['wunsch'] as Map;
       final datum = (wunsch['zeitWunsch'] as Map)['reiseDatum'] as String;
-      expect(datum, startsWith('2026-07-22T00:00:00'),
-          reason: 'the 14:37 in the request must not reach the backend');
-      expect(wunsch.containsKey('context'), isFalse,
-          reason: 'tagesbestpreis has no pagination to replay');
+      expect(
+        datum,
+        startsWith('2026-07-22T00:00:00'),
+        reason: 'the 14:37 in the request must not reach the backend',
+      );
+      expect(
+        wunsch.containsKey('context'),
+        isFalse,
+        reason: 'tagesbestpreis has no pagination to replay',
+      );
     });
 
-    test('reads the price, the interval and DB\'s own Bestpreis flag',
-        () async {
-      final day = await _fetch(_liveDay);
-      expect(day.intervals, hasLength(3));
+    test(
+      'reads the price, the interval and DB\'s own Bestpreis flag',
+      () async {
+        final day = await _fetch(_liveDay);
+        expect(day.intervals, hasLength(3));
 
-      final first = day.intervals.first;
-      expect(first.price, 47.99);
-      expect(first.currency, 'EUR');
-      expect(first.formattedPrice, '47.99 €');
-      expect(first.from.hour, 0);
-      expect(first.to.hour, 7);
-      expect(first.isBest, isFalse);
+        final first = day.intervals.first;
+        expect(first.price, 47.99);
+        expect(first.currency, 'EUR');
+        expect(first.formattedPrice, '47.99 €');
+        expect(first.from.hour, 0);
+        expect(first.to.hour, 7);
+        expect(first.isBest, isFalse);
 
-      final best = day.intervals.last;
-      expect(best.isBest, isTrue,
-          reason: 'istBestpreis is read, not recomputed');
-      expect(best.price, 29.99);
-    });
+        final best = day.intervals.last;
+        expect(
+          best.isBest,
+          isTrue,
+          reason: 'istBestpreis is read, not recomputed',
+        );
+        expect(best.price, 29.99);
+      },
+    );
 
-    test('carries the connections, with kontext, ready for the detail screen',
-        () async {
-      final day = await _fetch(_liveDay);
-      expect(day.intervals.first.journeys, hasLength(5));
-      final j = day.intervals.first.journeys.first;
-      expect(j.refreshToken, 'ctx-0',
-          reason: 'no kontext → no detail, no share, no split');
-      expect(j.legs.single.line?.fahrtNr, '541');
-      expect(j.legs.single.origin.name, 'Köln Hbf');
-    });
+    test(
+      'carries the connections, with kontext, ready for the detail screen',
+      () async {
+        final day = await _fetch(_liveDay);
+        expect(day.intervals.first.journeys, hasLength(5));
+        final j = day.intervals.first.journeys.first;
+        expect(
+          j.refreshToken,
+          'ctx-0',
+          reason: 'no kontext → no detail, no share, no split',
+        );
+        expect(j.legs.single.line?.fahrtNr, '541');
+        expect(j.legs.single.origin.name, 'Köln Hbf');
+      },
+    );
 
     test('cheapest/dearest span the day and drive the bars', () async {
       final day = await _fetch(_liveDay);
@@ -149,14 +173,16 @@ void main() {
       // advertise a price nobody can buy for this trip.
       final day = await _fetch([
         _interval(
-            ab: '2026-07-22T00:00:00+02:00',
-            bis: '2026-07-22T07:00:00+02:00',
-            betrag: 9.99,
-            istTeilpreis: true),
+          ab: '2026-07-22T00:00:00+02:00',
+          bis: '2026-07-22T07:00:00+02:00',
+          betrag: 9.99,
+          istTeilpreis: true,
+        ),
         _interval(
-            ab: '2026-07-22T07:00:00+02:00',
-            bis: '2026-07-22T10:00:00+02:00',
-            betrag: 67.99),
+          ab: '2026-07-22T07:00:00+02:00',
+          bis: '2026-07-22T10:00:00+02:00',
+          betrag: 67.99,
+        ),
       ]);
       expect(day.cheapest, 67.99);
       expect(day.dearest, 67.99);
@@ -167,9 +193,10 @@ void main() {
       // would make the slot look like it has no service.
       final day = await _fetch([
         _interval(
-            ab: '2026-07-22T00:00:00+02:00',
-            bis: '2026-07-22T07:00:00+02:00',
-            conns: 3),
+          ab: '2026-07-22T00:00:00+02:00',
+          bis: '2026-07-22T07:00:00+02:00',
+          conns: 3,
+        ),
       ]);
       expect(day.intervals.single.price, isNull);
       expect(day.intervals.single.formattedPrice, isNull);
@@ -181,9 +208,10 @@ void main() {
       final day = await _fetch([
         {'istBestpreis': false, 'verbindungen': []},
         _interval(
-            ab: '2026-07-22T07:00:00+02:00',
-            bis: '2026-07-22T10:00:00+02:00',
-            betrag: 67.99),
+          ab: '2026-07-22T07:00:00+02:00',
+          bis: '2026-07-22T10:00:00+02:00',
+          betrag: 67.99,
+        ),
       ]);
       expect(day.intervals, hasLength(1));
     });
@@ -198,7 +226,8 @@ void main() {
 
   test('a non-200 surfaces as a VendoException', () async {
     final svc = VendoService(
-        client: MockClient((_) async => http.Response('{"code":"RETRY"}', 429)));
+      client: MockClient((_) async => http.Response('{"code":"RETRY"}', 429)),
+    );
     expect(
       () => svc.fetchBestPrices(
         fromLocationId: 'A=1@L=8000207@',

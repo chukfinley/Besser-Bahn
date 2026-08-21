@@ -21,8 +21,7 @@ final connectivityProvider = StreamProvider<bool>((ref) async* {
 /// while the first reading is in flight (don't flash an offline banner on
 /// startup).
 final isOfflineProvider = Provider<bool>((ref) {
-  return ref.watch(connectivityProvider).maybeWhen(
-        data: (online) => !online,
-        orElse: () => false,
-      );
+  return ref
+      .watch(connectivityProvider)
+      .maybeWhen(data: (online) => !online, orElse: () => false);
 });

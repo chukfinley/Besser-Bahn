@@ -43,18 +43,18 @@ class StationMapService {
   /// server then skips the HTML shell and streams just the component tree —
   /// smaller, and not wrapped in `self.__next_f.push` chunks.
   Map<String, String> get _rscHeaders => {
-        'User-Agent': ApiConstants.userAgent,
-        'Accept': '*/*',
-        'Accept-Language': 'de-DE,de;q=0.9',
-        'RSC': '1',
-      };
+    'User-Agent': ApiConstants.userAgent,
+    'Accept': '*/*',
+    'Accept-Language': 'de-DE,de;q=0.9',
+    'RSC': '1',
+  };
 
   /// Headers for the HTML fallback fetch.
   Map<String, String> get _htmlHeaders => {
-        'User-Agent': ApiConstants.userAgent,
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'de-DE,de;q=0.9',
-      };
+    'User-Agent': ApiConstants.userAgent,
+    'Accept': 'text/html,application/xhtml+xml',
+    'Accept-Language': 'de-DE,de;q=0.9',
+  };
 
   /// The already-cached map for a station [name], if [prefetch]/[fetchByStationName]
   /// has resolved it this session — else null. Lets a map widget read a stop's
@@ -73,13 +73,17 @@ class StationMapService {
   /// ("Köln Hbf" -> `koeln-hbf`), but a few are irregular ("Berlin Hbf" ->
   /// `berlin-hauptbahnhof`, not `berlin-hbf`). We try the obvious slug first,
   /// then swap `hbf` <-> `hauptbahnhof` as a fallback.
-  Future<StationMap> fetchByStationName(String name,
-      {bool background = false}) async {
+  Future<StationMap> fetchByStationName(
+    String name, {
+    bool background = false,
+  }) async {
     final slug = slugify(name);
     // Background prefetch (the route map warms every stop) stays SILENT on
     // success — otherwise ~4 lines × 20+ stops floods the debug log so you
     // can't scroll. Only the foreground Karte-tab open logs.
-    if (!background) AppLog.log('fetchByStationName "$name" → slug "$slug"', tag: 'map');
+    if (!background) {
+      AppLog.log('fetchByStationName "$name" → slug "$slug"', tag: 'map');
+    }
     try {
       return await fetchBySlug(slug, background: background);
     } on StationMapException catch (e) {
@@ -95,8 +99,10 @@ class StationMapService {
       if (e.transient) rethrow;
       final alt = _altSlug(slug);
       if (alt != null) {
-        AppLog.log('slug "$slug" not found ($e) → retry alt slug "$alt"',
-            tag: 'map');
+        AppLog.log(
+          'slug "$slug" not found ($e) → retry alt slug "$alt"',
+          tag: 'map',
+        );
         return await fetchBySlug(alt);
       }
       rethrow;
@@ -132,7 +138,9 @@ class StationMapService {
       if (_cache.containsKey(slugify(name))) continue;
       try {
         await fetchByStationName(name, background: true);
-      } catch (_) {/* missing map → just no parked train there */}
+      } catch (_) {
+        /* missing map → just no parked train there */
+      }
       await Future.delayed(const Duration(milliseconds: 150));
     }
   }
@@ -171,10 +179,14 @@ class StationMapService {
       if (body != null) {
         try {
           final map = parsePersistedBody(slug, body);
-          AppLog.log('station map "$slug" served from offline package',
-              tag: 'offline');
+          AppLog.log(
+            'station map "$slug" served from offline package',
+            tag: 'offline',
+          );
           return map;
-        } catch (_) {/* unusable payload → surface the original failure */}
+        } catch (_) {
+          /* unusable payload → surface the original failure */
+        }
       }
       rethrow;
     }
@@ -187,12 +199,16 @@ class StationMapService {
   /// without duplicating the parser's model as a serialisation.
   ///
   /// Always hits the network — the session cache holds parsed maps, not bodies.
-  Future<({String body, StationMap map})> fetchRawBySlug(String slug,
-      {bool background = false}) async {
+  Future<({String body, StationMap map})> fetchRawBySlug(
+    String slug, {
+    bool background = false,
+  }) async {
     if (_noMap.contains(slug)) {
       // Already known to have no map — fail instantly, no network.
-      throw StationMapException('Bahnhof "$slug" hat keine Karte.',
-          transient: false);
+      throw StationMapException(
+        'Bahnhof "$slug" hat keine Karte.',
+        transient: false,
+      );
     }
     final uri = Uri.parse('https://www.bahnhof.de/$slug/karte');
     // 8s in background: a slow-but-reachable stop (Kiel needed ~8s on a
@@ -203,17 +219,21 @@ class StationMapService {
 
     // Fast path: ask for the raw RSC flight stream. ~15-20 % smaller than the
     // HTML and parse-friendlier (no __next_f reassembly).
-    final res = await _client.get(uri, headers: _rscHeaders).timeout(
+    final res = await _client
+        .get(uri, headers: _rscHeaders)
+        .timeout(
           timeout,
           onTimeout: () => throw StationMapException(
-              'Zeitüberschreitung beim Laden der Karte für "$slug".'),
+            'Zeitüberschreitung beim Laden der Karte für "$slug".',
+          ),
         );
     if (res.statusCode != 200) {
       // 404 etc. = this station has no /karte page. Permanent, remember it.
       _noMap.add(slug);
       throw StationMapException(
-          'Bahnhof "$slug" nicht gefunden (HTTP ${res.statusCode}).',
-          transient: false);
+        'Bahnhof "$slug" nicht gefunden (HTTP ${res.statusCode}).',
+        transient: false,
+      );
     }
 
     // Parse off the UI isolate — a ~190 KB blob's regex/balance scan would
@@ -222,7 +242,13 @@ class StationMapService {
     try {
       final map = await compute(_parseInIsolate, _ParseInput(slug, res.body));
       if (!background) {
-        _logParsed(slug, 'rsc', map, sw.elapsedMilliseconds, res.bodyBytes.length);
+        _logParsed(
+          slug,
+          'rsc',
+          map,
+          sw.elapsedMilliseconds,
+          res.bodyBytes.length,
+        );
       }
       _cache[slug] = map;
       return (body: res.body, map: map);
@@ -231,24 +257,39 @@ class StationMapService {
       // the full HTML document and reassemble the __next_f chunks the old way,
       // so we never regress versus the original scrape.
       if (!background) {
-        AppLog.log('rsc parse for "$slug" had no poi → HTML fallback', tag: 'map');
+        AppLog.log(
+          'rsc parse for "$slug" had no poi → HTML fallback',
+          tag: 'map',
+        );
       }
-      final html = await _client.get(uri, headers: _htmlHeaders).timeout(
+      final html = await _client
+          .get(uri, headers: _htmlHeaders)
+          .timeout(
             timeout,
             onTimeout: () => throw StationMapException(
-                'Zeitüberschreitung beim Laden der Karte für "$slug".'),
+              'Zeitüberschreitung beim Laden der Karte für "$slug".',
+            ),
           );
       if (html.statusCode != 200) {
         _noMap.add(slug);
         throw StationMapException(
-            'Bahnhof "$slug" nicht gefunden (HTTP ${html.statusCode}).',
-            transient: false);
+          'Bahnhof "$slug" nicht gefunden (HTTP ${html.statusCode}).',
+          transient: false,
+        );
       }
       try {
-        final map = await compute(_parseInIsolate, _ParseInput(slug, html.body));
+        final map = await compute(
+          _parseInIsolate,
+          _ParseInput(slug, html.body),
+        );
         if (!background) {
           _logParsed(
-              slug, 'html', map, sw.elapsedMilliseconds, html.bodyBytes.length);
+            slug,
+            'html',
+            map,
+            sw.elapsedMilliseconds,
+            html.bodyBytes.length,
+          );
         }
         _cache[slug] = map;
         return (body: html.body, map: map);
@@ -256,8 +297,9 @@ class StationMapService {
         // No poi in the HTML either → this station genuinely has no map data.
         _noMap.add(slug);
         throw StationMapException(
-            'Für "$slug" sind keine Kartendaten verfügbar.',
-            transient: false);
+          'Für "$slug" sind keine Kartendaten verfügbar.',
+          transient: false,
+        );
       }
     }
   }
@@ -270,10 +312,11 @@ class StationMapService {
   void _logParsed(String slug, String via, StationMap map, int ms, int bytes) {
     final cubes = map.pois.where((p) => p.isPlatformSector).length;
     AppLog.log(
-        'map "$slug" ($via ${ms}ms ${(bytes / 1024).round()}KB): '
-        '${map.platforms.length} platforms, $cubes sector-cubes, '
-        '${map.platformAnchors.length} anchors, ${map.levels.length} levels',
-        tag: 'map');
+      'map "$slug" ($via ${ms}ms ${(bytes / 1024).round()}KB): '
+      '${map.platforms.length} platforms, $cubes sector-cubes, '
+      '${map.platformAnchors.length} anchors, ${map.levels.length} levels',
+      tag: 'map',
+    );
   }
 
   /// Replay a body persisted by [fetchRawBySlug] — the offline path. Warms the
@@ -316,7 +359,8 @@ class _ParseInput {
 /// background isolate. Top-level so it can be sent to the isolate. Throws
 /// [StationMapException] when the body carries no poi data (caller then retries
 /// via the HTML fallback).
-StationMap _parseInIsolate(_ParseInput input) => _parseBody(input.slug, input.body);
+StationMap _parseInIsolate(_ParseInput input) =>
+    _parseBody(input.slug, input.body);
 
 /// Parse a raw bahnhof.de RSC/HTML body into a [StationMap] — the same routine
 /// the service runs, exposed so tests can verify parsing against a saved
@@ -331,22 +375,23 @@ StationMap _parseBody(String slug, String body) {
   // the poi JSON is split across `self.__next_f.push([...])` chunks). Only the
   // HTML case needs reassembly; for the flight stream we parse it directly,
   // skipping the per-char chunk scan entirely.
-  final blob =
-      body.contains('self.__next_f.push') ? _decodeRscBlob(body) : body;
+  final blob = body.contains('self.__next_f.push')
+      ? _decodeRscBlob(body)
+      : body;
 
   // Map centre sits immediately before the `poi` object.
   final loc = RegExp(
-          r'"location":\{"longitude":([-0-9.]+),"latitude":([-0-9.]+)\},"poi":\{')
-      .firstMatch(blob);
+    r'"location":\{"longitude":([-0-9.]+),"latitude":([-0-9.]+)\},"poi":\{',
+  ).firstMatch(blob);
 
   // Floors and the initial floor bahnhof.de selects.
-  final lvl =
-      RegExp(r'"levels":(\[[^\]]+\]),"levelInit":"([^"]+)"').firstMatch(blob);
+  final lvl = RegExp(
+    r'"levels":(\[[^\]]+\]),"levelInit":"([^"]+)"',
+  ).firstMatch(blob);
 
   final poiObj = _extractPoiObject(blob);
   if (poiObj == null) {
-    throw StationMapException(
-        'Für "$slug" sind keine Kartendaten verfügbar.');
+    throw StationMapException('Für "$slug" sind keine Kartendaten verfügbar.');
   }
 
   final pois = <MapPoi>[];
@@ -387,7 +432,8 @@ StationMap _parseBody(String slug, String body) {
 List<StationFacility> _extractFacilities(String blob) {
   final facilities = <StationFacility>[];
   final pair = RegExp(
-      r'(?:Gleis|Gl\.|Bstg\.?\s*\d*\s*Gl\.?)\s*(\d+)\s*/\s*(\d+)');
+    r'(?:Gleis|Gl\.|Bstg\.?\s*\d*\s*Gl\.?)\s*(\d+)\s*/\s*(\d+)',
+  );
   final single = RegExp(r'(\d+)'); // leading track digits of "5A-C"
   for (final key in const ['"elevator":[', '"escalator":[']) {
     final arr = _extractJsonArray(blob, key);
@@ -412,172 +458,178 @@ List<StationFacility> _extractFacilities(String blob) {
           }
         }
       }
-      facilities.add(StationFacility(
-        type: (e['type'] as String?) ?? 'ELEVATOR',
-        description: desc,
-        stateType: stateType,
-        explanation: state?['explanation'] as String?,
-        gleise: gleise,
-      ));
+      facilities.add(
+        StationFacility(
+          type: (e['type'] as String?) ?? 'ELEVATOR',
+          description: desc,
+          stateType: stateType,
+          explanation: state?['explanation'] as String?,
+          gleise: gleise,
+        ),
+      );
     }
   }
   return facilities;
 }
 
 /// Lift/escalator access points that name the Gleise they serve. bahnhof.de
-  /// ships a richer `elevator`/`escalator` array (separate from the simplified
-  /// `poi` GeoJSON) where each entry has a free-text `description`
-  /// ("zu Gleis 7/8 Abschnitt E", "von Gleis 11/12 zu Südsteg") and a
-  /// `position`. The track pair in that text is the only link in the data
-  /// between a real coordinate and specific Gleise, so we mine it to learn the
-  /// platform islands.
+/// ships a richer `elevator`/`escalator` array (separate from the simplified
+/// `poi` GeoJSON) where each entry has a free-text `description`
+/// ("zu Gleis 7/8 Abschnitt E", "von Gleis 11/12 zu Südsteg") and a
+/// `position`. The track pair in that text is the only link in the data
+/// between a real coordinate and specific Gleise, so we mine it to learn the
+/// platform islands.
 List<PlatformAnchor> _extractAnchors(String blob) {
-    final anchors = <PlatformAnchor>[];
-    final pair = RegExp(r'(?:Gleis|Gl\.|Bstg\.?\s*\d*\s*Gl\.?)\s*(\d+)\s*/\s*(\d+)');
-    for (final key in const ['"elevator":[', '"escalator":[']) {
-      final arr = _extractJsonArray(blob, key);
-      if (arr == null) continue;
-      for (final e in arr) {
-        if (e is! Map<String, dynamic>) continue;
-        final desc = e['description'];
-        final pos = e['position'];
-        if (desc is! String || pos is! Map) continue;
-        final m = pair.firstMatch(desc);
-        final lat = (pos['latitude'] as num?)?.toDouble();
-        final lon = (pos['longitude'] as num?)?.toDouble();
-        if (m == null || lat == null || lon == null) continue;
-        anchors.add(PlatformAnchor(
+  final anchors = <PlatformAnchor>[];
+  final pair = RegExp(
+    r'(?:Gleis|Gl\.|Bstg\.?\s*\d*\s*Gl\.?)\s*(\d+)\s*/\s*(\d+)',
+  );
+  for (final key in const ['"elevator":[', '"escalator":[']) {
+    final arr = _extractJsonArray(blob, key);
+    if (arr == null) continue;
+    for (final e in arr) {
+      if (e is! Map<String, dynamic>) continue;
+      final desc = e['description'];
+      final pos = e['position'];
+      if (desc is! String || pos is! Map) continue;
+      final m = pair.firstMatch(desc);
+      final lat = (pos['latitude'] as num?)?.toDouble();
+      final lon = (pos['longitude'] as num?)?.toDouble();
+      if (m == null || lat == null || lon == null) continue;
+      anchors.add(
+        PlatformAnchor(
           gleise: {m.group(1)!, m.group(2)!},
           latitude: lat,
           longitude: lon,
-        ));
-      }
+        ),
+      );
     }
-    return anchors;
   }
+  return anchors;
+}
 
-  /// Balance-parse a `"<key>":[ ... ]` array out of the blob (key includes the
-  /// trailing `[`).
+/// Balance-parse a `"<key>":[ ... ]` array out of the blob (key includes the
+/// trailing `[`).
 List? _extractJsonArray(String blob, String keyWithBracket) {
-    final i = blob.indexOf(keyWithBracket);
-    if (i < 0) return null;
-    final open = blob.indexOf('[', i);
-    var depth = 0;
-    var inString = false;
-    var escaped = false;
-    for (var k = open; k < blob.length; k++) {
-      final c = blob[k];
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (c == '\\') {
-          escaped = true;
-        } else if (c == '"') {
-          inString = false;
-        }
-        continue;
+  final i = blob.indexOf(keyWithBracket);
+  if (i < 0) return null;
+  final open = blob.indexOf('[', i);
+  var depth = 0;
+  var inString = false;
+  var escaped = false;
+  for (var k = open; k < blob.length; k++) {
+    final c = blob[k];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '"') {
+        inString = false;
       }
-      if (c == '"') {
-        inString = true;
-      } else if (c == '[') {
-        depth++;
-      } else if (c == ']') {
-        depth--;
-        if (depth == 0) {
-          try {
-            return json.decode(blob.substring(open, k + 1)) as List;
-          } catch (_) {
-            return null;
-          }
+      continue;
+    }
+    if (c == '"') {
+      inString = true;
+    } else if (c == '[') {
+      depth++;
+    } else if (c == ']') {
+      depth--;
+      if (depth == 0) {
+        try {
+          return json.decode(blob.substring(open, k + 1)) as List;
+        } catch (_) {
+          return null;
         }
       }
     }
-    return null;
   }
+  return null;
+}
 
-  /// Reassemble the RSC payload by concatenating every
-  /// `self.__next_f.push([N,"<json-string>"])` chunk.
-  ///
-  /// We match only the cheap, fixed prefix with a regex, then scan the quoted
-  /// string literal by hand. The previous one-shot regex used a nested
-  /// quantifier (`("(?:[^"\\]|\\.)*")`) which backtracks/recurses per character
-  /// and blew the stack (`StackOverflowError`) on big pages like Hamburg Hbf
-  /// (~228 KB). The manual scan is linear and recursion-free.
+/// Reassemble the RSC payload by concatenating every
+/// `self.__next_f.push([N,"<json-string>"])` chunk.
+///
+/// We match only the cheap, fixed prefix with a regex, then scan the quoted
+/// string literal by hand. The previous one-shot regex used a nested
+/// quantifier (`("(?:[^"\\]|\\.)*")`) which backtracks/recurses per character
+/// and blew the stack (`StackOverflowError`) on big pages like Hamburg Hbf
+/// (~228 KB). The manual scan is linear and recursion-free.
 String _decodeRscBlob(String html) {
-    final marker = RegExp(r'self\.__next_f\.push\(\[\d+,');
-    final buf = StringBuffer();
-    for (final m in marker.allMatches(html)) {
-      var i = m.end;
-      while (i < html.length && html[i] == ' ') {
-        i++;
-      }
-      // Only string-valued chunks carry payload; module tables start with `[`.
-      if (i >= html.length || html[i] != '"') continue;
-      final start = i;
+  final marker = RegExp(r'self\.__next_f\.push\(\[\d+,');
+  final buf = StringBuffer();
+  for (final m in marker.allMatches(html)) {
+    var i = m.end;
+    while (i < html.length && html[i] == ' ') {
       i++;
-      var escaped = false;
-      var closed = false;
-      while (i < html.length) {
-        final c = html[i];
-        if (escaped) {
-          escaped = false;
-        } else if (c == '\\') {
-          escaped = true;
-        } else if (c == '"') {
-          closed = true;
-          break;
-        }
-        i++;
-      }
-      if (!closed) continue;
-      try {
-        buf.write(json.decode(html.substring(start, i + 1)) as String);
-      } catch (_) {
-        // skip anything that isn't a clean JSON string
-      }
     }
-    return buf.toString();
-  }
-
-  /// Balance-parse the `"poi":{ ... }` object out of the blob.
-Map<String, dynamic>? _extractPoiObject(String blob) {
-    // The data `poi` object always starts with an uppercase category key.
-    final start = RegExp(r'"poi":\{"[A-Z]').firstMatch(blob);
-    if (start == null) return null;
-
-    final open = blob.indexOf('{', start.start);
-    var depth = 0;
-    var inString = false;
+    // Only string-valued chunks carry payload; module tables start with `[`.
+    if (i >= html.length || html[i] != '"') continue;
+    final start = i;
+    i++;
     var escaped = false;
-    for (var i = open; i < blob.length; i++) {
-      final c = blob[i];
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (c == '\\') {
-          escaped = true;
-        } else if (c == '"') {
-          inString = false;
-        }
-        continue;
+    var closed = false;
+    while (i < html.length) {
+      final c = html[i];
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '"') {
+        closed = true;
+        break;
       }
-      if (c == '"') {
-        inString = true;
-      } else if (c == '{') {
-        depth++;
-      } else if (c == '}') {
-        depth--;
-        if (depth == 0) {
-          final raw = blob.substring(open, i + 1);
-          try {
-            return json.decode(raw) as Map<String, dynamic>;
-          } catch (_) {
-            return null;
-          }
+      i++;
+    }
+    if (!closed) continue;
+    try {
+      buf.write(json.decode(html.substring(start, i + 1)) as String);
+    } catch (_) {
+      // skip anything that isn't a clean JSON string
+    }
+  }
+  return buf.toString();
+}
+
+/// Balance-parse the `"poi":{ ... }` object out of the blob.
+Map<String, dynamic>? _extractPoiObject(String blob) {
+  // The data `poi` object always starts with an uppercase category key.
+  final start = RegExp(r'"poi":\{"[A-Z]').firstMatch(blob);
+  if (start == null) return null;
+
+  final open = blob.indexOf('{', start.start);
+  var depth = 0;
+  var inString = false;
+  var escaped = false;
+  for (var i = open; i < blob.length; i++) {
+    final c = blob[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (c == '"') {
+      inString = true;
+    } else if (c == '{') {
+      depth++;
+    } else if (c == '}') {
+      depth--;
+      if (depth == 0) {
+        final raw = blob.substring(open, i + 1);
+        try {
+          return json.decode(raw) as Map<String, dynamic>;
+        } catch (_) {
+          return null;
         }
       }
     }
-    return null;
+  }
+  return null;
 }
 
 class StationMapException implements Exception {

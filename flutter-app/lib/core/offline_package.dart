@@ -51,12 +51,12 @@ enum OfflinePartKind { plan, wagenreihung, stationMap, tiles, ticket }
 
 extension OfflinePartKindLabel on OfflinePartKind {
   String get label => switch (this) {
-        OfflinePartKind.plan => 'Reiseplan',
-        OfflinePartKind.wagenreihung => 'Wagenreihung',
-        OfflinePartKind.stationMap => 'Bahnhofskarten',
-        OfflinePartKind.tiles => 'Kartenkacheln',
-        OfflinePartKind.ticket => 'Ticket',
-      };
+    OfflinePartKind.plan => 'Reiseplan',
+    OfflinePartKind.wagenreihung => 'Wagenreihung',
+    OfflinePartKind.stationMap => 'Bahnhofskarten',
+    OfflinePartKind.tiles => 'Kartenkacheln',
+    OfflinePartKind.ticket => 'Ticket',
+  };
 
   String get id => name;
 
@@ -95,12 +95,12 @@ class OfflinePart {
   bool get isEmptySource => expected == 0;
 
   Map<String, dynamic> toJson() => {
-        'kind': kind.name,
-        'expected': expected,
-        'stored': stored,
-        'bytes': bytes,
-        if (note != null) 'note': note,
-      };
+    'kind': kind.name,
+    'expected': expected,
+    'stored': stored,
+    'bytes': bytes,
+    if (note != null) 'note': note,
+  };
 
   static OfflinePart? fromJson(Map<String, dynamic> json) {
     final kind = OfflinePartKindLabel.byId(json['kind'] as String? ?? '');
@@ -136,7 +136,8 @@ class OfflineManifest {
   int get totalBytes => parts.fold(0, (sum, p) => sum + p.bytes);
 
   /// Parts that actually had something to fetch.
-  Iterable<OfflinePart> get sourcedParts => parts.where((p) => !p.isEmptySource);
+  Iterable<OfflinePart> get sourcedParts =>
+      parts.where((p) => !p.isEmptySource);
 
   /// True when every part that had a source is fully stored.
   bool get isComplete => sourcedParts.every((p) => p.isComplete);
@@ -156,21 +157,21 @@ class OfflineManifest {
   /// actually on disk right now — see `OfflineStore.readManifest`. A manifest is
   /// a record of a past download, not a promise about the present.
   OfflineManifest withPart(OfflinePart replacement) => OfflineManifest(
-        journeyKey: journeyKey,
-        fetchedAtMs: fetchedAtMs,
-        parts: [
-          for (final p in parts) p.kind == replacement.kind ? replacement : p,
-        ],
-      );
+    journeyKey: journeyKey,
+    fetchedAtMs: fetchedAtMs,
+    parts: [
+      for (final p in parts) p.kind == replacement.kind ? replacement : p,
+    ],
+  );
 
   Duration ageAt(DateTime now) => now.difference(fetchedAt);
 
   Map<String, dynamic> toJson() => {
-        'v': currentVersion,
-        'journeyKey': journeyKey,
-        'fetchedAtMs': fetchedAtMs,
-        'parts': parts.map((p) => p.toJson()).toList(),
-      };
+    'v': currentVersion,
+    'journeyKey': journeyKey,
+    'fetchedAtMs': fetchedAtMs,
+    'parts': parts.map((p) => p.toJson()).toList(),
+  };
 
   /// Tolerant parse. Returns null on a version mismatch or anything malformed —
   /// the caller then treats the package as missing and re-downloads, which is
@@ -185,11 +186,7 @@ class OfflineManifest {
         .map(OfflinePart.fromJson)
         .whereType<OfflinePart>()
         .toList(growable: false);
-    return OfflineManifest(
-      journeyKey: key,
-      fetchedAtMs: fetched,
-      parts: parts,
-    );
+    return OfflineManifest(journeyKey: key, fetchedAtMs: fetched, parts: parts);
   }
 }
 
@@ -239,13 +236,13 @@ OfflinePackageState packageState({
 extension OfflinePackageStateLabel on OfflinePackageState {
   /// Short chip label.
   String get label => switch (this) {
-        OfflinePackageState.missing => 'Nicht geladen',
-        OfflinePackageState.downloading => 'Lädt…',
-        OfflinePackageState.failed => 'Fehlgeschlagen',
-        OfflinePackageState.partial => 'Unvollständig',
-        OfflinePackageState.stale => 'Veraltet',
-        OfflinePackageState.ready => 'Offline verfügbar',
-      };
+    OfflinePackageState.missing => 'Nicht geladen',
+    OfflinePackageState.downloading => 'Lädt…',
+    OfflinePackageState.failed => 'Fehlgeschlagen',
+    OfflinePackageState.partial => 'Unvollständig',
+    OfflinePackageState.stale => 'Veraltet',
+    OfflinePackageState.ready => 'Offline verfügbar',
+  };
 
   /// Whether the app can fall back to this package's data when offline.
   bool get hasUsableData =>
@@ -331,10 +328,11 @@ TileRef tileForLatLng(double lat, double lng, int z) {
   final clampedLat = lat.clamp(-85.05112878, 85.05112878);
   final latRad = clampedLat * math.pi / 180.0;
   final x = ((lng + 180.0) / 360.0 * n).floor();
-  final y = ((1.0 - math.log(math.tan(latRad) + 1.0 / math.cos(latRad)) / math.pi) /
-          2.0 *
-          n)
-      .floor();
+  final y =
+      ((1.0 - math.log(math.tan(latRad) + 1.0 / math.cos(latRad)) / math.pi) /
+              2.0 *
+              n)
+          .floor();
   return TileRef(z, x.clamp(0, n - 1), y.clamp(0, n - 1));
 }
 

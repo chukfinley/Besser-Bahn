@@ -9,20 +9,22 @@ enum LocationKind {
   poi;
 
   static LocationKind fromVendo(String? type) => switch (type) {
-        'ADR' => LocationKind.address,
-        'POI' => LocationKind.poi,
-        _ => LocationKind.station,
-      };
+    'ADR' => LocationKind.address,
+    'POI' => LocationKind.poi,
+    _ => LocationKind.station,
+  };
 
-  static LocationKind fromName(String? name) => LocationKind.values
-      .firstWhere((k) => k.name == name, orElse: () => LocationKind.station);
+  static LocationKind fromName(String? name) => LocationKind.values.firstWhere(
+    (k) => k.name == name,
+    orElse: () => LocationKind.station,
+  );
 
   /// German label for the suggestion list.
   String get label => switch (this) {
-        LocationKind.station => 'Haltestelle',
-        LocationKind.address => 'Adresse',
-        LocationKind.poi => 'Ort',
-      };
+    LocationKind.station => 'Haltestelle',
+    LocationKind.address => 'Adresse',
+    LocationKind.poi => 'Ort',
+  };
 }
 
 class Station {
@@ -81,24 +83,24 @@ class Station {
   /// Compact JSON for local persistence (favorites, recents, saved routes).
   /// [products] is intentionally dropped — not needed for stored stations.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'lat': latitude,
-        'lon': longitude,
-        'locationId': locationId,
-        // Only written for non-stops, so stored favorites from older versions
-        // (and every stop) keep reading back as a station.
-        if (kind != LocationKind.station) 'kind': kind.name,
-      };
+    'id': id,
+    'name': name,
+    'lat': latitude,
+    'lon': longitude,
+    'locationId': locationId,
+    // Only written for non-stops, so stored favorites from older versions
+    // (and every stop) keep reading back as a station.
+    if (kind != LocationKind.station) 'kind': kind.name,
+  };
 
   factory Station.fromJson(Map<String, dynamic> json) => Station(
-        id: json['id']?.toString() ?? '',
-        name: json['name'] as String? ?? '',
-        latitude: (json['lat'] as num?)?.toDouble(),
-        longitude: (json['lon'] as num?)?.toDouble(),
-        locationId: json['locationId'] as String?,
-        kind: LocationKind.fromName(json['kind'] as String?),
-      );
+    id: json['id']?.toString() ?? '',
+    name: json['name'] as String? ?? '',
+    latitude: (json['lat'] as num?)?.toDouble(),
+    longitude: (json['lon'] as num?)?.toDouble(),
+    locationId: json['locationId'] as String?,
+    kind: LocationKind.fromName(json['kind'] as String?),
+  );
 
   bool get hasLocation => latitude != null && longitude != null;
 

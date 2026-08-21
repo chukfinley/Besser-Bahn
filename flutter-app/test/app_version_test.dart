@@ -14,16 +14,22 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('AppConstants.appVersion matches pubspec.yaml (#34)', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final match =
-        RegExp(r'^version:\s*(\S+)', multiLine: true).firstMatch(pubspec);
+    final match = RegExp(
+      r'^version:\s*(\S+)',
+      multiLine: true,
+    ).firstMatch(pubspec);
 
     expect(match, isNotNull, reason: 'pubspec.yaml has no version: line');
 
     // pubspec carries `<version>+<build>`; the UA and the UI want the version.
     final pubspecVersion = match!.group(1)!.split('+').first;
 
-    expect(AppConstants.appVersion, pubspecVersion,
-        reason: 'Bump AppConstants.appVersion to $pubspecVersion — it is baked '
-            'into the Träwelling User-Agent and shown in Einstellungen.');
+    expect(
+      AppConstants.appVersion,
+      pubspecVersion,
+      reason:
+          'Bump AppConstants.appVersion to $pubspecVersion — it is baked '
+          'into the Träwelling User-Agent and shown in Einstellungen.',
+    );
   });
 }

@@ -12,7 +12,8 @@ const _pngB64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk'
     'YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-const _bildSicht = '''
+const _bildSicht =
+    '''
 <html><head><style>
 html,body{margin:0;padding:0;}
 .image{background-image:url(data:image/png;base64,$_pngB64);
@@ -42,15 +43,20 @@ DbBahnCard _card({String? bildSicht, String nummer = '7081427090163212'}) =>
 /// "2. Klasse / gültig bis …" row needs far more room here than with a real
 /// font. 640 keeps that a non-event; the native-path tests use the default 400
 /// because their assertions are stated against it.
-Future<void> _pump(WidgetTester tester, DbBahnCard card,
-        {double width = 400}) =>
-    tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(width: width, child: BahnCardView(card: card)),
-        ),
+Future<void> _pump(
+  WidgetTester tester,
+  DbBahnCard card, {
+  double width = 400,
+}) => tester.pumpWidget(
+  MaterialApp(
+    home: Scaffold(
+      body: SizedBox(
+        width: width,
+        child: BahnCardView(card: card),
       ),
-    );
+    ),
+  ),
+);
 
 /// Linux — a platform [BahnCardView] knows has no WebView, so tier 2 is out of
 /// the picture and the tier-3 placeholder is reachable.
@@ -70,16 +76,22 @@ void main() {
       expect(find.text('7081 4270 9016 3212'), findsOneWidget);
     });
 
-    testWidgets('text scales to the card, not to a fixed pixel size',
-        (t) async {
+    testWidgets('text scales to the card, not to a fixed pixel size', (
+      t,
+    ) async {
       final art = BahnCardArt.parse(_bildSicht)!;
 
       Future<double> sizeAtWidth(double w) async {
-        await t.pumpWidget(MaterialApp(
-          home: Scaffold(
-            body: SizedBox(width: w, child: BahnCardArtView(art: art)),
+        await t.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: w,
+                child: BahnCardArtView(art: art),
+              ),
+            ),
           ),
-        ));
+        );
         final text = t.widget<Text>(find.text('MAX MUSTERMANN'));
         return text.style!.fontSize!;
       }
@@ -115,10 +127,14 @@ void main() {
     // tier 3, the styled placeholder, which is reachable by pretending to be a
     // platform that has no WebView at all (which Linux genuinely is).
 
-    testWidgets('unparseable HTML falls back instead of rendering junk',
-        (t) async {
-      await _pump(t, _card(bildSicht: '<html><body>nope</body></html>'),
-          width: 640);
+    testWidgets('unparseable HTML falls back instead of rendering junk', (
+      t,
+    ) async {
+      await _pump(
+        t,
+        _card(bildSicht: '<html><body>nope</body></html>'),
+        width: 640,
+      );
 
       expect(find.byType(BahnCardArtView), findsNothing);
       // The styled placeholder carries the essentials from the model's own
@@ -129,17 +145,20 @@ void main() {
       expect(find.text('gültig bis 31.12.2026'), findsOneWidget);
     }, variant: _noWebView);
 
-    testWidgets('an account with no bildSicht at all still shows a card',
-        (t) async {
+    testWidgets('an account with no bildSicht at all still shows a card', (
+      t,
+    ) async {
       await _pump(t, _card(), width: 640);
       expect(find.byType(BahnCardArtView), findsNothing);
       expect(find.text('My BahnCard 50'), findsOneWidget);
     }, variant: _noWebView);
 
-    testWidgets('a card whose artwork is missing never renders half a card',
-        (t) async {
+    testWidgets('a card whose artwork is missing never renders half a card', (
+      t,
+    ) async {
       // Text overlays but no artwork — the exact "half a card" case.
-      const html = '<html><head><style>'
+      const html =
+          '<html><head><style>'
           '.name{position:absolute;top:55%;left:8%;font-size:4vw;color:#fff;}'
           '</style></head><body><div class="name">MAX MUSTERMANN</div>'
           '</body></html>';
@@ -149,8 +168,9 @@ void main() {
       expect(find.text('My BahnCard 50'), findsOneWidget);
     }, variant: _noWebView);
 
-    testWidgets('the native card also renders where no WebView exists',
-        (t) async {
+    testWidgets('the native card also renders where no WebView exists', (
+      t,
+    ) async {
       // A side effect worth keeping: desktop used to get the gradient
       // placeholder no matter what, because tier 2 needs a WebView. The native
       // renderer doesn't, so Linux now shows the real card.
@@ -181,17 +201,21 @@ void main() {
     test('a re-issued card gets a new key, never the old artwork', () {
       final v1 = _card(bildSicht: _bildSicht);
       final v2 = _card(
-          bildSicht: _bildSicht.replaceAll('MAX MUSTERMANN', 'ERIKA MUSTERFRAU'));
-      expect(BahnCardArtCache.cacheKey(v1),
-          isNot(BahnCardArtCache.cacheKey(v2)));
+        bildSicht: _bildSicht.replaceAll('MAX MUSTERMANN', 'ERIKA MUSTERFRAU'),
+      );
+      expect(
+        BahnCardArtCache.cacheKey(v1),
+        isNot(BahnCardArtCache.cacheKey(v2)),
+      );
       expect(BahnCardArtCache.of(v2)!.texts.first.text, 'ERIKA MUSTERFRAU');
     });
 
     test('different cards get different keys', () {
       expect(
         BahnCardArtCache.cacheKey(_card(bildSicht: _bildSicht, nummer: 'A')),
-        isNot(BahnCardArtCache.cacheKey(
-            _card(bildSicht: _bildSicht, nummer: 'B'))),
+        isNot(
+          BahnCardArtCache.cacheKey(_card(bildSicht: _bildSicht, nummer: 'B')),
+        ),
       );
     });
 

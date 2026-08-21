@@ -64,7 +64,7 @@ class SeatMapService {
               'platzprofilCode': 'StandardEinzelperson',
               'anzahl': 1.0,
               'klasse': firstClass ? 'KLASSE_1' : 'KLASSE_2',
-            }
+            },
           ],
         },
       },
@@ -73,9 +73,13 @@ class SeatMapService {
       'theme': 'app',
     };
 
-    final url = '$_base/gsd_v3?data=${Uri.encodeQueryComponent(jsonEncode(data))}';
-    AppLog.log('seat map zug $fahrtNr $abfahrtEva→$ankunftEva '
-        'klasse=${firstClass ? 1 : 2}', tag: 'gsd');
+    final url =
+        '$_base/gsd_v3?data=${Uri.encodeQueryComponent(jsonEncode(data))}';
+    AppLog.log(
+      'seat map zug $fahrtNr $abfahrtEva→$ankunftEva '
+      'klasse=${firstClass ? 1 : 2}',
+      tag: 'gsd',
+    );
     // The gsd page is served behind an edge that intermittently answers a 200
     // WITHOUT the ssr_data blob (or a 5xx) — a single miss then reads to the
     // user as "kein Sitzplatz verfügbar" although the train has seats. Retry a
@@ -86,8 +90,10 @@ class SeatMapService {
             .get(Uri.parse(url), headers: const {'User-Agent': _ua})
             .timeout(const Duration(seconds: 15));
         if (res.statusCode != 200) {
-          AppLog.log('gsd_v3 HTTP ${res.statusCode} (try ${attempt + 1})',
-              tag: 'gsd');
+          AppLog.log(
+            'gsd_v3 HTTP ${res.statusCode} (try ${attempt + 1})',
+            tag: 'gsd',
+          );
           continue;
         }
         final ssr = _extractSsr(utf8.decode(res.bodyBytes));
@@ -96,8 +102,11 @@ class SeatMapService {
           continue;
         }
         final map = SeatMap.fromSsr(ssr);
-        AppLog.log('seat map: ${map.coaches.length} coaches, '
-            '${map.totalFree}/${map.totalSeats} free', tag: 'gsd');
+        AppLog.log(
+          'seat map: ${map.coaches.length} coaches, '
+          '${map.totalFree}/${map.totalSeats} free',
+          tag: 'gsd',
+        );
         return map.isEmpty ? null : map;
       } catch (e) {
         AppLog.log('seat map failed (try ${attempt + 1}): $e', tag: 'gsd');
@@ -118,7 +127,8 @@ class SeatMapService {
         AppLog.log('wagentyp $wagentyp HTTP ${res.statusCode}', tag: 'gsd');
         return _layoutCache[wagentyp] = null;
       }
-      final json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final json =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       return _layoutCache[wagentyp] = CoachLayout.fromJson(json);
     } catch (e) {
       AppLog.log('wagentyp $wagentyp failed ($e)', tag: 'gsd');
@@ -129,10 +139,12 @@ class SeatMapService {
   /// Fetch all coach layouts for a seat map in parallel, returning the map with
   /// each coach's [SeatCoach.layout] attached where available.
   Future<SeatMap> attachLayouts(SeatMap map) async {
-    final coaches = await Future.wait(map.coaches.map((c) async {
-      final layout = await fetchLayout(c.wagentyp);
-      return c.withLayout(layout);
-    }));
+    final coaches = await Future.wait(
+      map.coaches.map((c) async {
+        final layout = await fetchLayout(c.wagentyp);
+        return c.withLayout(layout);
+      }),
+    );
     return SeatMap(coaches: coaches);
   }
 

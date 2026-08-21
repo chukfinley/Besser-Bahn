@@ -58,8 +58,10 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
     final reservable = SeatPlanBody.isAvailableFor(trip);
     final req = reservable ? SeatMapRequest.fromTrip(trip) : null;
     final seatAsync = req != null ? ref.watch(seatMapProvider(req)) : null;
-    final SeatMap? seatMap =
-        seatAsync?.maybeWhen(data: (m) => m, orElse: () => null);
+    final SeatMap? seatMap = seatAsync?.maybeWhen(
+      data: (m) => m,
+      orElse: () => null,
+    );
 
     final freeByWagon = <int, int>{};
     if (seatMap != null) {
@@ -76,9 +78,11 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(trip.line.displayName.isNotEmpty
-            ? 'Wagenreihung · ${trip.line.displayName}'
-            : 'Wagenreihung'),
+        title: Text(
+          trip.line.displayName.isNotEmpty
+              ? 'Wagenreihung · ${trip.line.displayName}'
+              : 'Wagenreihung',
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
@@ -90,14 +94,20 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
                 children: [
                   Icon(Icons.train, size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 6),
-                  Text('Gleis $gleis',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Gleis $gleis',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   if (sequence!.hasPlatformChange) ...[
                     const SizedBox(width: 8),
-                    Text('(statt ${sequence.scheduledPlatform})',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.error)),
+                    Text(
+                      '(statt ${sequence.scheduledPlatform})',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -106,8 +116,11 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
           if (sequence != null && sequence.splits)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: splitTrainBanner(context, sequence,
-                  targetDestination: widget.targetDestination),
+              child: splitTrainBanner(
+                context,
+                sequence,
+                targetDestination: widget.targetDestination,
+              ),
             ),
 
           // Large to-scale platform: section letters + cars + Gleis, all
@@ -129,12 +142,16 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(spacing: 14, runSpacing: 6, children: [
-                _legendItem(AppColors.firstClass, '1. Klasse'),
-                _legendItem(AppColors.secondClass, '2. Klasse'),
-                _legendItem(AppColors.restaurant, 'Restaurant'),
-                _legendItem(AppColors.locomotive, 'Triebkopf'),
-              ]),
+              child: Wrap(
+                spacing: 14,
+                runSpacing: 6,
+                children: [
+                  _legendItem(AppColors.firstClass, '1. Klasse'),
+                  _legendItem(AppColors.secondClass, '2. Klasse'),
+                  _legendItem(AppColors.restaurant, 'Restaurant'),
+                  _legendItem(AppColors.locomotive, 'Triebkopf'),
+                ],
+              ),
             ),
           ]
           // No platform geometry → chip picker built from the seat map.
@@ -178,21 +195,29 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
                     : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isSel ? AppColors.onTime : theme.colorScheme.outlineVariant,
+                  color: isSel
+                      ? AppColors.onTime
+                      : theme.colorScheme.outlineVariant,
                   width: isSel ? 2.5 : 1,
                 ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Wg ${c.number}',
-                      style: theme.textTheme.labelLarge
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Wg ${c.number}',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('${c.freeCount} frei',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                          color: full ? AppColors.closedCoach : AppColors.onTime,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    '${c.freeCount} frei',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: full ? AppColors.closedCoach : AppColors.onTime,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -203,7 +228,10 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
   }
 
   Widget _seatSection(
-      ThemeData theme, AsyncValue<SeatMap?>? async, int? wagon) {
+    ThemeData theme,
+    AsyncValue<SeatMap?>? async,
+    int? wagon,
+  ) {
     if (async == null) return const SizedBox.shrink();
     return async.when(
       loading: () => const Padding(
@@ -224,8 +252,9 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
               child: Text(
                 '${map.totalFree} von ${map.totalSeats} Plätzen frei'
                 '${coach != null ? '  ·  Wagen ${coach.number}: ${coach.freeCount} frei' : map.freeCoachHint}',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             if (coach == null)
@@ -238,8 +267,9 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    color: theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.35),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.35,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Center(
                       child: SingleChildScrollView(
@@ -247,7 +277,10 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
                         // Bigger unit → a roomy plan; the page itself scrolls
                         // vertically so the whole (tall) coach is reachable.
                         child: CoachSeatPlan(
-                            coach: coach, layout: coach.layout!, unit: 10),
+                          coach: coach,
+                          layout: coach.layout!,
+                          unit: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -255,10 +288,14 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Wrap(spacing: 16, runSpacing: 8, children: [
-                _legendItem(AppColors.onTime, 'frei'),
-                _legendItem(AppColors.closedCoach, 'reserviert'),
-              ]),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  _legendItem(AppColors.onTime, 'frei'),
+                  _legendItem(AppColors.closedCoach, 'reserviert'),
+                ],
+              ),
             ),
           ],
         );
@@ -285,32 +322,46 @@ class _WagenreihungScreenState extends ConsumerState<WagenreihungScreen> {
     for (final c in map.coaches) {
       if (c.hasFree) return int.tryParse(c.number);
     }
-    return map.coaches.isNotEmpty ? int.tryParse(map.coaches.first.number) : null;
+    return map.coaches.isNotEmpty
+        ? int.tryParse(map.coaches.first.number)
+        : null;
   }
 
   Widget _legendItem(Color color, String label) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-              width: 11,
-              height: 11,
-              decoration: BoxDecoration(
-                  color: color, borderRadius: BorderRadius.circular(3))),
-          const SizedBox(width: 5),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 11,
+        height: 11,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      ),
+      const SizedBox(width: 5),
+      Text(label, style: const TextStyle(fontSize: 12)),
+    ],
+  );
 
   Widget _info(ThemeData theme, String msg) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(children: [
-          Icon(Icons.info_outline,
-              size: 20, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 10),
-          Expanded(
-              child: Text(msg,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant))),
-        ]),
-      );
+    padding: const EdgeInsets.all(20),
+    child: Row(
+      children: [
+        Icon(
+          Icons.info_outline,
+          size: 20,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            msg,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

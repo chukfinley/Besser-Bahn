@@ -11,28 +11,28 @@ OfflineManifest manifestOf(
   List<OfflinePart> parts, {
   DateTime? fetchedAt,
   String key = 'k',
-}) =>
-    OfflineManifest(
-      journeyKey: key,
-      fetchedAtMs:
-          (fetchedAt ?? DateTime(2026, 7, 16, 12)).millisecondsSinceEpoch,
-      parts: parts,
-    );
+}) => OfflineManifest(
+  journeyKey: key,
+  fetchedAtMs: (fetchedAt ?? DateTime(2026, 7, 16, 12)).millisecondsSinceEpoch,
+  parts: parts,
+);
 
 OfflinePart part(
   OfflinePartKind kind, {
   required int expected,
   required int stored,
   int bytes = 0,
-}) =>
-    OfflinePart(kind: kind, expected: expected, stored: stored, bytes: bytes);
+}) => OfflinePart(kind: kind, expected: expected, stored: stored, bytes: bytes);
 
 void main() {
   final now = DateTime(2026, 7, 16, 12);
 
   group('packageState', () {
     test('no manifest → missing', () {
-      expect(packageState(manifest: null, now: now), OfflinePackageState.missing);
+      expect(
+        packageState(manifest: null, now: now),
+        OfflinePackageState.missing,
+      );
     });
 
     test('downloading outranks everything, even a missing package', () {
@@ -43,92 +43,81 @@ void main() {
     });
 
     test('complete and fresh → ready', () {
-      final m = manifestOf(
-        [part(OfflinePartKind.plan, expected: 2, stored: 2)],
-        fetchedAt: now,
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 2, stored: 2),
+      ], fetchedAt: now);
       expect(packageState(manifest: m, now: now), OfflinePackageState.ready);
     });
 
     test('a download that stored nothing → failed, not ready', () {
-      final m = manifestOf(
-        [
-          part(OfflinePartKind.plan, expected: 2, stored: 0),
-          part(OfflinePartKind.tiles, expected: 5, stored: 0),
-        ],
-        fetchedAt: now,
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 2, stored: 0),
+        part(OfflinePartKind.tiles, expected: 5, stored: 0),
+      ], fetchedAt: now);
       expect(packageState(manifest: m, now: now), OfflinePackageState.failed);
     });
 
     test('some parts short → partial', () {
-      final m = manifestOf(
-        [
-          part(OfflinePartKind.plan, expected: 2, stored: 2),
-          part(OfflinePartKind.stationMap, expected: 3, stored: 1),
-        ],
-        fetchedAt: now,
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 2, stored: 2),
+        part(OfflinePartKind.stationMap, expected: 3, stored: 1),
+      ], fetchedAt: now);
       expect(packageState(manifest: m, now: now), OfflinePackageState.partial);
     });
 
     test('a source with nothing to fetch does not make a package partial', () {
       // expected == 0 means "this journey has no ticket", not "we failed".
-      final m = manifestOf(
-        [
-          part(OfflinePartKind.plan, expected: 1, stored: 1),
-          part(OfflinePartKind.ticket, expected: 0, stored: 0),
-        ],
-        fetchedAt: now,
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 1, stored: 1),
+        part(OfflinePartKind.ticket, expected: 0, stored: 0),
+      ], fetchedAt: now);
       expect(packageState(manifest: m, now: now), OfflinePackageState.ready);
     });
 
     test('age beyond the threshold → stale', () {
       final m = manifestOf(
         [part(OfflinePartKind.plan, expected: 1, stored: 1)],
-        fetchedAt: now.subtract(kOfflineStaleAfter + const Duration(minutes: 1)),
+        fetchedAt: now.subtract(
+          kOfflineStaleAfter + const Duration(minutes: 1),
+        ),
       );
       expect(packageState(manifest: m, now: now), OfflinePackageState.stale);
     });
 
     test('exactly at the threshold is still fresh', () {
-      final m = manifestOf(
-        [part(OfflinePartKind.plan, expected: 1, stored: 1)],
-        fetchedAt: now.subtract(kOfflineStaleAfter),
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 1, stored: 1),
+      ], fetchedAt: now.subtract(kOfflineStaleAfter));
       expect(packageState(manifest: m, now: now), OfflinePackageState.ready);
     });
 
     test('stale outranks partial — age is the trust-critical signal', () {
       // A rider may board on "unvollständig"; they must not board on
       // twelve-hour-old platform data believing it is current.
-      final m = manifestOf(
-        [
-          part(OfflinePartKind.plan, expected: 2, stored: 2),
-          part(OfflinePartKind.stationMap, expected: 3, stored: 1),
-        ],
-        fetchedAt: now.subtract(const Duration(hours: 12)),
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 2, stored: 2),
+        part(OfflinePartKind.stationMap, expected: 3, stored: 1),
+      ], fetchedAt: now.subtract(const Duration(hours: 12)));
       expect(packageState(manifest: m, now: now), OfflinePackageState.stale);
     });
 
     test('failed outranks stale — nothing stored is nothing stored', () {
-      final m = manifestOf(
-        [part(OfflinePartKind.plan, expected: 2, stored: 0)],
-        fetchedAt: now.subtract(const Duration(days: 3)),
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 2, stored: 0),
+      ], fetchedAt: now.subtract(const Duration(days: 3)));
       expect(packageState(manifest: m, now: now), OfflinePackageState.failed);
     });
 
     test('a custom stale window is honoured', () {
-      final m = manifestOf(
-        [part(OfflinePartKind.plan, expected: 1, stored: 1)],
-        fetchedAt: now.subtract(const Duration(minutes: 30)),
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 1, stored: 1),
+      ], fetchedAt: now.subtract(const Duration(minutes: 30)));
       expect(
         packageState(
-            manifest: m, now: now, staleAfter: const Duration(minutes: 10)),
+          manifest: m,
+          now: now,
+          staleAfter: const Duration(minutes: 10),
+        ),
         OfflinePackageState.stale,
       );
     });
@@ -171,25 +160,37 @@ void main() {
     });
 
     test('a version mismatch reads as missing rather than migrating', () {
-      final json = manifestOf([part(OfflinePartKind.plan, expected: 1, stored: 1)])
-          .toJson();
+      final json = manifestOf([
+        part(OfflinePartKind.plan, expected: 1, stored: 1),
+      ]).toJson();
       json['v'] = OfflineManifest.currentVersion + 1;
       expect(OfflineManifest.fromJson(json), isNull);
     });
 
     test('malformed manifests are rejected, not guessed at', () {
-      expect(OfflineManifest.fromJson({'v': OfflineManifest.currentVersion}), isNull);
       expect(
-        OfflineManifest.fromJson(
-            {'v': OfflineManifest.currentVersion, 'journeyKey': '', 'fetchedAtMs': 1}),
+        OfflineManifest.fromJson({'v': OfflineManifest.currentVersion}),
+        isNull,
+      );
+      expect(
+        OfflineManifest.fromJson({
+          'v': OfflineManifest.currentVersion,
+          'journeyKey': '',
+          'fetchedAtMs': 1,
+        }),
         isNull,
       );
     });
 
     test('an unknown part kind is dropped, the rest survives', () {
-      final json = manifestOf([part(OfflinePartKind.plan, expected: 1, stored: 1)])
-          .toJson();
-      (json['parts'] as List).add({'kind': 'hyperloop', 'expected': 1, 'stored': 1});
+      final json = manifestOf([
+        part(OfflinePartKind.plan, expected: 1, stored: 1),
+      ]).toJson();
+      (json['parts'] as List).add({
+        'kind': 'hyperloop',
+        'expected': 1,
+        'stored': 1,
+      });
       final back = OfflineManifest.fromJson(json);
       expect(back!.parts.length, 1);
       expect(back.parts.single.kind, OfflinePartKind.plan);
@@ -207,10 +208,9 @@ void main() {
     });
 
     test('ageAt measures from fetchedAt', () {
-      final m = manifestOf(
-        [part(OfflinePartKind.plan, expected: 1, stored: 1)],
-        fetchedAt: now.subtract(const Duration(hours: 2)),
-      );
+      final m = manifestOf([
+        part(OfflinePartKind.plan, expected: 1, stored: 1),
+      ], fetchedAt: now.subtract(const Duration(hours: 2)));
       expect(m.ageAt(now), const Duration(hours: 2));
     });
   });
@@ -226,11 +226,14 @@ void main() {
       expect(packageState(manifest: m, now: now), OfflinePackageState.ready);
 
       // Half the tiles got evicted behind our back.
-      final evicted = m.withPart(part(OfflinePartKind.tiles,
-          expected: 100, stored: 50, bytes: 2500));
+      final evicted = m.withPart(
+        part(OfflinePartKind.tiles, expected: 100, stored: 50, bytes: 2500),
+      );
 
-      expect(packageState(manifest: evicted, now: now),
-          OfflinePackageState.partial);
+      expect(
+        packageState(manifest: evicted, now: now),
+        OfflinePackageState.partial,
+      );
       expect(evicted.totalBytes, 2510);
       expect(evicted.parts.length, 2);
       // Order and the untouched part survive.
@@ -262,22 +265,29 @@ void main() {
       expect(kOfflineMaxTiles, 600);
     });
 
-    test('the default corridor stays inside the tile ceiling for a long route', () {
-      // Hamburg → Munich, sampled coarsely; the real polyline is denser but the
-      // corridor width (and so the tile count per zoom) is the same.
-      final route = [
-        (lat: 53.5528, lng: 10.0067),
-        (lat: 52.3759, lng: 9.7320),
-        (lat: 51.3397, lng: 9.4936),
-        (lat: 50.1109, lng: 8.6821),
-        (lat: 49.4521, lng: 11.0767),
-        (lat: 48.1351, lng: 11.5820),
-      ];
-      final tiles = tilesAlongRoute(route);
-      expect(tiles.length, lessThanOrEqualTo(kOfflineMaxTiles));
-      expect(tiles.every((t) =>
-          t.z >= kOfflineTileMinZoom && t.z <= kOfflineTileMaxZoom), isTrue);
-    });
+    test(
+      'the default corridor stays inside the tile ceiling for a long route',
+      () {
+        // Hamburg → Munich, sampled coarsely; the real polyline is denser but the
+        // corridor width (and so the tile count per zoom) is the same.
+        final route = [
+          (lat: 53.5528, lng: 10.0067),
+          (lat: 52.3759, lng: 9.7320),
+          (lat: 51.3397, lng: 9.4936),
+          (lat: 50.1109, lng: 8.6821),
+          (lat: 49.4521, lng: 11.0767),
+          (lat: 48.1351, lng: 11.5820),
+        ];
+        final tiles = tilesAlongRoute(route);
+        expect(tiles.length, lessThanOrEqualTo(kOfflineMaxTiles));
+        expect(
+          tiles.every(
+            (t) => t.z >= kOfflineTileMinZoom && t.z <= kOfflineTileMaxZoom,
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('shouldAutoRefresh', () {
@@ -349,7 +359,9 @@ void main() {
           state: OfflinePackageState.stale,
           online: true,
           now: now,
-          departure: now.add(kOfflineAutoRefreshWindow + const Duration(hours: 1)),
+          departure: now.add(
+            kOfflineAutoRefreshWindow + const Duration(hours: 1),
+          ),
         ),
         isFalse,
       );
@@ -422,7 +434,10 @@ void main() {
 
   group('tileForLatLng', () {
     test('matches the known slippy tile for Berlin Hbf at z12', () {
-      expect(tileForLatLng(52.5200, 13.4050, 12), const TileRef(12, 2200, 1343));
+      expect(
+        tileForLatLng(52.5200, 13.4050, 12),
+        const TileRef(12, 2200, 1343),
+      );
     });
 
     test('z0 is a single tile whatever the coordinate', () {
@@ -451,8 +466,12 @@ void main() {
     });
 
     test('includes a buffer ring around each point', () {
-      final tiles =
-          tilesAlongRoute([berlin], minZoom: 12, maxZoom: 12, buffer: 1);
+      final tiles = tilesAlongRoute(
+        [berlin],
+        minZoom: 12,
+        maxZoom: 12,
+        buffer: 1,
+      );
       // 3x3 around the centre tile.
       expect(tiles.length, 9);
       expect(tiles, contains(const TileRef(12, 2200, 1343)));
@@ -461,8 +480,12 @@ void main() {
     });
 
     test('buffer 0 is just the tile itself', () {
-      final tiles =
-          tilesAlongRoute([berlin], minZoom: 12, maxZoom: 12, buffer: 0);
+      final tiles = tilesAlongRoute(
+        [berlin],
+        minZoom: 12,
+        maxZoom: 12,
+        buffer: 0,
+      );
       expect(tiles, [const TileRef(12, 2200, 1343)]);
     });
 
@@ -482,8 +505,12 @@ void main() {
     test('honours the cap, and keeps the low zooms when it bites', () {
       // Truncation must leave a usable wide overview, not a random patch of
       // detail — so low zooms are emitted first.
-      final tiles =
-          tilesAlongRoute([berlin, hamburg], minZoom: 8, maxZoom: 14, maxTiles: 12);
+      final tiles = tilesAlongRoute(
+        [berlin, hamburg],
+        minZoom: 8,
+        maxZoom: 14,
+        maxTiles: 12,
+      );
       expect(tiles.length, 12);
       expect(tiles.every((t) => t.z <= 9), isTrue);
       expect(tiles.any((t) => t.z == 8), isTrue);

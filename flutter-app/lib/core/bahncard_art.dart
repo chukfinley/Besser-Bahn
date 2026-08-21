@@ -260,9 +260,9 @@ class _BahnCardArtParser {
   /// `div`, `.name`, `#foo`, `*`. Anything with a combinator, pseudo-class,
   /// attribute test or compound form is rejected: we'd have to implement real
   /// matching to know whether it applies.
-  static bool _isSimpleSelector(String s) =>
-      RegExp(r'^(\*|[a-zA-Z][a-zA-Z0-9]*|\.[-_a-zA-Z][-_a-zA-Z0-9]*|#[-_a-zA-Z][-_a-zA-Z0-9]*)$')
-          .hasMatch(s);
+  static bool _isSimpleSelector(String s) => RegExp(
+    r'^(\*|[a-zA-Z][a-zA-Z0-9]*|\.[-_a-zA-Z][-_a-zA-Z0-9]*|#[-_a-zA-Z][-_a-zA-Z0-9]*)$',
+  ).hasMatch(s);
 
   /// Cascade for [n]: `*`/tag rules, then class rules, then id rules, then the
   /// inline `style` attribute. Mirrors CSS specificity ordering for the simple
@@ -424,8 +424,9 @@ class _BahnCardArtParser {
       fontSize: size,
       color: color,
       fontWeight: _weight(style['font-weight']),
-      fontStyle:
-          _bare(style['font-style']) == 'italic' ? FontStyle.italic : FontStyle.normal,
+      fontStyle: _bare(style['font-style']) == 'italic'
+          ? FontStyle.italic
+          : FontStyle.normal,
       textAlign: switch (_bare(style['text-align'])) {
         'center' => TextAlign.center,
         'right' => TextAlign.right,
@@ -502,7 +503,11 @@ class _BahnCardArtParser {
     }
     final rgb = RegExp(r'^rgba?\(([^)]*)\)$').firstMatch(t);
     if (rgb != null) {
-      final parts = rgb.group(1)!.split(RegExp('[,/ ]+')).where((s) => s.isNotEmpty).toList();
+      final parts = rgb
+          .group(1)!
+          .split(RegExp('[,/ ]+'))
+          .where((s) => s.isNotEmpty)
+          .toList();
       if (parts.length < 3) return null;
       final vals = <int>[];
       for (var i = 0; i < 3; i++) {
@@ -514,7 +519,10 @@ class _BahnCardArtParser {
       if (parts.length > 3) {
         final n = double.tryParse(parts[3].replaceAll('%', ''));
         if (n == null) return null;
-        a = (parts[3].contains('%') ? n / 100 * 255 : n * 255).round().clamp(0, 255);
+        a = (parts[3].contains('%') ? n / 100 * 255 : n * 255).round().clamp(
+          0,
+          255,
+        );
       }
       return Color.fromARGB(a, vals[0], vals[1], vals[2]);
     }
@@ -545,10 +553,15 @@ class _BahnCardArtParser {
   /// Pulls the `data:` URI out of a `background-image` value. Rejects a value
   /// with more than one layer — we'd only paint the first.
   static String? _dataUri(String value) {
-    final urls = RegExp(r'url\(\s*(?:"([^"]*)"|' r"'([^']*)'" r'|([^)]*))\s*\)')
-        .allMatches(value)
-        .map((m) => (m.group(1) ?? m.group(2) ?? m.group(3) ?? '').trim())
-        .toList();
+    final urls =
+        RegExp(
+              r'url\(\s*(?:"([^"]*)"|'
+              r"'([^']*)'"
+              r'|([^)]*))\s*\)',
+            )
+            .allMatches(value)
+            .map((m) => (m.group(1) ?? m.group(2) ?? m.group(3) ?? '').trim())
+            .toList();
     if (urls.length != 1) return null;
     final u = urls.single;
     return u.startsWith('data:image/') ? u : null;
@@ -560,8 +573,12 @@ class _BahnCardArtParser {
     final header = uri.substring(5, comma); // strip 'data:'
     if (!header.contains(';base64')) return null;
     final mime = header.split(';').first;
-    if (!const {'image/png', 'image/jpeg', 'image/jpg', 'image/webp'}
-        .contains(mime)) {
+    if (!const {
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp',
+    }.contains(mime)) {
       return null;
     }
     try {
@@ -648,13 +665,28 @@ class _BahnCardArtParser {
   // --- HTML -----------------------------------------------------------------
 
   static String _stripStyleAndScript(String src) => src
-      .replaceAll(RegExp(r'<style[^>]*>[\s\S]*?</style>', caseSensitive: false), '')
-      .replaceAll(RegExp(r'<script[^>]*>[\s\S]*?</script>', caseSensitive: false), '')
+      .replaceAll(
+        RegExp(r'<style[^>]*>[\s\S]*?</style>', caseSensitive: false),
+        '',
+      )
+      .replaceAll(
+        RegExp(r'<script[^>]*>[\s\S]*?</script>', caseSensitive: false),
+        '',
+      )
       .replaceAll(RegExp(r'<!--[\s\S]*?-->'), '')
       .replaceAll(RegExp(r'<!doctype[^>]*>', caseSensitive: false), '');
 
   static const _voidTags = {
-    'img', 'br', 'hr', 'meta', 'link', 'input', 'source', 'area', 'base', 'col',
+    'img',
+    'br',
+    'hr',
+    'meta',
+    'link',
+    'input',
+    'source',
+    'area',
+    'base',
+    'col',
   };
 
   /// A deliberately small HTML reader: enough for the static, generated markup
@@ -727,7 +759,9 @@ class _BahnCardArtParser {
 
   static bool _hasText(_Element n) {
     var found = false;
-    if (n.children.any((c) => c is _Text && c.text.trim().isNotEmpty)) return true;
+    if (n.children.any((c) => c is _Text && c.text.trim().isNotEmpty)) {
+      return true;
+    }
     _walk(n, (c) {
       if (c.children.any((t) => t is _Text && t.text.trim().isNotEmpty)) {
         found = true;

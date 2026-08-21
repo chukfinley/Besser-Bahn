@@ -139,8 +139,12 @@ class TripReminderScheduler {
     return out;
   }
 
-  static void _addDepartureReminders(List<TripReminder> out,
-      List<JourneyLeg> transit, int leadMinutes, bool transferAlerts) {
+  static void _addDepartureReminders(
+    List<TripReminder> out,
+    List<JourneyLeg> transit,
+    int leadMinutes,
+    bool transferAlerts,
+  ) {
     final first = transit.first;
     final dep = first.plannedDeparture ?? first.departure;
     if (dep == null) return;
@@ -149,21 +153,27 @@ class TripReminderScheduler {
     final plat = first.departurePlatform ?? first.plannedDeparturePlatform;
 
     // Bereit machen — lead minutes before departure.
-    out.add(TripReminder(
-      when: dep.subtract(Duration(minutes: leadMinutes)),
-      title: 'In $leadMinutes Min: $line',
-      body: 'ab $origin um ${dep.hhmm}'
-          '${plat != null ? ' · Gleis $plat' : ''} — mach dich bereit.',
-    ));
+    out.add(
+      TripReminder(
+        when: dep.subtract(Duration(minutes: leadMinutes)),
+        title: 'In $leadMinutes Min: $line',
+        body:
+            'ab $origin um ${dep.hhmm}'
+            '${plat != null ? ' · Gleis $plat' : ''} — mach dich bereit.',
+      ),
+    );
 
     // Boarding — 5 min before. Skipped if the lead is already ≤5 (would dupe).
     if (leadMinutes > 5) {
-      out.add(TripReminder(
-        when: dep.subtract(const Duration(minutes: 5)),
-        title: 'Gleich Abfahrt: $line',
-        body: '${dep.hhmm} ab $origin'
-            '${plat != null ? ' · Gleis $plat' : ' — zum Gleis'}.',
-      ));
+      out.add(
+        TripReminder(
+          when: dep.subtract(const Duration(minutes: 5)),
+          title: 'Gleich Abfahrt: $line',
+          body:
+              '${dep.hhmm} ab $origin'
+              '${plat != null ? ' · Gleis $plat' : ' — zum Gleis'}.',
+        ),
+      );
     }
 
     // Umstiege — one ping shortly before each connecting train departs.
@@ -180,13 +190,16 @@ class TripReminderScheduler {
         final gap = prevArr != null
             ? nextDep.difference(prevArr).inMinutes
             : null;
-        out.add(TripReminder(
-          when: nextDep.subtract(const Duration(minutes: 5)),
-          title: 'Umstieg in $station',
-          body: '$nextLine um ${nextDep.hhmm}'
-              '${nextPlat != null ? ' · Gleis $nextPlat' : ''}'
-              '${gap != null ? ' · Übergang $gap Min' : ''}.',
-        ));
+        out.add(
+          TripReminder(
+            when: nextDep.subtract(const Duration(minutes: 5)),
+            title: 'Umstieg in $station',
+            body:
+                '$nextLine um ${nextDep.hhmm}'
+                '${nextPlat != null ? ' · Gleis $nextPlat' : ''}'
+                '${gap != null ? ' · Übergang $gap Min' : ''}.',
+          ),
+        );
       }
     }
   }
@@ -198,29 +211,38 @@ class TripReminderScheduler {
   /// other reminder; the [sync] filter drops any leg that's already < 10 / < 5
   /// min out.
   static void _addArrivalReminders(
-      List<TripReminder> out, List<JourneyLeg> transit, bool alarmSound) {
+    List<TripReminder> out,
+    List<JourneyLeg> transit,
+    bool alarmSound,
+  ) {
     final last = transit.last;
     final arr = last.arrival ?? last.plannedArrival;
     if (arr == null) return;
     final dest = last.destination.name;
     final plat = last.arrivalPlatform ?? last.plannedArrivalPlatform;
 
-    out.add(TripReminder(
-      when: arr.subtract(const Duration(minutes: _arrivalNoticeMinutes)),
-      title: 'In $_arrivalNoticeMinutes Minuten bist du da',
-      body: 'Ankunft $dest um ${arr.hhmm}'
-          '${plat != null ? ' · Gleis $plat' : ''}.',
-    ));
+    out.add(
+      TripReminder(
+        when: arr.subtract(const Duration(minutes: _arrivalNoticeMinutes)),
+        title: 'In $_arrivalNoticeMinutes Minuten bist du da',
+        body:
+            'Ankunft $dest um ${arr.hhmm}'
+            '${plat != null ? ' · Gleis $plat' : ''}.',
+      ),
+    );
 
-    out.add(TripReminder(
-      when: arr.subtract(const Duration(minutes: _arrivalAlarmMinutes)),
-      title: alarmSound
-          ? 'Aufwachen — $dest in $_arrivalAlarmMinutes Min'
-          : 'Gleich aussteigen: $dest',
-      body: 'Ankunft um ${arr.hhmm}'
-          '${plat != null ? ' · Gleis $plat' : ''} — mach dich fertig.',
-      alarm: alarmSound,
-    ));
+    out.add(
+      TripReminder(
+        when: arr.subtract(const Duration(minutes: _arrivalAlarmMinutes)),
+        title: alarmSound
+            ? 'Aufwachen — $dest in $_arrivalAlarmMinutes Min'
+            : 'Gleich aussteigen: $dest',
+        body:
+            'Ankunft um ${arr.hhmm}'
+            '${plat != null ? ' · Gleis $plat' : ''} — mach dich fertig.',
+        alarm: alarmSound,
+      ),
+    );
   }
 }
 
@@ -249,10 +271,10 @@ class TripReminder {
   });
 
   TripReminder withTripKey(String key) => TripReminder(
-        when: when,
-        title: title,
-        body: body,
-        alarm: alarm,
-        tripKey: key,
-      );
+    when: when,
+    title: title,
+    body: body,
+    alarm: alarm,
+    tripKey: key,
+  );
 }

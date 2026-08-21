@@ -66,7 +66,10 @@ class TileCache {
     try {
       await _DiskTileStore.init(maxTiles: _maxTiles);
       _ready = true;
-      AppLog.log('tile cache ready (disk LRU, maxTiles $_maxTiles)', tag: 'map');
+      AppLog.log(
+        'tile cache ready (disk LRU, maxTiles $_maxTiles)',
+        tag: 'map',
+      );
     } catch (e) {
       _ready = false;
       AppLog.log('tile cache unavailable → network only ($e)', tag: 'map');
@@ -218,23 +221,31 @@ class TileCache {
   static Future<Style> _readStyle() async {
     final sw = Stopwatch()..start();
     try {
-      final s = await BasemapStyleCache.fetchAndPersist(_styleUri, _tileHttp)
-          .timeout(const Duration(seconds: 15));
+      final s = await BasemapStyleCache.fetchAndPersist(
+        _styleUri,
+        _tileHttp,
+      ).timeout(const Duration(seconds: 15));
       _style = s;
-      AppLog.log('vector basemap style loaded in ${sw.elapsedMilliseconds}ms',
-          tag: 'map');
+      AppLog.log(
+        'vector basemap style loaded in ${sw.elapsedMilliseconds}ms',
+        tag: 'map',
+      );
       return s;
     } catch (e) {
       AppLog.log(
-          'vector basemap style fetch failed after ${sw.elapsedMilliseconds}ms '
-          '($e) → trying disk cache',
-          tag: 'map');
+        'vector basemap style fetch failed after ${sw.elapsedMilliseconds}ms '
+        '($e) → trying disk cache',
+        tag: 'map',
+      );
       try {
         final s = await BasemapStyleCache.fromDisk();
         _style = s;
         return s;
       } catch (e2) {
-        AppLog.log('no cached basemap style ($e2) → raster fallback', tag: 'map');
+        AppLog.log(
+          'no cached basemap style ($e2) → raster fallback',
+          tag: 'map',
+        );
         rethrow;
       }
     }
@@ -255,7 +266,7 @@ class TileCache {
   /// prevent. Requests are issued one at a time: a prefetch is a background
   /// courtesy and must never contend with what the rider is actually looking at.
   static Future<({List<String> files, int bytes, bool capped})>
-      prefetchVectorTiles(
+  prefetchVectorTiles(
     List<TileRef> tiles, {
     int maxBytes = kOfflineMaxTileBytes,
     void Function(int done, int total)? onProgress,
@@ -354,31 +365,31 @@ class TileCache {
   }
 
   static Widget _vectorLayer(Style style) => VectorTileLayer(
-        theme: style.theme,
-        sprites: style.sprites,
-        tileProviders: style.providers,
-        fileCacheTtl: const Duration(days: 30),
-        // App-owned folder + a raised ceiling, so prefetched offline corridors
-        // (#29) survive alongside ordinary browsing and stay deletable.
-        cacheFolder: vectorCacheDir,
-        fileCacheMaximumSizeInBytes: _vectorCacheMaxBytes,
-        maximumZoom: 20,
-        layerMode: VectorTileLayerMode.raster,
-      );
+    theme: style.theme,
+    sprites: style.sprites,
+    tileProviders: style.providers,
+    fileCacheTtl: const Duration(days: 30),
+    // App-owned folder + a raised ceiling, so prefetched offline corridors
+    // (#29) survive alongside ordinary browsing and stay deletable.
+    cacheFolder: vectorCacheDir,
+    fileCacheMaximumSizeInBytes: _vectorCacheMaxBytes,
+    maximumZoom: 20,
+    layerMode: VectorTileLayerMode.raster,
+  );
 
   static TileLayer _rasterFallback() => TileLayer(
-        urlTemplate: _fallbackTileUrl,
-        subdomains: const ['a', 'b', 'c', 'd'],
-        userAgentPackageName: 'de.chuk.besserebahn',
-        tileProvider: provider(),
-        maxZoom: 20,
-        evictErrorTileStrategy: EvictErrorTileStrategy.notVisible,
-        errorImage: MemoryImage(_transparentTile),
-        errorTileCallback: (_, error, _) {
-          noteTileFailure();
-          AppLog.tileError(error.toString());
-        },
-      );
+    urlTemplate: _fallbackTileUrl,
+    subdomains: const ['a', 'b', 'c', 'd'],
+    userAgentPackageName: 'de.chuk.besserebahn',
+    tileProvider: provider(),
+    maxZoom: 20,
+    evictErrorTileStrategy: EvictErrorTileStrategy.notVisible,
+    errorImage: MemoryImage(_transparentTile),
+    errorTileCallback: (_, error, _) {
+      noteTileFailure();
+      AppLog.tileError(error.toString());
+    },
+  );
 }
 
 /// Wraps a tile provider with [TileCache]'s circuit breaker: while tripped
@@ -408,8 +419,8 @@ class _CachingTileProvider extends TileProvider {
     required this.persist,
     required this.validDuration,
     Map<String, String>? headers,
-  })  : _client = client,
-        _headers = headers;
+  }) : _client = client,
+       _headers = headers;
 
   final http.Client _client;
   final Map<String, String>? _headers;
@@ -453,7 +464,9 @@ class _DiskTileImage extends ImageProvider<_DiskTileImage> {
 
   @override
   ImageStreamCompleter loadImage(
-      _DiskTileImage key, ImageDecoderCallback decode) {
+    _DiskTileImage key,
+    ImageDecoderCallback decode,
+  ) {
     return MultiFrameImageStreamCompleter(
       codec: _loadBytes(decode),
       scale: 1.0,
@@ -486,7 +499,9 @@ class _DiskTileImage extends ImageProvider<_DiskTileImage> {
         if (stale != null) return stale;
       }
       throw NetworkImageLoadException(
-          statusCode: resp.statusCode, uri: Uri.parse(url));
+        statusCode: resp.statusCode,
+        uri: Uri.parse(url),
+      );
     } catch (_) {
       if (persist) {
         final stale = _DiskTileStore.readAny(url);
@@ -497,8 +512,7 @@ class _DiskTileImage extends ImageProvider<_DiskTileImage> {
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is _DiskTileImage && other.url == url;
+  bool operator ==(Object other) => other is _DiskTileImage && other.url == url;
 
   @override
   int get hashCode => url.hashCode;
@@ -547,7 +561,9 @@ class _DiskTileStore {
       final bytes = f.readAsBytesSync();
       try {
         f.setLastModifiedSync(DateTime.now()); // LRU touch
-      } catch (_) {/* best-effort */}
+      } catch (_) {
+        /* best-effort */
+      }
       return bytes;
     } catch (_) {
       return null;
@@ -589,13 +605,18 @@ class _DiskTileStore {
     try {
       final files = dir.listSync().whereType<File>().toList();
       if (files.length <= _maxTiles) return;
-      files.sort((a, b) =>
-          a.statSync().modified.compareTo(b.statSync().modified));
+      files.sort(
+        (a, b) => a.statSync().modified.compareTo(b.statSync().modified),
+      );
       for (final f in files.take(files.length - _maxTiles)) {
         try {
           f.deleteSync();
-        } catch (_) {/* raced with another delete; ignore */}
+        } catch (_) {
+          /* raced with another delete; ignore */
+        }
       }
-    } catch (_) {/* best-effort housekeeping */}
+    } catch (_) {
+      /* best-effort housekeeping */
+    }
   }
 }

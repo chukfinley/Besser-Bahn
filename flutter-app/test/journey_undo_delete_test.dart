@@ -16,16 +16,15 @@ final _dep = () {
 }();
 
 Journey _journey() => Journey.fromJson({
-      'legs': [
-        {
-          'origin': {'id': '8000199', 'name': 'Kiel Hbf'},
-          'destination': {'id': '8002549', 'name': 'Hamburg Hbf'},
-          'plannedDeparture': _dep.toIso8601String(),
-          'plannedArrival':
-              _dep.add(const Duration(minutes: 75)).toIso8601String(),
-        }
-      ],
-    });
+  'legs': [
+    {
+      'origin': {'id': '8000199', 'name': 'Kiel Hbf'},
+      'destination': {'id': '8002549', 'name': 'Hamburg Hbf'},
+      'plannedDeparture': _dep.toIso8601String(),
+      'plannedArrival': _dep.add(const Duration(minutes: 75)).toIso8601String(),
+    },
+  ],
+});
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -48,10 +47,16 @@ void main() {
 
       final after = c.read(libraryProvider).journeys.single;
       expect(after.key, before.key);
-      expect(after.savedAtMs, before.savedAtMs,
-          reason: 'undo must restore the trip, not re-save it as new');
-      expect(after.watched, isFalse,
-          reason: 'the per-trip bell setting is part of the trip');
+      expect(
+        after.savedAtMs,
+        before.savedAtMs,
+        reason: 'undo must restore the trip, not re-save it as new',
+      );
+      expect(
+        after.watched,
+        isFalse,
+        reason: 'the per-trip bell setting is part of the trip',
+      );
       c.dispose();
     });
 
@@ -69,25 +74,33 @@ void main() {
       final c2 = ProviderContainer();
       c2.read(libraryProvider);
       await _settle();
-      expect(c2.read(libraryProvider).journeys.single.key, entry.key,
-          reason: 'an undo that only lives in memory is no undo');
+      expect(
+        c2.read(libraryProvider).journeys.single.key,
+        entry.key,
+        reason: 'an undo that only lives in memory is no undo',
+      );
       c2.dispose();
     });
 
-    test('restoring a trip that is already there does not duplicate it',
-        () async {
-      final c = ProviderContainer();
-      final lib = c.read(libraryProvider.notifier);
-      lib.toggleJourney(_journey());
-      await _settle();
-      final entry = c.read(libraryProvider).journeys.single;
+    test(
+      'restoring a trip that is already there does not duplicate it',
+      () async {
+        final c = ProviderContainer();
+        final lib = c.read(libraryProvider.notifier);
+        lib.toggleJourney(_journey());
+        await _settle();
+        final entry = c.read(libraryProvider).journeys.single;
 
-      lib.restoreJourney(entry);
-      await _settle();
+        lib.restoreJourney(entry);
+        await _settle();
 
-      expect(c.read(libraryProvider).journeys, hasLength(1),
-          reason: 'two entries for one trip = every reminder twice');
-      c.dispose();
-    });
+        expect(
+          c.read(libraryProvider).journeys,
+          hasLength(1),
+          reason: 'two entries for one trip = every reminder twice',
+        );
+        c.dispose();
+      },
+    );
   });
 }

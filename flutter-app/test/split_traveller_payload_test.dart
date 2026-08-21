@@ -62,8 +62,10 @@ void main() {
 
     test('without a BahnCard, weitere is still not mistaken for one', () {
       final erm = _reductions(
-          DbApiService.createTravellerPayload(weitere: Reduction.atVorteil)
-              .single);
+        DbApiService.createTravellerPayload(
+          weitere: Reduction.atVorteil,
+        ).single,
+      );
       expect(erm.length, 2);
       expect(erm.first['art'], 'KEINE_ERMAESSIGUNG');
       expect(erm.last['art'], 'A-VORTEILSCARD');
@@ -91,32 +93,43 @@ void main() {
       return c;
     }
 
-    test('a customised party keeps its Halbtax, SBA and extra travellers', () async {
-      final c = await container();
-      final notifier = c.read(settingsProvider.notifier);
-      const halbtax = Reduction.chHalbtax;
-      const sba = SbaOption.beeintrMitRolli;
+    test(
+      'a customised party keeps its Halbtax, SBA and extra travellers',
+      () async {
+        final c = await container();
+        final notifier = c.read(settingsProvider.notifier);
+        const halbtax = Reduction.chHalbtax;
+        const sba = SbaOption.beeintrMitRolli;
 
-      notifier.setSearchParty(const SearchParty(
-        travelers: [
-          Traveler(
-            typ: TravelerType.erwachsener,
-            weitere: halbtax,
-            sba: sba,
+        notifier.setSearchParty(
+          const SearchParty(
+            travelers: [
+              Traveler(
+                typ: TravelerType.erwachsener,
+                weitere: halbtax,
+                sba: sba,
+              ),
+              Traveler(typ: TravelerType.familienkind, alter: 8),
+            ],
           ),
-          Traveler(typ: TravelerType.familienkind, alter: 8),
-        ],
-      ));
-      notifier.setBahnCard(BahnCardType.bc25_2);
-      await settle();
+        );
+        notifier.setBahnCard(BahnCardType.bc25_2);
+        await settle();
 
-      final party = c.read(settingsProvider).searchParty;
-      expect(party.travelers.length, 2, reason: 'party must not be re-seeded');
-      expect(party.travelers.first.bahnCard.vendoKey,
-          BahnCardType.bc25_2.vendoErmaessigung);
-      expect(party.travelers.first.weitere, halbtax);
-      expect(party.travelers.first.sba, sba);
-    });
+        final party = c.read(settingsProvider).searchParty;
+        expect(
+          party.travelers.length,
+          2,
+          reason: 'party must not be re-seeded',
+        );
+        expect(
+          party.travelers.first.bahnCard.vendoKey,
+          BahnCardType.bc25_2.vendoErmaessigung,
+        );
+        expect(party.travelers.first.weitere, halbtax);
+        expect(party.travelers.first.sba, sba);
+      },
+    );
 
     test('a 1st-class card implies 1st class', () async {
       final c = await container();
@@ -137,19 +150,24 @@ void main() {
       expect(c.read(settingsProvider).searchParty.firstClass, isTrue);
     });
 
-    test('setWeitereReduction reaches the travellers without touching the card',
-        () async {
-      final c = await container();
-      final notifier = c.read(settingsProvider.notifier);
-      const halbtax = Reduction.chHalbtax;
+    test(
+      'setWeitereReduction reaches the travellers without touching the card',
+      () async {
+        final c = await container();
+        final notifier = c.read(settingsProvider.notifier);
+        const halbtax = Reduction.chHalbtax;
 
-      notifier.setBahnCard(BahnCardType.bc50_2);
-      notifier.setWeitereReduction(halbtax);
-      await settle();
+        notifier.setBahnCard(BahnCardType.bc50_2);
+        notifier.setWeitereReduction(halbtax);
+        await settle();
 
-      final traveler = c.read(settingsProvider).searchParty.travelers.first;
-      expect(traveler.weitere, halbtax);
-      expect(traveler.bahnCard.vendoKey, BahnCardType.bc50_2.vendoErmaessigung);
-    });
+        final traveler = c.read(settingsProvider).searchParty.travelers.first;
+        expect(traveler.weitere, halbtax);
+        expect(
+          traveler.bahnCard.vendoKey,
+          BahnCardType.bc50_2.vendoErmaessigung,
+        );
+      },
+    );
   });
 }

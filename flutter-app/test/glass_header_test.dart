@@ -21,32 +21,38 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// What that buys has to be paid for in padding — these are the tests for the
 /// bill.
 
-const _kiel =
-    Station(id: '8000199', name: 'Kiel Hbf', locationId: 'A=1@L=8000199@');
-const _muenchen =
-    Station(id: '8000261', name: 'München Hbf', locationId: 'A=1@L=8000261@');
+const _kiel = Station(
+  id: '8000199',
+  name: 'Kiel Hbf',
+  locationId: 'A=1@L=8000199@',
+);
+const _muenchen = Station(
+  id: '8000261',
+  name: 'München Hbf',
+  locationId: 'A=1@L=8000261@',
+);
 
 Journey _journey(DateTime departure) => Journey(
-      legs: [
-        JourneyLeg(
-          origin: _kiel,
-          destination: _muenchen,
-          departure: departure,
-          plannedDeparture: departure,
-          arrival: departure.add(const Duration(hours: 9)),
-          plannedArrival: departure.add(const Duration(hours: 9)),
-        ),
-      ],
-    );
+  legs: [
+    JourneyLeg(
+      origin: _kiel,
+      destination: _muenchen,
+      departure: departure,
+      plannedDeparture: departure,
+      arrival: departure.add(const Duration(hours: 9)),
+      plannedArrival: departure.add(const Duration(hours: 9)),
+    ),
+  ],
+);
 
 /// Enough connections to make the list genuinely longer than the viewport —
 /// otherwise "scrolls behind the glass" has nothing to scroll.
 JourneyResult _results() => JourneyResult(
-      journeys: [
-        for (var i = 1; i <= 8; i++)
-          _journey(DateTime.now().add(Duration(hours: i))),
-      ],
-    );
+  journeys: [
+    for (var i = 1; i <= 8; i++)
+      _journey(DateTime.now().add(Duration(hours: i))),
+  ],
+);
 
 class _NoPredictions extends PredictionService {
   @override
@@ -57,9 +63,10 @@ class _NoPredictions extends PredictionService {
 /// not where its rows come from.
 class _OneStation extends HafasService {
   @override
-  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => const [
-        Station(id: '8000105', name: 'Frankfurt (Main) Hbf'),
-      ];
+  Future<List<Station>> searchStations(
+    String query, {
+    bool stopsOnly = false,
+  }) async => const [Station(id: '8000105', name: 'Frankfurt (Main) Hbf')];
 }
 
 class _FakeSearch extends JourneySearchNotifier {
@@ -105,8 +112,9 @@ Future<void> _pump(
       child: MaterialApp(
         theme: brightness == Brightness.light ? AppTheme.light() : null,
         darkTheme: AppTheme.dark(),
-        themeMode:
-            brightness == Brightness.light ? ThemeMode.light : ThemeMode.dark,
+        themeMode: brightness == Brightness.light
+            ? ThemeMode.light
+            : ThemeMode.dark,
         home: const ConnectionSearchScreen(),
       ),
     ),
@@ -117,8 +125,8 @@ Future<void> _pump(
 /// The results list. The only *vertical* list on the screen — the filter and
 /// the saved routes scroll sideways.
 Finder get _resultsList => find.byWidgetPredicate(
-      (w) => w is ListView && w.scrollDirection == Axis.vertical,
-    );
+  (w) => w is ListView && w.scrollDirection == Axis.vertical,
+);
 
 EdgeInsets _resultsPadding(WidgetTester tester) =>
     tester.widget<ListView>(_resultsList).padding! as EdgeInsets;
@@ -140,8 +148,9 @@ Future<void> _search(WidgetTester tester) async {
 
 void main() {
   group('the header floats and the results run behind it', () {
-    testWidgets('the list is full-height but starts below the glass',
-        (tester) async {
+    testWidgets('the list is full-height but starts below the glass', (
+      tester,
+    ) async {
       await _pump(tester, result: _results());
 
       // Only the form is glass now; the filter chips float free below it.
@@ -165,8 +174,9 @@ void main() {
       );
     });
 
-    testWidgets('the padding is real space, not a guess at the glass',
-        (tester) async {
+    testWidgets('the padding is real space, not a guess at the glass', (
+      tester,
+    ) async {
       await _pump(tester, result: _results());
 
       final top = _resultsPadding(tester).top;
@@ -178,8 +188,9 @@ void main() {
       expect(top, moreOrLessEquals(_glassBottom(tester) - listTop, epsilon: 8));
     });
 
-    testWidgets('scrolling really does pull cards up behind the glass',
-        (tester) async {
+    testWidgets('scrolling really does pull cards up behind the glass', (
+      tester,
+    ) async {
       await _pump(tester, result: _results());
       final glassBottom = _glassBottom(tester);
 
@@ -193,15 +204,20 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the hint before the first search clears the glass too',
-        (tester) async {
+    testWidgets('the hint before the first search clears the glass too', (
+      tester,
+    ) async {
       await _pump(tester);
 
       expect(find.byType(GlassPanel), findsOneWidget); // no filter yet
       expect(
         tester
-            .getRect(find.text('Start und Ziel eingeben, um Verbindungen zu '
-                'suchen.'))
+            .getRect(
+              find.text(
+                'Start und Ziel eingeben, um Verbindungen zu '
+                'suchen.',
+              ),
+            )
             .top,
         greaterThan(_glassBottom(tester)),
       );
@@ -209,8 +225,9 @@ void main() {
   });
 
   group('the glass is glass', () {
-    testWidgets('every panel is translucent and blurred, in both themes',
-        (tester) async {
+    testWidgets('every panel is translucent and blurred, in both themes', (
+      tester,
+    ) async {
       for (final brightness in Brightness.values) {
         await _pump(tester, result: _results(), brightness: brightness);
 
@@ -231,8 +248,9 @@ void main() {
   });
 
   group('both states of the form leave the connections reachable', () {
-    testWidgets('folding the form gives the freed space to the list',
-        (tester) async {
+    testWidgets('folding the form gives the freed space to the list', (
+      tester,
+    ) async {
       // Seeded with a result, so the list is there while the form is still
       // open — the fold only happens on a *fresh* search below.
       await _pump(tester, result: _results());
@@ -291,8 +309,9 @@ void main() {
   });
 
   group('the glass does not swallow the inputs', () {
-    testWidgets('the station dropdown opens over the header, not under it',
-        (tester) async {
+    testWidgets('the station dropdown opens over the header, not under it', (
+      tester,
+    ) async {
       await _pump(tester, result: _results());
 
       await tester.tap(find.byType(TextField).first);
@@ -312,14 +331,17 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('the text fields keep their cursor and their text',
-        (tester) async {
+    testWidgets('the text fields keep their cursor and their text', (
+      tester,
+    ) async {
       await _pump(tester, result: _results());
 
       await tester.enterText(find.byType(TextField).first, 'Hamburg Hbf');
       await tester.pumpAndSettle();
 
-      final field = tester.widget<EditableText>(find.byType(EditableText).first);
+      final field = tester.widget<EditableText>(
+        find.byType(EditableText).first,
+      );
       expect(field.controller.text, 'Hamburg Hbf');
       // The cursor is painted by the field itself, on top of the glass fill —
       // a blur behind it cannot eat it, but a mis-clipped panel could.
@@ -329,8 +351,9 @@ void main() {
   });
 
   group('light mode stays readable', () {
-    testWidgets('renders the form and the filter without an overflow',
-        (tester) async {
+    testWidgets('renders the form and the filter without an overflow', (
+      tester,
+    ) async {
       await _pump(tester, result: _results(), brightness: Brightness.light);
 
       expect(find.byType(GlassPanel), findsOneWidget);

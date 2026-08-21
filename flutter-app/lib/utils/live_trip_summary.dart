@@ -90,8 +90,7 @@ class LiveTripSummary {
   bool get isEmpty => segments.isEmpty;
 
   /// Whether the trip's final arrival is behind us.
-  bool finishedAt(DateTime now) =>
-      arrival != null && now.isAfter(arrival!);
+  bool finishedAt(DateTime now) => arrival != null && now.isAfter(arrival!);
 }
 
 /// Read [journey] as of [now].
@@ -116,8 +115,7 @@ LiveTripSummary summariseTrip(Journey journey, DateTime now) {
   final start = legs.first.departure ?? legs.first.plannedDeparture;
   final end = legs.last.arrival ?? legs.last.plannedArrival;
   if (start == null || end == null) {
-    final leg =
-        legs.firstWhere((l) => !l.isWalking, orElse: () => legs.first);
+    final leg = legs.firstWhere((l) => !l.isWalking, orElse: () => legs.first);
     return LiveTripSummary(
       segments: const [],
       transferPoints: const [],
@@ -140,8 +138,9 @@ LiveTripSummary summariseTrip(Journey journey, DateTime now) {
   for (final leg in legs) {
     final from = leg.departure ?? leg.plannedDeparture;
     final to = leg.arrival ?? leg.plannedArrival;
-    final minutes =
-        (from != null && to != null) ? to.difference(from).inMinutes : 0;
+    final minutes = (from != null && to != null)
+        ? to.difference(from).inMinutes
+        : 0;
 
     if (leg.isWalking) {
       carriedWalk += minutes.clamp(0, 24 * 60);
@@ -158,7 +157,8 @@ LiveTripSummary summariseTrip(Journey journey, DateTime now) {
         ? leg.departureDelayMinutes
         : leg.arrivalDelayMinutes;
     final isDone = to != null && now.isAfter(to);
-    final isCurrent = !isDone &&
+    final isCurrent =
+        !isDone &&
         from != null &&
         (now.isAfter(from) || now.isAtSameMomentAs(from));
 
@@ -167,8 +167,9 @@ LiveTripSummary summariseTrip(Journey journey, DateTime now) {
       delay = legDelay;
     }
 
-    final aheadColor =
-        legDelay > 0 ? LiveTripColors.delayed : LiveTripColors.current;
+    final aheadColor = legDelay > 0
+        ? LiveTripColors.delayed
+        : LiveTripColors.current;
 
     if (isDone) {
       segments.add(LiveTripSegment(length, LiveTripColors.done));

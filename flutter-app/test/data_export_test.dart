@@ -12,12 +12,16 @@ Station _st(String name, {double? lat, double? lon}) =>
     Station(id: name, name: name, latitude: lat, longitude: lon);
 
 JourneyLeg _leg(Station from, Station to) => JourneyLeg(
-      origin: from,
-      destination: to,
-      line: TransitLine(
-          name: 'RE1', fahrtNr: '1', productName: 'RE1', product: 'regional'),
-      departure: DateTime(2026, 8, 1, 9),
-    );
+  origin: from,
+  destination: to,
+  line: TransitLine(
+    name: 'RE1',
+    fahrtNr: '1',
+    productName: 'RE1',
+    product: 'regional',
+  ),
+  departure: DateTime(2026, 8, 1, 9),
+);
 
 void main() {
   group('statsToCsv (#72)', () {
@@ -39,10 +43,11 @@ void main() {
     test('lists purchased splits and a total', () {
       final splits = [
         PurchasedSplit(
-            routeLabel: 'A → B',
-            directPrice: 50,
-            splitPrice: 30,
-            purchasedAtMs: 0),
+          routeLabel: 'A → B',
+          directPrice: 50,
+          splitPrice: 30,
+          purchasedAtMs: 0,
+        ),
       ];
       final csv = statsToCsv(TravelStats.empty, splits);
       expect(csv, contains('A → B,50.00,30.00,20.00'));
@@ -52,10 +57,12 @@ void main() {
 
   group('journeysToGeoJson (#72)', () {
     test('one LineString per journey, lon/lat order, dupes collapsed', () {
-      final j = Journey(legs: [
-        _leg(_st('A', lat: 54.0, lon: 10.0), _st('B', lat: 53.5, lon: 10.5)),
-        _leg(_st('B', lat: 53.5, lon: 10.5), _st('C', lat: 53.0, lon: 11.0)),
-      ]);
+      final j = Journey(
+        legs: [
+          _leg(_st('A', lat: 54.0, lon: 10.0), _st('B', lat: 53.5, lon: 10.5)),
+          _leg(_st('B', lat: 53.5, lon: 10.5), _st('C', lat: 53.0, lon: 11.0)),
+        ],
+      );
       final geo = jsonDecode(journeysToGeoJson([j])) as Map<String, dynamic>;
       expect(geo['type'], 'FeatureCollection');
       final features = geo['features'] as List;
@@ -75,10 +82,12 @@ void main() {
 
   group('journeysToGpx (#72)', () {
     test('one trk per journey, lat/lon order, dupes collapsed', () {
-      final j = Journey(legs: [
-        _leg(_st('A', lat: 54.0, lon: 10.0), _st('B', lat: 53.5, lon: 10.5)),
-        _leg(_st('B', lat: 53.5, lon: 10.5), _st('C', lat: 53.0, lon: 11.0)),
-      ]);
+      final j = Journey(
+        legs: [
+          _leg(_st('A', lat: 54.0, lon: 10.0), _st('B', lat: 53.5, lon: 10.5)),
+          _leg(_st('B', lat: 53.5, lon: 10.5), _st('C', lat: 53.0, lon: 11.0)),
+        ],
+      );
       final gpx = journeysToGpx([j]);
       expect(gpx, startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
       expect(gpx, contains('<gpx version="1.1"'));
@@ -94,10 +103,14 @@ void main() {
     });
 
     test('station names with XML metacharacters are escaped', () {
-      final j = Journey(legs: [
-        _leg(_st('A & <B>', lat: 54.0, lon: 10.0),
-            _st('C', lat: 53.0, lon: 11.0)),
-      ]);
+      final j = Journey(
+        legs: [
+          _leg(
+            _st('A & <B>', lat: 54.0, lon: 10.0),
+            _st('C', lat: 53.0, lon: 11.0),
+          ),
+        ],
+      );
       final gpx = journeysToGpx([j]);
       expect(gpx, contains('&amp;'));
       expect(gpx, isNot(contains('<B>')));

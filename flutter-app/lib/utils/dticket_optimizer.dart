@@ -29,8 +29,7 @@ class DTicketQuote {
 
   /// What holding the D-Ticket (plus splitting) saves against buying the
   /// connection through. null when the through fare is unknown.
-  double? get saving =>
-      directPrice == null ? null : directPrice! - surcharge;
+  double? get saving => directPrice == null ? null : directPrice! - surcharge;
 
   /// The D-Ticket genuinely takes money off this connection (beyond a cent of
   /// rounding). False for a pure long-distance run, where the ticket is worth
@@ -68,7 +67,8 @@ DTicketQuote? dTicketQuoteFrom(
   final surcharge = result.splitPrice;
   if (surcharge.isNaN || surcharge.isInfinite || surcharge < 0) return null;
 
-  final fullyCovered = result.tickets.isNotEmpty &&
+  final fullyCovered =
+      result.tickets.isNotEmpty &&
       result.tickets.every((t) => t.coveredByDeutschlandTicket);
   if (surcharge < 0.005 && !fullyCovered) return null;
 
@@ -110,8 +110,8 @@ List<T> sortByDTicketSurcharge<T>(
     // Compare in cents: fares are money, and 12.00 vs 12.004 is the same price
     // — letting the duration decide there beats an arbitrary float order.
     final byPrice = (qa.surcharge * 100).round().compareTo(
-          (qb.surcharge * 100).round(),
-        );
+      (qb.surcharge * 100).round(),
+    );
     if (byPrice != 0) return byPrice;
     final byDuration = durationOf(a.$2).compareTo(durationOf(b.$2));
     if (byDuration != 0) return byDuration;

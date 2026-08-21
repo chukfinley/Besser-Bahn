@@ -36,11 +36,39 @@ const _gleis = '7';
 /// Selectable background tile models.
 typedef _BaseMap = ({String name, String url, List<String> subs, int maxZoom});
 const List<_BaseMap> _baseMaps = [
-  (name: 'OSM', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', subs: [], maxZoom: 19),
-  (name: 'CARTO Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', subs: ['a', 'b', 'c', 'd'], maxZoom: 20),
-  (name: 'CARTO ohne Text', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', subs: ['a', 'b', 'c', 'd'], maxZoom: 20),
-  (name: 'Satellit (Esri)', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', subs: [], maxZoom: 19),
-  (name: 'OpenRailwayMap', url: 'https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', subs: ['a', 'b', 'c'], maxZoom: 19),
+  (
+    name: 'OSM',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subs: [],
+    maxZoom: 19,
+  ),
+  (
+    name: 'CARTO Voyager',
+    url:
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    subs: ['a', 'b', 'c', 'd'],
+    maxZoom: 20,
+  ),
+  (
+    name: 'CARTO ohne Text',
+    url:
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
+    subs: ['a', 'b', 'c', 'd'],
+    maxZoom: 20,
+  ),
+  (
+    name: 'Satellit (Esri)',
+    url:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    subs: [],
+    maxZoom: 19,
+  ),
+  (
+    name: 'OpenRailwayMap',
+    url: 'https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png',
+    subs: ['a', 'b', 'c'],
+    maxZoom: 19,
+  ),
 ];
 
 void main() => runApp(const _PreviewApp());
@@ -78,14 +106,14 @@ String _coachLabel(Coach c) {
   final tag = !c.isOpen
       ? 'zu'
       : c.isRestaurant
-          ? 'Bistro'
-          : c.isLocomotive
-              ? 'Lok'
-              : c.isMixed
-                  ? '1.+2.'
-                  : c.type.hasFirstClass
-                      ? '1.'
-                      : '2.';
+      ? 'Bistro'
+      : c.isLocomotive
+      ? 'Lok'
+      : c.isMixed
+      ? '1.+2.'
+      : c.type.hasFirstClass
+      ? '1.'
+      : '2.';
   return c.wagonNumber > 0 ? 'Wg ${c.wagonNumber}\n$tag' : tag;
 }
 
@@ -98,8 +126,9 @@ String _coachLabel(Coach c) {
 /// + which platform edge is Gleis 7's side — never as the train's curve.
 List<({String letter, LatLng pos})> _cubeLetters(StationMap map) {
   final plat = map.platforms.firstWhere(
-      (p) => normalizeGleis(p.name) == _gleis,
-      orElse: () => map.platforms.first);
+    (p) => normalizeGleis(p.name) == _gleis,
+    orElse: () => map.platforms.first,
+  );
   final level = plat.level ?? map.levelInit;
   final all = map.poisOnLevel(level).where((p) => p.isPlatformSector).toList();
   if (all.length < 3) return platformSectors(map, _gleis);
@@ -158,10 +187,15 @@ List<({String letter, LatLng pos})> _cubeLetters(StationMap map) {
   }
   final island = resolveIsland(map, plat, _gleis, 0, 8);
   final sorted = best.toList()
-    ..sort((a, b) => (letterIdx(a.name) ?? 0).compareTo(letterIdx(b.name) ?? 0));
+    ..sort(
+      (a, b) => (letterIdx(a.name) ?? 0).compareTo(letterIdx(b.name) ?? 0),
+    );
   return [
     for (final c in sorted)
-      (letter: c.name, pos: LatLng(c.latitude + island.dLat, c.longitude + island.dLon)),
+      (
+        letter: c.name,
+        pos: LatLng(c.latitude + island.dLat, c.longitude + island.dLon),
+      ),
   ];
 }
 
@@ -202,7 +236,10 @@ class _PreviewPageState extends State<_PreviewPage> {
     super.initState();
     try {
       // ignore: invalid_use_of_visible_for_testing_member — dev preview only.
-      _map = parseStationMapBody('hamburg-hbf', _readFixture('hamburg-hbf.rsc.txt'));
+      _map = parseStationMapBody(
+        'hamburg-hbf',
+        _readFixture('hamburg-hbf.rsc.txt'),
+      );
       final osm = json.decode(_readFixture('hamburg-osm.json')) as Map;
       _osmPlatforms = [
         for (final p in (osm['platforms'] as List))
@@ -210,7 +247,10 @@ class _PreviewPageState extends State<_PreviewPage> {
             ref: p['ref'] as String,
             pts: [
               for (final q in (p['pts'] as List))
-                LatLng((q['lat'] as num).toDouble(), (q['lng'] as num).toDouble())
+                LatLng(
+                  (q['lat'] as num).toDouble(),
+                  (q['lng'] as num).toDouble(),
+                ),
             ],
           ),
       ];
@@ -218,14 +258,20 @@ class _PreviewPageState extends State<_PreviewPage> {
         for (final r in (osm['rails'] as List))
           [
             for (final q in (r['pts'] as List))
-              LatLng((q['lat'] as num).toDouble(), (q['lng'] as num).toDouble())
+              LatLng(
+                (q['lat'] as num).toDouble(),
+                (q['lng'] as num).toDouble(),
+              ),
           ],
       ];
       try {
         _cs = CoachSequence.fromJson(
-            json.decode(_readFixture('hamburg-wagenreihung.json'))
-                as Map<String, dynamic>);
-      } catch (_) {/* optional — preview still shows the platform band */}
+          json.decode(_readFixture('hamburg-wagenreihung.json'))
+              as Map<String, dynamic>,
+        );
+      } catch (_) {
+        /* optional — preview still shows the platform band */
+      }
     } catch (e) {
       _loadError = e;
     }
@@ -256,10 +302,12 @@ class _PreviewPageState extends State<_PreviewPage> {
       }
       final seg = cum[i + 1] - cum[i];
       final f = seg > 0 ? (dd - cum[i]) / seg : 0.0;
-      out.add(LatLng(
-        path[i].latitude + (path[i + 1].latitude - path[i].latitude) * f,
-        path[i].longitude + (path[i + 1].longitude - path[i].longitude) * f,
-      ));
+      out.add(
+        LatLng(
+          path[i].latitude + (path[i + 1].latitude - path[i].latitude) * f,
+          path[i].longitude + (path[i + 1].longitude - path[i].longitude) * f,
+        ),
+      );
     }
     return out;
   }
@@ -283,7 +331,7 @@ class _PreviewPageState extends State<_PreviewPage> {
     if (axis == null) return poly;
     final ts = [
       for (final p in loop)
-        (xy(p).x - axis.cx) * axis.dx + (xy(p).y - axis.cy) * axis.dy
+        (xy(p).x - axis.cx) * axis.dx + (xy(p).y - axis.cy) * axis.dy,
     ];
     var iMin = 0, iMax = 0;
     for (var i = 1; i < ts.length; i++) {
@@ -307,8 +355,10 @@ class _PreviewPageState extends State<_PreviewPage> {
     if (ref.length < 2) {
       return [
         for (var k = 0; k < n; k++)
-          LatLng((e1[k].latitude + e2[k].latitude) / 2,
-              (e1[k].longitude + e2[k].longitude) / 2),
+          LatLng(
+            (e1[k].latitude + e2[k].latitude) / 2,
+            (e1[k].longitude + e2[k].longitude) / 2,
+          ),
       ];
     }
     final m2 = 111320.0 * math.cos(e1.first.latitude * math.pi / 180);
@@ -379,15 +429,17 @@ class _PreviewPageState extends State<_PreviewPage> {
   Widget build(BuildContext context) {
     if (_loadError != null) {
       return Scaffold(
-          body: Center(child: Text('Failed to load fixtures:\n$_loadError')));
+        body: Center(child: Text('Failed to load fixtures:\n$_loadError')),
+      );
     }
 
     // Gleis 7's sector letters A–I (from cubes — used to anchor the DB metre
     // axis onto the rail and to pick Gleis 7's side) and the OSM platform area.
     final letters = _cubeLetters(_map);
     final cubeSide = [for (final c in letters) c.pos];
-    final osmPlat =
-        _osmPlatforms.where((p) => p.ref.split(';').contains(_gleis)).toList();
+    final osmPlat = _osmPlatforms
+        .where((p) => p.ref.split(';').contains(_gleis))
+        .toList();
     final rail = osmPlat.isNotEmpty
         ? _railFromEdge(_trackSideEdge(osmPlat.first.pts, cubeSide))
         : const <LatLng>[];
@@ -400,7 +452,8 @@ class _PreviewPageState extends State<_PreviewPage> {
     if (path != null && _cs != null) {
       final cubeArc = {
         for (final c in letters)
-          if (letterIdx(c.letter) != null) letterIdx(c.letter)!: path.locate(c.pos)
+          if (letterIdx(c.letter) != null)
+            letterIdx(c.letter)!: path.locate(c.pos),
       };
       final aM = <double>[], aArc = <double>[];
       for (final s in _cs!.platform.sectors) {
@@ -430,22 +483,26 @@ class _PreviewPageState extends State<_PreviewPage> {
 
     // One to-scale polygon per real coach, sliced from the rail between the
     // coach's metre ends; first/second class coloured; DB sector marks too.
-    final coaches = <({List<LatLng> outline, Color color, String label, LatLng at})>[];
+    final coaches =
+        <({List<LatLng> outline, Color color, String label, LatLng at})>[];
     final dbSectors = <({String letter, LatLng pos})>[];
     LatLng? center;
     if (path != null && arcOf != null && _cs != null) {
       final cs = _cs!.allCoaches
-          .where((c) =>
-              c.platformPosition != null && c.platformPosition!.length > 0)
+          .where(
+            (c) => c.platformPosition != null && c.platformPosition!.length > 0,
+          )
           .toList();
       for (var i = 0; i < cs.length; i++) {
         final pp = cs[i].platformPosition!;
         final spine = path.slice(arcOf(pp.start), arcOf(pp.end));
-        final outline = TrainGeometry.body(spine,
-            halfWidthM: 2.85 / 2,
-            noseStart: i == 0,
-            noseEnd: i == cs.length - 1,
-            noseLenM: 2.5);
+        final outline = TrainGeometry.body(
+          spine,
+          halfWidthM: 2.85 / 2,
+          noseStart: i == 0,
+          noseEnd: i == cs.length - 1,
+          noseLenM: 2.5,
+        );
         if (outline.length >= 3) {
           coaches.add((
             outline: outline,
@@ -456,8 +513,10 @@ class _PreviewPageState extends State<_PreviewPage> {
         }
       }
       for (final s in _cs!.platform.sectors) {
-        dbSectors.add(
-            (letter: s.name, pos: path.pointAt(arcOf((s.start + s.end) / 2))));
+        dbSectors.add((
+          letter: s.name,
+          pos: path.pointAt(arcOf((s.start + s.end) / 2)),
+        ));
       }
       if (coaches.isNotEmpty) {
         final mid = cs[cs.length ~/ 2].platformPosition!;
@@ -470,9 +529,11 @@ class _PreviewPageState extends State<_PreviewPage> {
 
     // Floor whose DB indoor plan to overlay — Gleis 7's level.
     final plat7 = _map.platforms.firstWhere(
-        (p) => normalizeGleis(p.name) == _gleis,
-        orElse: () => _map.platforms.first);
-    final level = plat7.level ??
+      (p) => normalizeGleis(p.name) == _gleis,
+      orElse: () => _map.platforms.first,
+    );
+    final level =
+        plat7.level ??
         (_map.levelInit.isNotEmpty
             ? _map.levelInit
             : (_map.levels.isNotEmpty ? _map.levels.first : 'GROUND_FLOOR'));
@@ -480,8 +541,8 @@ class _PreviewPageState extends State<_PreviewPage> {
     final info = _cs == null
         ? 'keine Wagenreihung-Fixture'
         : '${_cs!.groups.map((g) => g.transport.category).toSet().join("/")} '
-            '· ${coaches.length} Wagen · Sektoren '
-            '${_cs!.platform.sectors.map((s) => s.name).join("")}';
+              '· ${coaches.length} Wagen · Sektoren '
+              '${_cs!.platform.sectors.map((s) => s.name).join("")}';
 
     return Scaffold(
       appBar: AppBar(
@@ -495,29 +556,35 @@ class _PreviewPageState extends State<_PreviewPage> {
             width: double.infinity,
             color: AppColors.secondClass,
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-            child: Text(info,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
+            child: Text(
+              info,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(children: [
-              const Text('Karte: '),
-              DropdownButton<_BaseMap>(
-                value: _baseMap,
-                items: [
-                  for (final b in _baseMaps)
-                    DropdownMenuItem(value: b, child: Text(b.name)),
-                ],
-                onChanged: (v) => setState(() => _baseMap = v ?? _baseMap),
-              ),
-              const Spacer(),
-              const Text('DB-Bahnsteigplan '),
-              Switch(
-                value: _showOverlay,
-                onChanged: (v) => setState(() => _showOverlay = v),
-              ),
-            ]),
+            child: Row(
+              children: [
+                const Text('Karte: '),
+                DropdownButton<_BaseMap>(
+                  value: _baseMap,
+                  items: [
+                    for (final b in _baseMaps)
+                      DropdownMenuItem(value: b, child: Text(b.name)),
+                  ],
+                  onChanged: (v) => setState(() => _baseMap = v ?? _baseMap),
+                ),
+                const Spacer(),
+                const Text('DB-Bahnsteigplan '),
+                Switch(
+                  value: _showOverlay,
+                  onChanged: (v) => setState(() => _showOverlay = v),
+                ),
+              ],
+            ),
           ),
           Expanded(
             child: FlutterMap(
@@ -553,67 +620,81 @@ class _PreviewPageState extends State<_PreviewPage> {
                     errorTileCallback: (_, _, _) {},
                   ),
                 // Faint OSM rails, to judge alignment.
-                PolylineLayer(polylines: [
-                  for (final r in _osmRails)
-                    Polyline(
+                PolylineLayer(
+                  polylines: [
+                    for (final r in _osmRails)
+                      Polyline(
                         points: r,
                         strokeWidth: 1,
-                        color: Colors.lightBlue.withValues(alpha: 0.4)),
-                ]),
+                        color: Colors.lightBlue.withValues(alpha: 0.4),
+                      ),
+                  ],
+                ),
                 // One polygon per real coach, to scale, on the rail.
-                PolygonLayer(polygons: [
-                  for (final c in coaches)
-                    Polygon(
-                      points: c.outline,
-                      color: c.color.withValues(alpha: 0.55),
-                      borderColor: Colors.black87,
-                      borderStrokeWidth: 1.2,
-                    ),
-                ]),
+                PolygonLayer(
+                  polygons: [
+                    for (final c in coaches)
+                      Polygon(
+                        points: c.outline,
+                        color: c.color.withValues(alpha: 0.55),
+                        borderColor: Colors.black87,
+                        borderStrokeWidth: 1.2,
+                      ),
+                  ],
+                ),
                 // Per-coach label — which compartment (class/type + Wg №).
-                MarkerLayer(markers: [
-                  for (final c in coaches)
-                    Marker(
-                      point: c.at,
-                      width: 52,
-                      height: 30,
-                      child: Center(
-                        child: Text(
-                          c.label,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.onClass(c.color),
-                            fontSize: 10,
-                            height: 1.05,
-                            fontWeight: FontWeight.w800,
+                MarkerLayer(
+                  markers: [
+                    for (final c in coaches)
+                      Marker(
+                        point: c.at,
+                        width: 52,
+                        height: 30,
+                        child: Center(
+                          child: Text(
+                            c.label,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.onClass(c.color),
+                              fontSize: 10,
+                              height: 1.05,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ]),
+                  ],
+                ),
                 // DB platform sectors A–I, mapped onto the rail at their metres.
-                MarkerLayer(markers: [
-                  for (final s in dbSectors)
-                    Marker(
-                      point: s.pos,
-                      width: 20,
-                      height: 20,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.amber,
-                          shape: BoxShape.circle,
-                          border:
-                              Border.all(color: Colors.black87, width: 1.5),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(s.letter,
+                MarkerLayer(
+                  markers: [
+                    for (final s in dbSectors)
+                      Marker(
+                        point: s.pos,
+                        width: 20,
+                        height: 20,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.black87,
+                              width: 1.5,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            s.letter,
                             style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900)),
+                              color: Colors.black,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                ]),
+                  ],
+                ),
               ],
             ),
           ),

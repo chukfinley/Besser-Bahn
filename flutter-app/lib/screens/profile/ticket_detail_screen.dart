@@ -47,11 +47,16 @@ class TicketDetailScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline,
-                    size: 48, color: Theme.of(context).colorScheme.error),
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 const SizedBox(height: 12),
-                Text('Ticket konnte nicht geladen werden.\n$e',
-                    textAlign: TextAlign.center),
+                Text(
+                  'Ticket konnte nicht geladen werden.\n$e',
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => ref.invalidate(ticketProvider(key)),
@@ -68,7 +73,9 @@ class TicketDetailScreen extends ConsumerWidget {
         if (v != null) {
           try {
             j = ref.read(vendoServiceProvider).parseConnection(v);
-          } catch (_) {/* fall through */}
+          } catch (_) {
+            /* fall through */
+          }
         }
         if (j == null) {
           // No usable Reiseplan in this ticket — go straight to the official
@@ -143,8 +150,10 @@ class TicketViewScreen extends ConsumerWidget {
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('Ticket konnte nicht geladen werden.\n$e',
-                textAlign: TextAlign.center),
+            child: Text(
+              'Ticket konnte nicht geladen werden.\n$e',
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
         data: (t) => _body(context, t),
@@ -183,7 +192,9 @@ class TicketViewScreen extends ConsumerWidget {
   }
 
   void _showReservations(
-      BuildContext context, List<DbReservierung> reservations) {
+    BuildContext context,
+    List<DbReservierung> reservations,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -208,31 +219,43 @@ class TicketViewScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.train,
-                                  size: 20, color: theme.colorScheme.primary),
+                              Icon(
+                                Icons.train,
+                                size: 20,
+                                color: theme.colorScheme.primary,
+                              ),
                               const SizedBox(width: 8),
-                              Text(r.trainLabel,
-                                  style: theme.textTheme.titleMedium),
+                              Text(
+                                r.trainLabel,
+                                style: theme.textTheme.titleMedium,
+                              ),
                             ],
                           ),
                           if (r.vonName != null || r.nachName != null) ...[
                             const SizedBox(height: 4),
-                            Text('${r.vonName ?? ''} → ${r.nachName ?? ''}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.outline)),
+                            Text(
+                              '${r.vonName ?? ''} → ${r.nachName ?? ''}',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.outline,
+                              ),
+                            ),
                           ],
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.event_seat,
-                                  size: 20, color: theme.colorScheme.primary),
+                              Icon(
+                                Icons.event_seat,
+                                size: 20,
+                                color: theme.colorScheme.primary,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                    r.plaetze.isEmpty
-                                        ? '${r.anzahlPlaetze} Platz reserviert'
-                                        : r.seatLabel,
-                                    style: theme.textTheme.bodyLarge),
+                                  r.plaetze.isEmpty
+                                      ? '${r.anzahlPlaetze} Platz reserviert'
+                                      : r.seatLabel,
+                                  style: theme.textTheme.bodyLarge,
+                                ),
                               ),
                             ],
                           ),
@@ -275,8 +298,8 @@ class _TicketStatusBlock extends StatelessWidget {
     final statusText = stornoed
         ? 'Ticket storniert'
         : expired
-            ? 'Ticket nicht mehr gültig'
-            : 'Ticket gültig';
+        ? 'Ticket nicht mehr gültig'
+        : 'Ticket gültig';
 
     final date = ticket.gueltigAb != null
         ? DateFormat('dd.MM.yyyy').format(ticket.gueltigAb!)
@@ -293,11 +316,15 @@ class _TicketStatusBlock extends StatelessWidget {
       if (r == null) return fallback ?? '—';
       return r.id != null ? '${r.name} (${r.id})' : r.name;
     }
-    final route = (from == null && to == null &&
-            ticket.vonName == null && ticket.nachName == null)
+
+    final route =
+        (from == null &&
+            to == null &&
+            ticket.vonName == null &&
+            ticket.nachName == null)
         ? ''
         : '${formatStop(from, ticket.vonName)} → '
-            '${formatStop(to, ticket.nachName)}';
+              '${formatStop(to, ticket.nachName)}';
 
     return Container(
       width: double.infinity,
@@ -309,32 +336,41 @@ class _TicketStatusBlock extends StatelessWidget {
           // Date · Auftrags-Nr (small, two-up).
           Row(
             children: [
-              Text(date,
-                  style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                date,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const Spacer(),
               Text(
                 ticket.auftragsnummer,
                 style: const TextStyle(
-                    color: Colors.black54,
-                    fontSize: 13,
-                    fontFeatures: [FontFeature.tabularFigures()]),
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           // Tariff (the headline).
-          Text(tariff,
-              style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold)),
+          Text(
+            tariff,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           if (route.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text(route,
-                style: const TextStyle(color: Colors.black54, fontSize: 12)),
+            Text(
+              route,
+              style: const TextStyle(color: Colors.black54, fontSize: 12),
+            ),
           ],
           const SizedBox(height: 8),
           // Status text — red when expired/storniert, green when valid; a
@@ -346,15 +382,21 @@ class _TicketStatusBlock extends StatelessWidget {
                 const _LiveDot(),
                 const SizedBox(width: 6),
               ] else ...[
-                Icon(stornoed ? Icons.info : Icons.cancel,
-                    color: statusColor, size: 16),
+                Icon(
+                  stornoed ? Icons.info : Icons.cancel,
+                  color: statusColor,
+                  size: 16,
+                ),
                 const SizedBox(width: 4),
               ],
-              Text(statusText,
-                  style: TextStyle(
-                      color: statusColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
+              Text(
+                statusText,
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ],
@@ -393,16 +435,16 @@ class _LiveDotState extends State<_LiveDot>
 
   @override
   Widget build(BuildContext context) => FadeTransition(
-        opacity: Tween(begin: 0.35, end: 1.0).animate(_ctrl),
-        child: Container(
-          width: 8,
-          height: 8,
-          decoration: const BoxDecoration(
-            color: Color(0xFF6CE07A),
-            shape: BoxShape.circle,
-          ),
-        ),
-      );
+    opacity: Tween(begin: 0.35, end: 1.0).animate(_ctrl),
+    child: Container(
+      width: 8,
+      height: 8,
+      decoration: const BoxDecoration(
+        color: Color(0xFF6CE07A),
+        shape: BoxShape.circle,
+      ),
+    ),
+  );
 }
 
 // --- WebView ----------------------------------------------------------------
@@ -421,7 +463,8 @@ class _OfficialTicketWebViewState extends State<_OfficialTicketWebView> {
   /// Hides the Android WebView's overlay scrollbar AND the WebKit scroll
   /// gutter (the thin grey strip the user sees on the right). Scrolling
   /// itself stays on — only the chrome goes away.
-  static const _hideScrollbarsCss = '<style>'
+  static const _hideScrollbarsCss =
+      '<style>'
       'html,body{scrollbar-width:none;-ms-overflow-style:none;}'
       'html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;}'
       '</style>';
@@ -449,15 +492,16 @@ class _OfficialTicketWebViewState extends State<_OfficialTicketWebView> {
 
   @override
   Widget build(BuildContext context) => WebViewWidget(
-        controller: _controller,
-        // Claim vertical drag so the WebView's internal scroll always wins —
-        // without this any ancestor scrollable could steal the gesture and the
-        // ticket appears stuck (the bug the user reported).
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<VerticalDragGestureRecognizer>(
-              () => VerticalDragGestureRecognizer()),
-        },
-      );
+    controller: _controller,
+    // Claim vertical drag so the WebView's internal scroll always wins —
+    // without this any ancestor scrollable could steal the gesture and the
+    // ticket appears stuck (the bug the user reported).
+    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+      Factory<VerticalDragGestureRecognizer>(
+        () => VerticalDragGestureRecognizer(),
+      ),
+    },
+  );
 }
 
 // --- Native fallback (desktop/web) -----------------------------------------
@@ -481,20 +525,26 @@ class _FallbackTicket extends StatelessWidget {
             child: Column(
               children: [
                 if (t.barcode != null)
-                  Image.memory(t.barcode!,
-                      width: 220,
-                      height: 220,
-                      fit: BoxFit.contain,
-                      gaplessPlayback: true)
+                  Image.memory(
+                    t.barcode!,
+                    width: 220,
+                    height: 220,
+                    fit: BoxFit.contain,
+                    gaplessPlayback: true,
+                  )
                 else
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Text('Kein Barcode in diesem Ticket.',
-                        style: TextStyle(color: Colors.black54)),
+                    child: Text(
+                      'Kein Barcode in diesem Ticket.',
+                      style: TextStyle(color: Colors.black54),
+                    ),
                   ),
                 const SizedBox(height: 8),
-                Text('Auftrag ${t.auftragsnummer}',
-                    style: const TextStyle(color: Colors.black87)),
+                Text(
+                  'Auftrag ${t.auftragsnummer}',
+                  style: const TextStyle(color: Colors.black87),
+                ),
               ],
             ),
           ),
@@ -505,17 +555,33 @@ class _FallbackTicket extends StatelessWidget {
           child: Column(
             children: [
               if (t.angebotsname != null)
-                _row(theme, Icons.local_offer_outlined, 'Tarif',
-                    t.angebotsname!),
-              _row(theme, Icons.event_seat_outlined, 'Klasse',
-                  t.firstClass ? '1. Klasse' : '2. Klasse'),
+                _row(
+                  theme,
+                  Icons.local_offer_outlined,
+                  'Tarif',
+                  t.angebotsname!,
+                ),
+              _row(
+                theme,
+                Icons.event_seat_outlined,
+                'Klasse',
+                t.firstClass ? '1. Klasse' : '2. Klasse',
+              ),
               _row(theme, Icons.group_outlined, 'Reisende', t.reisendeText),
               if (t.gueltigAb != null)
-                _row(theme, Icons.schedule, 'Gültig ab',
-                    DateFormat('dd.MM.yyyy, HH:mm').format(t.gueltigAb!)),
+                _row(
+                  theme,
+                  Icons.schedule,
+                  'Gültig ab',
+                  DateFormat('dd.MM.yyyy, HH:mm').format(t.gueltigAb!),
+                ),
               if (t.gueltigBis != null)
-                _row(theme, Icons.event_busy_outlined, 'Gültig bis',
-                    DateFormat('dd.MM.yyyy, HH:mm').format(t.gueltigBis!)),
+                _row(
+                  theme,
+                  Icons.event_busy_outlined,
+                  'Gültig bis',
+                  DateFormat('dd.MM.yyyy, HH:mm').format(t.gueltigBis!),
+                ),
               _row(theme, Icons.verified_outlined, 'Status', t.status),
             ],
           ),

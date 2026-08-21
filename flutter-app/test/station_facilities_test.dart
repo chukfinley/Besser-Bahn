@@ -8,11 +8,20 @@ void main() {
   group('StationFacility model (#73)', () {
     test('anything but ACTIVE is out of service', () {
       const active = StationFacility(
-          type: 'ELEVATOR', description: 'x', stateType: 'ACTIVE');
+        type: 'ELEVATOR',
+        description: 'x',
+        stateType: 'ACTIVE',
+      );
       const inactive = StationFacility(
-          type: 'ELEVATOR', description: 'x', stateType: 'INACTIVE');
+        type: 'ELEVATOR',
+        description: 'x',
+        stateType: 'INACTIVE',
+      );
       const unknown = StationFacility(
-          type: 'ESCALATOR', description: 'x', stateType: 'UNKNOWN');
+        type: 'ESCALATOR',
+        description: 'x',
+        stateType: 'UNKNOWN',
+      );
       expect(active.outOfService, isFalse);
       expect(inactive.outOfService, isTrue);
       expect(unknown.outOfService, isTrue);
@@ -23,8 +32,7 @@ void main() {
 
   group('bahnhof.de facility parsing (#73)', () {
     test('Kiel Hbf fixture: facilities parsed, all ACTIVE → none broken', () {
-      final body =
-          File('test/fixtures/kiel-hbf.rsc.txt').readAsStringSync();
+      final body = File('test/fixtures/kiel-hbf.rsc.txt').readAsStringSync();
       final map = parseStationMapBody('kiel-hbf', body);
       expect(map.facilities, isNotEmpty);
       expect(map.outOfServiceFacilities, isEmpty);
@@ -37,11 +45,11 @@ void main() {
           .readAsStringSync()
           .replaceFirst(
             '"state":{"type":"ACTIVE","explanation":"available"},'
-            '"associatedPlatforms":[],'
-            '"description":"zu Gleis 13/14 Abschnitt E"',
+                '"associatedPlatforms":[],'
+                '"description":"zu Gleis 13/14 Abschnitt E"',
             '"state":{"type":"INACTIVE","explanation":"not available"},'
-            '"associatedPlatforms":[],'
-            '"description":"zu Gleis 13/14 Abschnitt E"',
+                '"associatedPlatforms":[],'
+                '"description":"zu Gleis 13/14 Abschnitt E"',
           );
       final map = parseStationMapBody('hamburg-hbf', body);
       final broken = map.outOfServiceFacilities;

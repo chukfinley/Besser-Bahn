@@ -8,10 +8,16 @@ import 'package:flutter_test/flutter_test.dart';
 /// and a poor plan — these tests are about judging every connection by the slack
 /// it leaves instead.
 
-const _selent =
-    Station(id: '8005292', name: 'Selent', locationId: 'A=1@L=8005292@');
-const _kiel =
-    Station(id: '8000199', name: 'Kiel Hbf', locationId: 'A=1@L=8000199@');
+const _selent = Station(
+  id: '8005292',
+  name: 'Selent',
+  locationId: 'A=1@L=8005292@',
+);
+const _kiel = Station(
+  id: '8000199',
+  name: 'Kiel Hbf',
+  locationId: 'A=1@L=8000199@',
+);
 
 final _deadline = DateTime(2026, 7, 27, 9, 48);
 
@@ -20,20 +26,19 @@ Journey _journey({
   DateTime? plannedArrival,
   DateTime? departure,
   bool cancelled = false,
-}) =>
-    Journey(
-      legs: [
-        JourneyLeg(
-          origin: _selent,
-          destination: _kiel,
-          departure: departure ?? DateTime(2026, 7, 27, 8, 30),
-          plannedDeparture: departure ?? DateTime(2026, 7, 27, 8, 30),
-          arrival: arrival,
-          plannedArrival: plannedArrival ?? arrival,
-          cancelled: cancelled,
-        ),
-      ],
-    );
+}) => Journey(
+  legs: [
+    JourneyLeg(
+      origin: _selent,
+      destination: _kiel,
+      departure: departure ?? DateTime(2026, 7, 27, 8, 30),
+      plannedDeparture: departure ?? DateTime(2026, 7, 27, 8, 30),
+      arrival: arrival,
+      plannedArrival: plannedArrival ?? arrival,
+      cancelled: cancelled,
+    ),
+  ],
+);
 
 /// Arrives at [h]:[m] on the appointment's day.
 Journey _arrivesAt(int h, int m, {int? delayMinutes}) {
@@ -49,10 +54,14 @@ Journey _arrivesAt(int h, int m, {int? delayMinutes}) {
 void main() {
   group('journeyBuffer', () {
     test('slack between arrival and the appointment', () {
-      expect(journeyBuffer(_arrivesAt(9, 39), _deadline),
-          const Duration(minutes: 9));
-      expect(journeyBuffer(_arrivesAt(8, 39), _deadline),
-          const Duration(hours: 1, minutes: 9));
+      expect(
+        journeyBuffer(_arrivesAt(9, 39), _deadline),
+        const Duration(minutes: 9),
+      );
+      expect(
+        journeyBuffer(_arrivesAt(8, 39), _deadline),
+        const Duration(hours: 1, minutes: 9),
+      );
     });
 
     test('arriving after the appointment is negative, not zero', () {
@@ -63,7 +72,10 @@ void main() {
 
     test('a delay eats the buffer — the live arrival is what counts', () {
       // Scheduled 09:39 (9 min of air), running 12 late → misses it.
-      final buffer = journeyBuffer(_arrivesAt(9, 39, delayMinutes: 12), _deadline)!;
+      final buffer = journeyBuffer(
+        _arrivesAt(9, 39, delayMinutes: 12),
+        _deadline,
+      )!;
       expect(buffer.inMinutes, -3);
     });
 
@@ -96,10 +108,14 @@ void main() {
     test('the rider\'s own minimum decides what counts as tight for them', () {
       // 20 minutes clears the default threshold but not a 30-minute wish.
       expect(bufferTone(const Duration(minutes: 20)), BufferTone.comfortable);
-      expect(bufferTone(const Duration(minutes: 20), minMinutes: 30),
-          BufferTone.tight);
-      expect(bufferTone(const Duration(minutes: 30), minMinutes: 30),
-          BufferTone.comfortable);
+      expect(
+        bufferTone(const Duration(minutes: 20), minMinutes: 30),
+        BufferTone.tight,
+      );
+      expect(
+        bufferTone(const Duration(minutes: 30), minMinutes: 30),
+        BufferTone.comfortable,
+      );
     });
   });
 
@@ -134,10 +150,7 @@ void main() {
     test('a minimum drops the tight ones and the late one', () {
       final kept = withMinBuffer(journeys, _deadline, 30);
       expect(kept.length, 3);
-      expect(
-        [for (final j in kept) j.arrival!.hour],
-        [7, 8, 9],
-      );
+      expect([for (final j in kept) j.arrival!.hour], [7, 8, 9]);
       expect(withMinBuffer(journeys, _deadline, 60).length, 2);
       expect(withMinBuffer(journeys, _deadline, 180), isEmpty);
     });
@@ -146,18 +159,22 @@ void main() {
       expect(withMinBuffer([_arrivesAt(9, 18)], _deadline, 30).length, 1);
     });
 
-    test('a connection without an arrival is kept — the filter is the rider\'s, '
-        'missing data is not', () {
-      expect(withMinBuffer([_journey()], _deadline, 60).length, 1);
-    });
+    test(
+      'a connection without an arrival is kept — the filter is the rider\'s, '
+      'missing data is not',
+      () {
+        expect(withMinBuffer([_journey()], _deadline, 60).length, 1);
+      },
+    );
   });
 
   group('sortedByBuffer', () {
     test('most slack first', () {
-      final sorted = sortedByBuffer(
-        [_arrivesAt(9, 39), _arrivesAt(7, 39), _arrivesAt(9, 18)],
-        _deadline,
-      );
+      final sorted = sortedByBuffer([
+        _arrivesAt(9, 39),
+        _arrivesAt(7, 39),
+        _arrivesAt(9, 18),
+      ], _deadline);
       expect([for (final j in sorted) j.arrival!.hour], [7, 9, 9]);
       expect(sorted.first.arrival!.minute, 39);
       expect(sorted[1].arrival!.minute, 18);

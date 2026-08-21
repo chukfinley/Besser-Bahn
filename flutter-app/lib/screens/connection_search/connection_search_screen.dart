@@ -389,9 +389,7 @@ class _ConnectionSearchScreenState
                         child: Text(
                           ref
                               .watch(
-                                settingsProvider.select(
-                                  (s) => s.searchParty,
-                                ),
+                                settingsProvider.select((s) => s.searchParty),
                               )
                               .summary,
                           style: theme.textTheme.bodyMedium,
@@ -589,16 +587,18 @@ class _ConnectionSearchScreenState
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Text(
                       '${_whenLabel(state)} · ${party.summary}',
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: scheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -609,8 +609,9 @@ class _ConnectionSearchScreenState
                 const SizedBox(width: 2),
                 Text(
                   '$activeOptions',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: scheme.primary),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.primary,
+                  ),
                 ),
               ],
               const SizedBox(width: 4),
@@ -629,9 +630,11 @@ class _ConnectionSearchScreenState
     final dt = state.dateTime;
     if (dt == null) return 'Jetzt';
     final now = DateTime.now();
-    final days = DateTime(dt.year, dt.month, dt.day)
-        .difference(DateTime(now.year, now.month, now.day))
-        .inDays;
+    final days = DateTime(
+      dt.year,
+      dt.month,
+      dt.day,
+    ).difference(DateTime(now.year, now.month, now.day)).inDays;
     final day = switch (days) {
       0 => 'Heute',
       1 => 'Morgen',
@@ -676,9 +679,9 @@ class _ConnectionSearchScreenState
     // Anything that does not scroll has to *start* below the floating header,
     // so it gets the header's footprint as plain padding around it.
     Widget below(Widget child) => Padding(
-          padding: EdgeInsets.only(top: _headerHeight),
-          child: Center(child: child),
-        );
+      padding: EdgeInsets.only(top: _headerHeight),
+      child: Center(child: child),
+    );
 
     if (state.error != null) {
       return below(
@@ -743,8 +746,7 @@ class _ConnectionSearchScreenState
                 if (state.result?.earlierRef != null) ...[
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed:
-                        state.isLoading ? null : notifier.loadEarlier,
+                    onPressed: state.isLoading ? null : notifier.loadEarlier,
                     icon: const Icon(Icons.keyboard_arrow_up, size: 18),
                     label: const Text('Früher suchen'),
                   ),
@@ -797,10 +799,7 @@ class _ConnectionSearchScreenState
             state.result?.laterRef != null ? notifier.loadLater : null,
           );
         }
-        return JourneyCard(
-          journey: journeys[index - 1],
-          fromResults: true,
-        );
+        return JourneyCard(journey: journeys[index - 1], fromResults: true);
       },
     );
   }
@@ -966,34 +965,34 @@ class _ConnectionSearchScreenState
     JourneySearchNotifier notifier,
   ) {
     return [
-        // Only meaningful for someone who holds the ticket, so it follows
-        // the Deutschlandticket setting rather than sitting there dead.
-        if (ref.watch(settingsProvider).hasDeutschlandTicket)
+      // Only meaningful for someone who holds the ticket, so it follows
+      // the Deutschlandticket setting rather than sitting there dead.
+      if (ref.watch(settingsProvider).hasDeutschlandTicket)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3),
+          child: FilterChip(
+            label: const Text('Nur D-Ticket'),
+            selected: state.onlyDeutschlandTicket,
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            onSelected: (_) => notifier.toggleOnlyDeutschlandTicket(),
+          ),
+        ),
+      // "Nur D-Ticket" is its own search mode — Fernverkehr/Regional/… make no
+      // sense alongside it, so hide them while it's on rather than showing two
+      // contradictory filter sets at once (#47).
+      if (!state.onlyDeutschlandTicket)
+        for (final cat in ProductCategory.values)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3),
             child: FilterChip(
-              label: const Text('Nur D-Ticket'),
-              selected: state.onlyDeutschlandTicket,
+              label: Text(cat.label),
+              selected: state.products.contains(cat),
               visualDensity: VisualDensity.compact,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              onSelected: (_) => notifier.toggleOnlyDeutschlandTicket(),
+              onSelected: (_) => notifier.toggleProduct(cat),
             ),
           ),
-        // "Nur D-Ticket" is its own search mode — Fernverkehr/Regional/… make no
-        // sense alongside it, so hide them while it's on rather than showing two
-        // contradictory filter sets at once (#47).
-        if (!state.onlyDeutschlandTicket)
-          for (final cat in ProductCategory.values)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: FilterChip(
-                label: Text(cat.label),
-                selected: state.products.contains(cat),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                onSelected: (_) => notifier.toggleProduct(cat),
-              ),
-            ),
     ];
   }
 
@@ -1035,7 +1034,9 @@ class _ConnectionSearchScreenState
           const SizedBox(width: 8),
           // Flexible, not bare: "Puffer vor Termin" plus the check mark is wider
           // than the menu on a 400 px screen, and a popup item cannot scroll.
-          Flexible(child: Text(label, softWrap: false, overflow: TextOverflow.fade)),
+          Flexible(
+            child: Text(label, softWrap: false, overflow: TextOverflow.fade),
+          ),
         ],
       ),
     );

@@ -28,20 +28,28 @@ void main() {
 
     test('lower-case / padded product still resolves', () {
       expect(
-          CoachSequenceService.sequenceKeyFor(' s ', ' 38154 ')?.category, 'S');
+        CoachSequenceService.sequenceKeyFor(' s ', ' 38154 ')?.category,
+        'S',
+      );
     });
 
     test('long-distance and regional keep working', () {
       for (final c in ['ICE', 'IC', 'EC', 'RE', 'RB', 'IRE']) {
-        expect(CoachSequenceService.sequenceKeyFor(c, '1'), isNotNull,
-            reason: '$c must stay fetchable');
+        expect(
+          CoachSequenceService.sequenceKeyFor(c, '1'),
+          isNotNull,
+          reason: '$c must stay fetchable',
+        );
       }
     });
 
     test('bus/tram/U-Bahn have no sequence and are not fetched', () {
       for (final c in ['BUS', 'STR', 'U', 'TRAM']) {
-        expect(CoachSequenceService.sequenceKeyFor(c, '1'), isNull,
-            reason: '$c has no Wagenreihung — must not cost a request');
+        expect(
+          CoachSequenceService.sequenceKeyFor(c, '1'),
+          isNull,
+          reason: '$c has no Wagenreihung — must not cost a request',
+        );
       }
     });
 

@@ -23,12 +23,12 @@ enum FareKind {
 
 extension FareKindLabel on FareKind {
   String get label => switch (this) {
-        FareKind.einzelfahrt => 'Einzelticket',
-        FareKind.hinUndRueck => 'Hin- und Rückfahrt',
-        FareKind.deutschlandTicket => 'Deutschlandticket',
-        FareKind.zeitkarte => 'Andere Zeitkarte / Abo',
-        FareKind.unbekannt => 'Unbekannt',
-      };
+    FareKind.einzelfahrt => 'Einzelticket',
+    FareKind.hinUndRueck => 'Hin- und Rückfahrt',
+    FareKind.deutschlandTicket => 'Deutschlandticket',
+    FareKind.zeitkarte => 'Andere Zeitkarte / Abo',
+    FareKind.unbekannt => 'Unbekannt',
+  };
 }
 
 /// The estimated payout for a claim — either a concrete euro amount, a fixed
@@ -145,18 +145,22 @@ class PassengerRights {
       case FareKind.deutschlandTicket:
         // Nahverkehr, 2. Klasse only.
         return const RefundEstimate(
-            amount: pauschaleSecondClassEuros, isPauschale: true);
+          amount: pauschaleSecondClassEuros,
+          isPauschale: true,
+        );
       case FareKind.zeitkarte:
         return RefundEstimate(
-          amount:
-              firstClass ? pauschaleFirstClassEuros : pauschaleSecondClassEuros,
+          amount: firstClass
+              ? pauschaleFirstClassEuros
+              : pauschaleSecondClassEuros,
           isPauschale: true,
         );
       case FareKind.einzelfahrt:
       case FareKind.hinUndRueck:
         if (fareEuros == null) return const RefundEstimate();
-        final base =
-            fareKind == FareKind.hinUndRueck ? fareEuros / 2 : fareEuros;
+        final base = fareKind == FareKind.hinUndRueck
+            ? fareEuros / 2
+            : fareEuros;
         final amount = base * percent / 100;
         return RefundEstimate(
           amount: amount,
@@ -199,8 +203,10 @@ class PassengerRights {
       ..writeln('Fahrgastrechte – Verspätung')
       ..writeln('$o → $d');
     if (dep != null) {
-      b.writeln('Datum: ${dep.day.toString().padLeft(2, '0')}.'
-          '${dep.month.toString().padLeft(2, '0')}.${dep.year}');
+      b.writeln(
+        'Datum: ${dep.day.toString().padLeft(2, '0')}.'
+        '${dep.month.toString().padLeft(2, '0')}.${dep.year}',
+      );
     }
     final trains = transit
         .map((l) => l.line?.displayName ?? '')

@@ -128,15 +128,17 @@ class BahnCardView extends StatelessWidget {
                 Text(
                   card.firstClass ? '1. Klasse' : '2. Klasse',
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 13),
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 13,
+                  ),
                 ),
                 if (card.gueltigBis != null)
                   Text(
                     'gültig bis ${_d(card.gueltigBis!)}',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 13),
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 13,
+                    ),
                   ),
               ],
             ),
@@ -226,9 +228,7 @@ void openBahnCardControl(BuildContext context, DbBahnCard card) {
   // arrow, not a close X — matches the navigation style of the rest of the
   // app's secondary screens.
   Navigator.of(context, rootNavigator: true).push(
-    MaterialPageRoute<void>(
-      builder: (_) => _BahnCardControlScreen(card: card),
-    ),
+    MaterialPageRoute<void>(builder: (_) => _BahnCardControlScreen(card: card)),
   );
 }
 
@@ -236,7 +236,9 @@ void openBahnCardControl(BuildContext context, DbBahnCard card) {
 /// why nothing happened (still loading / endpoint failed / no BahnCard in the
 /// account). Always-visible Ticket-AppBar action — never a silent no-op.
 Future<void> openFirstBahnCardControl(
-    BuildContext context, WidgetRef ref) async {
+  BuildContext context,
+  WidgetRef ref,
+) async {
   final messenger = ScaffoldMessenger.of(context);
   final async = ref.read(bahncardsProvider);
   final cards = async.asData?.value;
@@ -246,26 +248,30 @@ Future<void> openFirstBahnCardControl(
   }
   if (cards != null && cards.isEmpty) {
     messenger.showSnackBar(
-        const SnackBar(content: Text('Keine BahnCard im Konto.')));
+      const SnackBar(content: Text('Keine BahnCard im Konto.')),
+    );
     return;
   }
   // Loading or error — kick a fresh fetch and report.
   messenger.showSnackBar(
-      const SnackBar(content: Text('BahnCard wird geladen …')));
+    const SnackBar(content: Text('BahnCard wird geladen …')),
+  );
   ref.invalidate(bahncardsProvider);
   try {
     final fresh = await ref.read(bahncardsProvider.future);
     if (!context.mounted) return;
     if (fresh.isEmpty) {
       messenger.showSnackBar(
-          const SnackBar(content: Text('Keine BahnCard im Konto.')));
+        const SnackBar(content: Text('Keine BahnCard im Konto.')),
+      );
       return;
     }
     openBahnCardControl(context, fresh.first);
   } catch (e) {
     if (!context.mounted) return;
-    messenger
-        .showSnackBar(SnackBar(content: Text('BahnCard nicht ladbar: $e')));
+    messenger.showSnackBar(
+      SnackBar(content: Text('BahnCard nicht ladbar: $e')),
+    );
   }
 }
 
@@ -304,11 +310,13 @@ class _BahnCardControlScreen extends StatelessWidget {
           // insets match TicketViewScreen so both surfaces feel consistent.
           padding: const EdgeInsets.fromLTRB(20, 32, 20, 20),
           child: (_webViewSupported && html != null)
-              ? _BahnCardHtml(
-                  cacheKey: 'kontrolle:${card.nummer}', html: html)
+              ? _BahnCardHtml(cacheKey: 'kontrolle:${card.nummer}', html: html)
               : const Center(
-                  child: Text('Keine Kontrollansicht verfügbar.',
-                      style: TextStyle(color: Colors.black54))),
+                  child: Text(
+                    'Keine Kontrollansicht verfügbar.',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                ),
         ),
       ),
     );
@@ -390,6 +398,5 @@ class _BahnCardHtmlState extends State<_BahnCardHtml> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      WebViewWidget(controller: _controller);
+  Widget build(BuildContext context) => WebViewWidget(controller: _controller);
 }

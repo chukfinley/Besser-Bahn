@@ -35,7 +35,10 @@ class _CountingHafas extends HafasService {
   }
 
   @override
-  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => const [];
+  Future<List<Station>> searchStations(
+    String query, {
+    bool stopsOnly = false,
+  }) async => const [];
 }
 
 Future<_CountingHafas> _pump(WidgetTester tester) async {
@@ -89,8 +92,9 @@ void main() {
     expect(hafas.queries.single, 'ICE 148');
   });
 
-  testWidgets('a query typed out letter by letter is still one sweep',
-      (tester) async {
+  testWidgets('a query typed out letter by letter is still one sweep', (
+    tester,
+  ) async {
     // The debounce is the whole rate-limit argument: five boards per keystroke
     // would have the backend refusing us for minutes.
     final hafas = await _pump(tester);
@@ -106,8 +110,9 @@ void main() {
     expect(hafas.queries.single, 'ICE 148');
   });
 
-  testWidgets('a query with no number in it never reaches the network',
-      (tester) async {
+  testWidgets('a query with no number in it never reaches the network', (
+    tester,
+  ) async {
     // findTrainsByNumber throws away every non-digit and gives up on an empty
     // number: "ICE" is five requests for a guaranteed empty answer.
     final hafas = await _pump(tester);
@@ -168,7 +173,8 @@ void main() {
     expect(
       find.text('Zugnummer eingeben'),
       findsOneWidget,
-      reason: 'backspacing out of a train leaves the welcome screen, not a '
+      reason:
+          'backspacing out of a train leaves the welcome screen, not a '
           'stale one',
     );
   });

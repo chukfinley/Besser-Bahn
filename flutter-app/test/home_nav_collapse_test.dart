@@ -176,7 +176,11 @@ void main() {
       await tester.drag(find.byType(ListView), const Offset(0, -300));
       await tester.pumpAndSettle();
 
-      expect(_navLabel('Suche'), findsNothing, reason: 'it must have collapsed');
+      expect(
+        _navLabel('Suche'),
+        findsNothing,
+        reason: 'it must have collapsed',
+      );
       // The tab only rebuilds here if its MediaQuery padding actually moved, so
       // an empty list is the pass — and any value that did arrive must be the
       // same number as before.

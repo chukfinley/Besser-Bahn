@@ -10,8 +10,10 @@ void main() {
     });
 
     test('bare coordinates without a space, and negative ones', () {
-      expect(parseGeoQuery('53.439095,14.538596')!.latitude,
-          closeTo(53.439095, 1e-9));
+      expect(
+        parseGeoQuery('53.439095,14.538596')!.latitude,
+        closeTo(53.439095, 1e-9),
+      );
       final g = parseGeoQuery('-33.8688, 151.2093')!;
       expect(g.latitude, closeTo(-33.8688, 1e-9));
       expect(g.longitude, closeTo(151.2093, 1e-9));
@@ -24,8 +26,10 @@ void main() {
     });
 
     test('geo: URI with a zoom parameter', () {
-      expect(parseGeoQuery('geo:52.5251,13.3694?z=17')!.latitude,
-          closeTo(52.5251, 1e-9));
+      expect(
+        parseGeoQuery('geo:52.5251,13.3694?z=17')!.latitude,
+        closeTo(52.5251, 1e-9),
+      );
     });
 
     test('geo:0,0?q=lat,lon(Label) — the Android share form', () {
@@ -37,30 +41,38 @@ void main() {
 
     test('OpenStreetMap marker link', () {
       final g = parseGeoQuery(
-          'https://www.openstreetmap.org/?mlat=53.4391&mlon=14.5386#map=17/53.4391/14.5386')!;
+        'https://www.openstreetmap.org/?mlat=53.4391&mlon=14.5386#map=17/53.4391/14.5386',
+      )!;
       expect(g.latitude, closeTo(53.4391, 1e-9));
       expect(g.longitude, closeTo(14.5386, 1e-9));
     });
 
     test('OpenStreetMap #map= fragment alone', () {
-      final g = parseGeoQuery('https://www.openstreetmap.org/#map=17/53.4391/14.5386')!;
+      final g = parseGeoQuery(
+        'https://www.openstreetmap.org/#map=17/53.4391/14.5386',
+      )!;
       expect(g.latitude, closeTo(53.4391, 1e-9));
       expect(g.longitude, closeTo(14.5386, 1e-9));
     });
 
     test('Google Maps /@lat,lon,zoom', () {
       final g = parseGeoQuery(
-          'https://www.google.com/maps/@53.439095,14.538596,17z')!;
+        'https://www.google.com/maps/@53.439095,14.538596,17z',
+      )!;
       expect(g.latitude, closeTo(53.439095, 1e-9));
     });
 
     test('Google Maps ?q=lat,lon', () {
-      expect(parseGeoQuery('https://maps.google.com/?q=53.4391,14.5386')!.longitude,
-          closeTo(14.5386, 1e-9));
+      expect(
+        parseGeoQuery('https://maps.google.com/?q=53.4391,14.5386')!.longitude,
+        closeTo(14.5386, 1e-9),
+      );
     });
 
     test('Organic Maps / Murena ?ll= with a name', () {
-      final g = parseGeoQuery('https://omaps.app/map?ll=53.4391,14.5386&n=Hafen')!;
+      final g = parseGeoQuery(
+        'https://omaps.app/map?ll=53.4391,14.5386&n=Hafen',
+      )!;
       expect(g.latitude, closeTo(53.4391, 1e-9));
       expect(g.label, 'Hafen');
     });
@@ -105,9 +117,11 @@ void main() {
       expect(parseGeoQuery('https://example.com/foo'), isNull);
     });
 
-    test('a Google short link is left to the normal search (needs expanding)',
-        () {
-      expect(parseGeoQuery('https://maps.app.goo.gl/abc123'), isNull);
-    });
+    test(
+      'a Google short link is left to the normal search (needs expanding)',
+      () {
+        expect(parseGeoQuery('https://maps.app.goo.gl/abc123'), isNull);
+      },
+    );
   });
 }

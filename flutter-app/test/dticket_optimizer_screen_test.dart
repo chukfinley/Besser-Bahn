@@ -21,14 +21,14 @@ class _FakeBulk extends BulkSplitNotifier {
 }
 
 SplitTicket _t(double price, {bool covered = false}) => SplitTicket(
-      from: 'A',
-      to: 'B',
-      price: price,
-      fromId: 'a',
-      toId: 'b',
-      departureIso: '2026-07-17T10:00:00',
-      coveredByDeutschlandTicket: covered,
-    );
+  from: 'A',
+  to: 'B',
+  price: price,
+  fromId: 'a',
+  toId: 'b',
+  departureIso: '2026-07-17T10:00:00',
+  coveredByDeutschlandTicket: covered,
+);
 
 BulkSplitRow _row(
   String label, {
@@ -36,27 +36,28 @@ BulkSplitRow _row(
   required double splitPrice,
   required List<SplitTicket> tickets,
   Duration duration = const Duration(hours: 2),
-}) =>
-    BulkSplitRow(
-      journey: Journey(legs: [
-        JourneyLeg(
-          origin: const Station(id: 'a', name: 'A'),
-          destination: const Station(id: 'b', name: 'B'),
-        ),
-      ]),
-      label: label,
-      duration: duration,
-      transfers: 1,
-      trains: 'RE + ICE',
-      directPrice: directPrice,
-      splitPrice: splitPrice,
-      status: BulkRowStatus.done,
-      result: TicketAnalysisResult(
-        directPrice: directPrice,
-        splitPrice: splitPrice,
-        tickets: tickets,
+}) => BulkSplitRow(
+  journey: Journey(
+    legs: [
+      JourneyLeg(
+        origin: const Station(id: 'a', name: 'A'),
+        destination: const Station(id: 'b', name: 'B'),
       ),
-    );
+    ],
+  ),
+  label: label,
+  duration: duration,
+  transfers: 1,
+  trains: 'RE + ICE',
+  directPrice: directPrice,
+  splitPrice: splitPrice,
+  status: BulkRowStatus.done,
+  result: TicketAnalysisResult(
+    directPrice: directPrice,
+    splitPrice: splitPrice,
+    tickets: tickets,
+  ),
+);
 
 /// The dearest connection by total price (71 €) — and the cheapest by
 /// surcharge (12.90 €). The case #28 exists for.
@@ -77,11 +78,11 @@ final _pureIce = _row(
 );
 
 BulkSplitState _state({required bool deutschlandTicket}) => BulkSplitState(
-      total: 2,
-      doneCount: 2,
-      rows: [_pureIce, _mostlyRegional],
-      deutschlandTicket: deutschlandTicket,
-    );
+  total: 2,
+  doneCount: 2,
+  rows: [_pureIce, _mostlyRegional],
+  deutschlandTicket: deutschlandTicket,
+);
 
 Future<void> _pump(
   WidgetTester tester,
@@ -112,28 +113,32 @@ String _firstLabel(WidgetTester tester) => tester
 
 void main() {
   group('D-Ticket-Optimierer surfaces the surcharge (#28)', () {
-    testWidgets('the mostly-regional connection is put first, ahead of the ICE',
-        (tester) async {
-      await _pump(tester, _state(deutschlandTicket: true));
+    testWidgets(
+      'the mostly-regional connection is put first, ahead of the ICE',
+      (tester) async {
+        await _pump(tester, _state(deutschlandTicket: true));
 
-      expect(find.text('D-Ticket-Optimierer'), findsOneWidget);
-      // 12.90 € surcharge beats 59.90 € — even though its TOTAL (71 €) is the
-      // dearest of the two and normal price sorting buries it.
-      expect(_firstLabel(tester), '08:00 – 12:00');
-      expect(find.text('+12.90 €'), findsOneWidget);
-      expect(find.text('D-Ticket spart −58.10 €'), findsOneWidget);
-    });
+        expect(find.text('D-Ticket-Optimierer'), findsOneWidget);
+        // 12.90 € surcharge beats 59.90 € — even though its TOTAL (71 €) is the
+        // dearest of the two and normal price sorting buries it.
+        expect(_firstLabel(tester), '08:00 – 12:00');
+        expect(find.text('+12.90 €'), findsOneWidget);
+        expect(find.text('D-Ticket spart −58.10 €'), findsOneWidget);
+      },
+    );
 
-    testWidgets('a pure ICE run is told it gains nothing, not sold a saving',
-        (tester) async {
+    testWidgets('a pure ICE run is told it gains nothing, not sold a saving', (
+      tester,
+    ) async {
       await _pump(tester, _state(deutschlandTicket: true));
 
       expect(find.text('+59.90 €'), findsOneWidget);
       expect(find.text('D-Ticket bringt hier nichts'), findsOneWidget);
     });
 
-    testWidgets('switching to Gesamtpreis restores total-price ordering',
-        (tester) async {
+    testWidgets('switching to Gesamtpreis restores total-price ordering', (
+      tester,
+    ) async {
       await _pump(tester, _state(deutschlandTicket: true));
       await tester.tap(find.text('Gesamtpreis'));
       await tester.pumpAndSettle();
@@ -145,17 +150,18 @@ void main() {
     });
 
     testWidgets(
-        'without a D-Ticket the mode is neither offered nor silently applied',
-        (tester) async {
-      // Same rows, but the run priced WITHOUT a D-Ticket: its splitPrice is a
-      // total, so nothing here may be labelled a surcharge (#28, point 5).
-      await _pump(tester, _state(deutschlandTicket: false));
+      'without a D-Ticket the mode is neither offered nor silently applied',
+      (tester) async {
+        // Same rows, but the run priced WITHOUT a D-Ticket: its splitPrice is a
+        // total, so nothing here may be labelled a surcharge (#28, point 5).
+        await _pump(tester, _state(deutschlandTicket: false));
 
-      expect(find.text('Zuzahlung'), findsNothing);
-      expect(find.text('D-Ticket-Optimierer'), findsNothing);
-      expect(find.text('Preisvergleich'), findsOneWidget);
-      expect(find.text('+12.90 €'), findsNothing);
-      expect(_firstLabel(tester), '09:00 – 11:00');
-    });
+        expect(find.text('Zuzahlung'), findsNothing);
+        expect(find.text('D-Ticket-Optimierer'), findsNothing);
+        expect(find.text('Preisvergleich'), findsOneWidget);
+        expect(find.text('+12.90 €'), findsNothing);
+        expect(_firstLabel(tester), '09:00 – 11:00');
+      },
+    );
   });
 }

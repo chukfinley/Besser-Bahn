@@ -15,6 +15,7 @@ class SplitTicketState {
   final SplitTicketProgress? progress;
   final String? error;
   final List<String> logs;
+
   /// Origin → destination of the whole trip being analysed. Set at analyze()
   /// start so the screen can show "Reisdorf → Kaltenkirchen" the moment it
   /// opens, before any price query has returned.
@@ -118,9 +119,10 @@ class SplitTicketNotifier extends Notifier<SplitTicketState> {
     final vendo = ref.read(vendoServiceProvider);
     // Derive the fallback (DB web API) payload from the actual search party so
     // Halbtax / Vorteilscard / SBA are not silently dropped when Vendo fails.
-    final primaryTraveler = settings.searchParty.travelers
-        .firstWhere((t) => t.typ.isPerson,
-            orElse: () => const Traveler(typ: TravelerType.erwachsener));
+    final primaryTraveler = settings.searchParty.travelers.firstWhere(
+      (t) => t.typ.isPerson,
+      orElse: () => const Traveler(typ: TravelerType.erwachsener),
+    );
     final travellers = DbApiService.createTravellerPayload(
       bahnCard: primaryTraveler.bahnCard,
       weitere: primaryTraveler.weitere,
@@ -134,7 +136,8 @@ class SplitTicketNotifier extends Notifier<SplitTicketState> {
     final n = stops.length;
     final totalCombinations = (n * (n - 1)) ~/ 2;
 
-    final initialRouteLabel = routeLabel ??
+    final initialRouteLabel =
+        routeLabel ??
         (stops.isNotEmpty
             ? '${stops.first['name']} → ${stops.last['name']}'
             : null);
@@ -186,17 +189,19 @@ class SplitTicketNotifier extends Notifier<SplitTicketState> {
         return;
       }
       _runningSig = null;
-      _log('Fertig! Direktpreis: ${directPrice.toStringAsFixed(2)}€, '
-          'Split: ${result.splitPrice.toStringAsFixed(2)}€');
+      _log(
+        'Fertig! Direktpreis: ${directPrice.toStringAsFixed(2)}€, '
+        'Split: ${result.splitPrice.toStringAsFixed(2)}€',
+      );
       state = state.copyWith(isLoading: false, result: result);
 
       // Notify the user the background analysis is done — they may have left
       // the screen while it ran.
-      final route = routeLabel ??
-          '${stops.first['name']} → ${stops.last['name']}';
+      final route =
+          routeLabel ?? '${stops.first['name']} → ${stops.last['name']}';
       final body = result.hasSavings
           ? 'Split-Ticket ${result.savings.toStringAsFixed(2)} € günstiger '
-              '(${result.savingsPercent.toStringAsFixed(0)}%)'
+                '(${result.savingsPercent.toStringAsFixed(0)}%)'
           : 'Kein günstigeres Split-Ticket – Direktpreis bleibt am besten.';
       NotificationService.showSplitResult(title: route, body: body);
     } catch (e) {
@@ -213,4 +218,5 @@ class SplitTicketNotifier extends Notifier<SplitTicketState> {
 
 final splitTicketProvider =
     NotifierProvider<SplitTicketNotifier, SplitTicketState>(
-        SplitTicketNotifier.new);
+      SplitTicketNotifier.new,
+    );

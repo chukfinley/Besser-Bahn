@@ -100,9 +100,11 @@ void main() {
 
     test('a 3-digit hex colour and shorthand weights resolve', () {
       final html = _bildSicht(
-          extraCss: '.x{position:absolute;top:1%;left:1%;font-size:2vw;'
-              'color:#f00;font-weight:600;}',
-          extraBody: '<div class="x">RE</div>');
+        extraCss:
+            '.x{position:absolute;top:1%;left:1%;font-size:2vw;'
+            'color:#f00;font-weight:600;}',
+        extraBody: '<div class="x">RE</div>',
+      );
       final art = BahnCardArt.parse(html)!;
       final x = art.texts.firstWhere((t) => t.text == 'RE');
       expect(x.color, const Color(0xFFFF0000));
@@ -111,15 +113,18 @@ void main() {
 
     test('text-transform:uppercase is applied, not ignored', () {
       final html = _bildSicht(
-          name: 'Max Mustermann',
-          extraCss: '.name{text-transform:uppercase;}');
+        name: 'Max Mustermann',
+        extraCss: '.name{text-transform:uppercase;}',
+      );
       final art = BahnCardArt.parse(html)!;
       expect(art.texts.first.text, 'MAX MUSTERMANN');
     });
 
     test('inline styles win over the stylesheet, like CSS says', () {
       final html = _bildSicht().replaceFirst(
-          '<div class="name">', '<div class="name" style="left:20%;">');
+        '<div class="name">',
+        '<div class="name" style="left:20%;">',
+      );
       final art = BahnCardArt.parse(html)!;
       expect(art.texts.first.left, closeTo(0.20, 1e-9));
     });
@@ -136,7 +141,8 @@ void main() {
 
     test('inheritable text properties cascade down from the container', () {
       final html = _bildSicht(
-        extraCss: '.image{color:#000000;}'
+        extraCss:
+            '.image{color:#000000;}'
             '.plain{position:absolute;top:30%;left:30%;font-size:2vw;}',
         extraBody: '<div class="plain">INHERIT</div>',
       );
@@ -159,19 +165,23 @@ void main() {
 
     test('no artwork in the document', () {
       expect(
-          BahnCardArt.parse('<html><body><div class="x">hi</div></body></html>'),
-          isNull);
+        BahnCardArt.parse('<html><body><div class="x">hi</div></body></html>'),
+        isNull,
+      );
     });
 
     test('artwork referenced by URL instead of inlined', () {
       final html = _bildSicht().replaceFirst(
-          'url(data:image/png;base64,$_pngB64)', 'url(https://db.de/card.png)');
+        'url(data:image/png;base64,$_pngB64)',
+        'url(https://db.de/card.png)',
+      );
       expect(BahnCardArt.parse(html), isNull);
     });
 
     test('two background images — we would only paint one', () {
       final html = _bildSicht(
-        extraCss: '.second{background-image:url(data:image/png;base64,$_pngB64);'
+        extraCss:
+            '.second{background-image:url(data:image/png;base64,$_pngB64);'
             'position:absolute;top:0;left:0;}',
         extraBody: '<div class="second"></div>',
       );
@@ -180,7 +190,8 @@ void main() {
 
     test('a media query — we do not know which rules apply', () {
       final html = _bildSicht(
-          extraCss: '@media (min-width:600px){.name{left:20%;}}');
+        extraCss: '@media (min-width:600px){.name{left:20%;}}',
+      );
       expect(BahnCardArt.parse(html), isNull);
     });
 
@@ -221,9 +232,11 @@ void main() {
 
     test('a text field anchored on only one axis', () {
       final html = _bildSicht(
-          extraCss: '.loose{position:absolute;left:5%;font-size:2vw;'
-              'color:#000;}',
-          extraBody: '<div class="loose">NO VERTICAL ANCHOR</div>');
+        extraCss:
+            '.loose{position:absolute;left:5%;font-size:2vw;'
+            'color:#000;}',
+        extraBody: '<div class="loose">NO VERTICAL ANCHOR</div>',
+      );
       expect(BahnCardArt.parse(html), isNull);
     });
 
@@ -238,8 +251,10 @@ void main() {
     });
 
     test('text outside the artwork entirely', () {
-      final html =
-          _bildSicht().replaceFirst('</body>', '<p>Fußnote</p></body>');
+      final html = _bildSicht().replaceFirst(
+        '</body>',
+        '<p>Fußnote</p></body>',
+      );
       expect(BahnCardArt.parse(html), isNull);
     });
 
@@ -267,12 +282,16 @@ void main() {
       final html = _bildSicht()
           .replaceFirst('<body>', '<body><div class="wrap">')
           .replaceFirst('</body>', '</div></body>')
-          .replaceFirst('</style>', '.wrap{position:absolute;top:10%;}</style>');
+          .replaceFirst(
+            '</style>',
+            '.wrap{position:absolute;top:10%;}</style>',
+          );
       expect(BahnCardArt.parse(html), isNull);
     });
 
     test('an artwork-only card — no name, no number', () {
-      const html = '<html><head><style>'
+      const html =
+          '<html><head><style>'
           '.image{background-image:url(data:image/png;base64,$_pngB64);'
           'padding-top:65%;}'
           '</style></head><body><div class="image"></div></body></html>';
@@ -286,15 +305,18 @@ void main() {
     });
 
     test('an SVG artwork — Image cannot decode it', () {
-      final html = _bildSicht()
-          .replaceFirst('data:image/png;base64,', 'data:image/svg+xml;base64,');
+      final html = _bildSicht().replaceFirst(
+        'data:image/png;base64,',
+        'data:image/svg+xml;base64,',
+      );
       expect(BahnCardArt.parse(html), isNull);
     });
 
     test('mis-nested tags', () {
       final html = _bildSicht().replaceFirst(
-          '<div class="name">MAX MUSTERMANN</div>',
-          '<div class="name">MAX MUSTERMANN</span>');
+        '<div class="name">MAX MUSTERMANN</div>',
+        '<div class="name">MAX MUSTERMANN</span>',
+      );
       expect(BahnCardArt.parse(html), isNull);
     });
 
@@ -343,7 +365,8 @@ void main() {
 
     test('masks alt/title attributes — they can name the holder', () {
       final out = redactBahnCardHtml(
-          '<img alt="BahnCard von Max Mustermann" src="x.png">');
+        '<img alt="BahnCard von Max Mustermann" src="x.png">',
+      );
       expect(out, isNot(contains('Mustermann')));
       expect(out, contains('alt='));
     });

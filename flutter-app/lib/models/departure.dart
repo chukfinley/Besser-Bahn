@@ -88,20 +88,20 @@ class TransitLine {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'fahrtNr': fahrtNr,
-        'productName': productName,
-        'product': product,
-        'operatorName': operatorName,
-      };
+    'name': name,
+    'fahrtNr': fahrtNr,
+    'productName': productName,
+    'product': product,
+    'operatorName': operatorName,
+  };
 
   factory TransitLine.fromJson(Map<String, dynamic> json) => TransitLine(
-        name: json['name'] as String? ?? '',
-        fahrtNr: json['fahrtNr'] as String? ?? '',
-        productName: json['productName'] as String? ?? '',
-        product: json['product'] as String? ?? '',
-        operatorName: json['operatorName'] as String?,
-      );
+    name: json['name'] as String? ?? '',
+    fahrtNr: json['fahrtNr'] as String? ?? '',
+    productName: json['productName'] as String? ?? '',
+    product: json['product'] as String? ?? '',
+    operatorName: json['operatorName'] as String?,
+  );
 
   /// Returns short display name like "ICE 148" or "RE 1"
   String get displayName {
@@ -118,7 +118,9 @@ class TransitLine {
     final n = name.trim();
     if (n.isEmpty) return productName;
     return n.replaceFirstMapped(
-        RegExp(r'^([A-Za-zÄÖÜäöü]+)\s*(\d)'), (m) => '${m[1]} ${m[2]}');
+      RegExp(r'^([A-Za-zÄÖÜäöü]+)\s*(\d)'),
+      (m) => '${m[1]} ${m[2]}',
+    );
   }
 
   /// Header title: the line plus the official train number in parentheses when
@@ -181,12 +183,12 @@ class TransitLine {
   /// Same line but with a different label (the real line, e.g. "RE7"), carried
   /// over from a departure/leg into a freshly fetched trip whose API omits it.
   TransitLine withName(String newName) => TransitLine(
-        name: newName,
-        fahrtNr: fahrtNr,
-        productName: productName,
-        product: product,
-        operatorName: operatorName,
-      );
+    name: newName,
+    fahrtNr: fahrtNr,
+    productName: productName,
+    product: product,
+    operatorName: operatorName,
+  );
 }
 
 DateTime? _parseDateTime(dynamic value) {

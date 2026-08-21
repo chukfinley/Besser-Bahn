@@ -40,9 +40,5 @@ Journey? firstBoardable(List<Journey> candidates, DateTime arrival) {
 
 /// [legs] up to and including [index], then [onward]'s legs — the swapped ride
 /// plus its re-planned continuation.
-List<JourneyLeg> spliceTail(
-  List<JourneyLeg> legs,
-  int index,
-  Journey onward,
-) =>
+List<JourneyLeg> spliceTail(List<JourneyLeg> legs, int index, Journey onward) =>
     [...legs.sublist(0, index + 1), ...onward.legs];

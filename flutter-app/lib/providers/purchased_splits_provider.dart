@@ -38,15 +38,16 @@ class PurchasedSplitsNotifier extends Notifier<List<PurchasedSplit>> {
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        _kKey, jsonEncode(state.map((s) => s.toJson()).toList()));
+      _kKey,
+      jsonEncode(state.map((s) => s.toJson()).toList()),
+    );
   }
 
   /// Record a confirmed purchase. A repeat confirmation of the same connection
   /// (same route + departure) replaces the earlier one instead of double-
   /// counting the saving.
   Future<void> add(PurchasedSplit split) async {
-    final rest =
-        state.where((s) => s.dedupeKey != split.dedupeKey).toList();
+    final rest = state.where((s) => s.dedupeKey != split.dedupeKey).toList();
     state = [split, ...rest]
       ..sort((a, b) => b.purchasedAtMs.compareTo(a.purchasedAtMs));
     await _save();
@@ -61,8 +62,7 @@ class PurchasedSplitsNotifier extends Notifier<List<PurchasedSplit>> {
 
   /// True once this route+departure has already been marked as bought — lets
   /// the UI show "gekauft ✓" instead of the confirm button.
-  bool contains(String dedupeKey) =>
-      state.any((s) => s.dedupeKey == dedupeKey);
+  bool contains(String dedupeKey) => state.any((s) => s.dedupeKey == dedupeKey);
 
   Future<void> reset() async {
     state = const [];
@@ -77,4 +77,5 @@ class PurchasedSplitsNotifier extends Notifier<List<PurchasedSplit>> {
 
 final purchasedSplitsProvider =
     NotifierProvider<PurchasedSplitsNotifier, List<PurchasedSplit>>(
-        PurchasedSplitsNotifier.new);
+      PurchasedSplitsNotifier.new,
+    );

@@ -10,27 +10,26 @@ class DbApiService {
   final http.Client _client = http.Client();
 
   Map<String, String> get _headers => {
-        'User-Agent': ApiConstants.userAgent,
-        'Accept': 'application/json',
-        'Accept-Language': 'de-DE,de;q=0.9',
-        'Content-Type': 'application/json',
-      };
+    'User-Agent': ApiConstants.userAgent,
+    'Accept': 'application/json',
+    'Accept-Language': 'de-DE,de;q=0.9',
+    'Content-Type': 'application/json',
+  };
 
   /// Search stations via bahn.de API
   Future<List<Map<String, dynamic>>> searchStations(String query) async {
-    final uri = Uri.parse(
-      '${ApiConstants.dbWebApiBaseUrl}/reiseloesung/orte',
-    ).replace(queryParameters: {
-      'suchbegriff': query,
-      'typ': 'ALL',
-      'limit': '10',
-    });
+    final uri = Uri.parse('${ApiConstants.dbWebApiBaseUrl}/reiseloesung/orte')
+        .replace(
+          queryParameters: {'suchbegriff': query, 'typ': 'ALL', 'limit': '10'},
+        );
 
     final response = await _client.get(uri, headers: _headers);
     if (response.statusCode != 200) return [];
 
     final result = json.decode(response.body);
-    if (result is List) return result.whereType<Map<String, dynamic>>().toList();
+    if (result is List) {
+      return result.whereType<Map<String, dynamic>>().toList();
+    }
     return [];
   }
 
@@ -42,8 +41,7 @@ class DbApiService {
     required List<Map<String, dynamic>> travellers,
     bool deutschlandTicket = false,
   }) async {
-    final uri = Uri.parse(
-        '${ApiConstants.dbWebApiBaseUrl}/angebote/fahrplan');
+    final uri = Uri.parse('${ApiConstants.dbWebApiBaseUrl}/angebote/fahrplan');
 
     final body = {
       'abfahrtsHalt': fromId,
@@ -52,16 +50,27 @@ class DbApiService {
       'ankunftSuche': 'ABFAHRT',
       'klasse': 'KLASSE_2',
       'produktgattungen': [
-        'ICE', 'EC_IC', 'IR', 'REGIONAL', 'SBAHN',
-        'BUS', 'SCHIFF', 'UBAHN', 'TRAM', 'ANRUFPFLICHTIG',
+        'ICE',
+        'EC_IC',
+        'IR',
+        'REGIONAL',
+        'SBAHN',
+        'BUS',
+        'SCHIFF',
+        'UBAHN',
+        'TRAM',
+        'ANRUFPFLICHTIG',
       ],
       'reisende': travellers,
       'schnelleVerbindungen': true,
       'deutschlandTicketVorhanden': deutschlandTicket,
     };
 
-    final response = await _client.post(uri, headers: _headers,
-        body: json.encode(body));
+    final response = await _client.post(
+      uri,
+      headers: _headers,
+      body: json.encode(body),
+    );
     if (response.statusCode != 200) {
       throw Exception('Failed to get connections: ${response.statusCode}');
     }
@@ -90,7 +99,10 @@ class DbApiService {
 
       final connections = result['verbindungen'] as List<dynamic>? ?? [];
       if (connections.isEmpty) {
-        return const SegmentPrice(price: double.infinity, isDTicketCovered: false);
+        return const SegmentPrice(
+          price: double.infinity,
+          isDTicketCovered: false,
+        );
       }
 
       final first = connections[0] as Map<String, dynamic>;
@@ -108,14 +120,18 @@ class DbApiService {
       // so it always flags. Claiming otherwise would make the fallback look
       // MORE trustworthy than the primary (#13).
       final priceObj = first['angebotsPreis'] as Map<String, dynamic>?;
-      final price = (priceObj?['betrag'] as num?)?.toDouble() ?? double.infinity;
+      final price =
+          (priceObj?['betrag'] as num?)?.toDouble() ?? double.infinity;
       return SegmentPrice(
         price: price,
         isDTicketCovered: false,
         priceMayBeTrainBound: true,
       );
     } catch (_) {
-      return const SegmentPrice(price: double.infinity, isDTicketCovered: false);
+      return const SegmentPrice(
+        price: double.infinity,
+        isDTicketCovered: false,
+      );
     }
   }
 
@@ -146,15 +162,17 @@ class DbApiService {
         'ermaessigungen': [
           // Always exactly one BahnCard entry, "none" included: the web API
           // treats an empty list as a malformed traveller, not as "no card".
-          entry(bahnCard == Reduction.none
-              ? 'KEINE_ERMAESSIGUNG KLASSENLOS'
-              : bahnCard.vendoKey),
+          entry(
+            bahnCard == Reduction.none
+                ? 'KEINE_ERMAESSIGUNG KLASSENLOS'
+                : bahnCard.vendoKey,
+          ),
           if (weitere != Reduction.none) entry(weitere.vendoKey),
           if (sba != SbaOption.none) entry(sba.vendoKey),
         ],
         'alter': [],
         'anzahl': 1,
-      }
+      },
     ];
   }
 
@@ -185,7 +203,8 @@ class DbApiService {
   }
 
   /// Generate a booking link for a split ticket
-  static String generateBookingLink(SplitTicket ticket, {
+  static String generateBookingLink(
+    SplitTicket ticket, {
     BahnCardType bahnCard = BahnCardType.none,
     bool deutschlandTicket = false,
   }) {
@@ -245,7 +264,8 @@ class DbApiService {
       headers: _headers,
     );
     if (lookup.statusCode != 200) return null;
-    final recon = (json.decode(lookup.body) as Map<String, dynamic>?)?['hinfahrtRecon'];
+    final recon =
+        (json.decode(lookup.body) as Map<String, dynamic>?)?['hinfahrtRecon'];
     if (recon == null) return null;
 
     final recked = await _client.post(

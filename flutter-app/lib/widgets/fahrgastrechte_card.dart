@@ -34,15 +34,20 @@ class FahrgastrechteCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.gavel,
-                      color: theme.colorScheme.onTertiaryContainer, size: 20),
+                  Icon(
+                    Icons.gavel,
+                    color: theme.colorScheme.onTertiaryContainer,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text('Anspruch auf Entschädigung',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onTertiaryContainer,
-                          fontWeight: FontWeight.bold,
-                        )),
+                    child: Text(
+                      'Anspruch auf Entschädigung',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -75,7 +80,9 @@ class FahrgastrechteCard extends StatelessWidget {
 
 /// Opens the assistant sheet for [journey].
 Future<void> showFahrgastrechteAssistant(
-    BuildContext context, Journey journey) {
+  BuildContext context,
+  Journey journey,
+) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -111,9 +118,11 @@ class _FahrgastrechteAssistantSheetState
     super.initState();
     final price = widget.journey.price?.amount;
     _fareCtrl = TextEditingController(
-        text: price != null ? price.toStringAsFixed(2) : '');
+      text: price != null ? price.toStringAsFixed(2) : '',
+    );
     _delayCtrl = TextEditingController(
-        text: PassengerRights.delayMinutesOf(widget.journey).toString());
+      text: PassengerRights.delayMinutesOf(widget.journey).toString(),
+    );
   }
 
   @override
@@ -138,8 +147,11 @@ class _FahrgastrechteAssistantSheetState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final rights = PassengerRights.fromDelay(_delay);
-    final estimate = rights.estimate(_kind,
-        fareEuros: _fare, firstClass: _firstClass);
+    final estimate = rights.estimate(
+      _kind,
+      fareEuros: _fare,
+      firstClass: _firstClass,
+    );
 
     return Padding(
       padding: EdgeInsets.only(
@@ -156,15 +168,20 @@ class _FahrgastrechteAssistantSheetState
               children: [
                 Icon(Icons.gavel, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Fahrgastrechte-Assistent',
-                    style: theme.textTheme.titleLarge),
+                Text(
+                  'Fahrgastrechte-Assistent',
+                  style: theme.textTheme.titleLarge,
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Text('${widget.journey.origin?.name ?? ''} → '
-                '${widget.journey.destination?.name ?? ''}',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Text(
+              '${widget.journey.origin?.name ?? ''} → '
+              '${widget.journey.destination?.name ?? ''}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 16),
 
             // Delay — prefilled from the trip, correctable by hand.
@@ -200,8 +217,9 @@ class _FahrgastrechteAssistantSheetState
             if (_fareRelevant)
               TextField(
                 controller: _fareCtrl,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
                   labelText: 'Fahrpreis (€)',
@@ -232,15 +250,17 @@ class _FahrgastrechteAssistantSheetState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('•  '),
-                    Expanded(
-                        child: Text(c, style: theme.textTheme.bodySmall)),
+                    Expanded(child: Text(c, style: theme.textTheme.bodySmall)),
                   ],
                 ),
               ),
             const SizedBox(height: 12),
-            Text(PassengerRights.disclaimer,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Text(
+              PassengerRights.disclaimer,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 16),
 
             Row(
@@ -251,13 +271,17 @@ class _FahrgastrechteAssistantSheetState
                     label: const Text('Daten kopieren'),
                     onPressed: rights.isEligible
                         ? () {
-                            Clipboard.setData(ClipboardData(
-                                text: rights.prefillText(widget.journey)));
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(const SnackBar(
-                              duration: Duration(seconds: 2),
-                              content: Text('Antragsdaten kopiert'),
-                            ));
+                            Clipboard.setData(
+                              ClipboardData(
+                                text: rights.prefillText(widget.journey),
+                              ),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                duration: Duration(seconds: 2),
+                                content: Text('Antragsdaten kopiert'),
+                              ),
+                            );
                           }
                         : null,
                   ),
@@ -282,32 +306,35 @@ class _FahrgastrechteAssistantSheetState
   }
 
   Widget _result(
-      ThemeData theme, PassengerRights rights, RefundEstimate estimate) {
+    ThemeData theme,
+    PassengerRights rights,
+    RefundEstimate estimate,
+  ) {
     final (String text, IconData icon) = switch (rights.isEligible) {
       false => (
-          'Unter 60 Minuten — in der Regel kein Entschädigungsanspruch.',
-          Icons.info_outline,
-        ),
+        'Unter 60 Minuten — in der Regel kein Entschädigungsanspruch.',
+        Icons.info_outline,
+      ),
       true when estimate.isPauschale => (
-          'Pauschale laut Gesetz: ≈ ${estimate.amount!.toStringAsFixed(2)} € '
-              '(kann sich ändern; der genaue Betrag wird im Antrag berechnet).',
-          Icons.euro,
-        ),
+        'Pauschale laut Gesetz: ≈ ${estimate.amount!.toStringAsFixed(2)} € '
+            '(kann sich ändern; der genaue Betrag wird im Antrag berechnet).',
+        Icons.euro,
+      ),
       true when estimate.belowMinimum => (
-          '${rights.percent} % wären ≈ ${estimate.amount!.toStringAsFixed(2)} € '
-              '— unter 4 € zahlt die DB nicht aus.',
-          Icons.info_outline,
-        ),
+        '${rights.percent} % wären ≈ ${estimate.amount!.toStringAsFixed(2)} € '
+            '— unter 4 € zahlt die DB nicht aus.',
+        Icons.info_outline,
+      ),
       true when estimate.isPayable => (
-          '${rights.percent} % Entschädigung: '
-              '≈ ${estimate.amount!.toStringAsFixed(2)} €.',
-          Icons.euro,
-        ),
+        '${rights.percent} % Entschädigung: '
+            '≈ ${estimate.amount!.toStringAsFixed(2)} €.',
+        Icons.euro,
+      ),
       true => (
-          '${rights.percent} % des Fahrpreises. Fahrpreis eingeben für den '
-              'Betrag.',
-          Icons.euro,
-        ),
+        '${rights.percent} % des Fahrpreises. Fahrpreis eingeben für den '
+            'Betrag.',
+        Icons.euro,
+      ),
     };
     final payable = estimate.isPayable;
     final bg = payable
@@ -329,9 +356,13 @@ class _FahrgastrechteAssistantSheetState
           Icon(icon, size: 20, color: fg),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: fg, fontWeight: FontWeight.w500)),
+            child: Text(
+              text,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),

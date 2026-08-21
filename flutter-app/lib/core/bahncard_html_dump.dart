@@ -34,14 +34,14 @@ String redactBahnCardHtml(String html) {
 /// takes the export from ~283 KB to a few KB, and it's what makes it not a
 /// BahnCard any more.
 String _elideBase64(String src) => src.replaceAllMapped(
-      RegExp(r'(data:[a-zA-Z0-9/.+-]*;base64,)([A-Za-z0-9+/=\s]+)'),
-      (m) {
-        final payload = m.group(2)!.replaceAll(RegExp(r'\s'), '');
-        // 4 base64 chars ≈ 3 bytes; close enough to say how big the artwork is.
-        final bytes = (payload.length * 3) ~/ 4;
-        return '${m.group(1)}<<<$bytes bytes elided>>>';
-      },
-    );
+  RegExp(r'(data:[a-zA-Z0-9/.+-]*;base64,)([A-Za-z0-9+/=\s]+)'),
+  (m) {
+    final payload = m.group(2)!.replaceAll(RegExp(r'\s'), '');
+    // 4 base64 chars ≈ 3 bytes; close enough to say how big the artwork is.
+    final bytes = (payload.length * 3) ~/ 4;
+    return '${m.group(1)}<<<$bytes bytes elided>>>';
+  },
+);
 
 /// Blanks the text between tags, keeping its length and shape so field widths
 /// stay diagnosable. Attribute values are left alone: `class`/`style` are the
@@ -62,10 +62,12 @@ String _redactText(String src) {
 
 /// `alt`/`title`/`aria-label` are human copy and can name the holder.
 String _redactAttrText(String tag) => tag.replaceAllMapped(
-      RegExp('''((?:alt|title|aria-label)\\s*=\\s*)(?:"([^"]*)"|'([^']*)')''',
-          caseSensitive: false),
-      (m) => '${m.group(1)}"${_mask(m.group(2) ?? m.group(3) ?? '')}"',
-    );
+  RegExp(
+    '''((?:alt|title|aria-label)\\s*=\\s*)(?:"([^"]*)"|'([^']*)')''',
+    caseSensitive: false,
+  ),
+  (m) => '${m.group(1)}"${_mask(m.group(2) ?? m.group(3) ?? '')}"',
+);
 
 /// Letters → `X`, digits → `0`; punctuation and whitespace stay, so the shape
 /// of a card number (`0000 0000 0000 0000`) or a date (`00.00.0000`) is still
@@ -85,6 +87,6 @@ String _mask(String s) {
 }
 
 String _maskChars(String s) => s.replaceAllMapped(
-      RegExp(r'[^\s\W_]'),
-      (m) => RegExp(r'\d').hasMatch(m.group(0)!) ? '0' : 'X',
-    );
+  RegExp(r'[^\s\W_]'),
+  (m) => RegExp(r'\d').hasMatch(m.group(0)!) ? '0' : 'X',
+);

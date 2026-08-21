@@ -57,14 +57,17 @@ class _TripProgressInlineState extends State<TripProgressInline> {
                 p.minutesToArrival <= 0
                     ? 'Ankunft jetzt'
                     : 'Noch ${_dur(p.minutesToArrival)} bis ${p.destinationName}',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            Text('${(p.fraction * 100).round()} %',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                )),
+            Text(
+              '${(p.fraction * 100).round()} %',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 6),

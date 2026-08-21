@@ -333,10 +333,12 @@ class BackgroundTripTracking {
       // missed-connection logic after a transfer. Prefer a leg whose timetable
       // window contains now; only then break ties by distance.
       final plausible = _timePlausible(leg, sample.timestamp);
-      final better = inference == null ||
+      final better =
+          inference == null ||
           (plausible && !selectedPlausible) ||
           (plausible == selectedPlausible &&
-              candidate.distanceToRouteMetres < inference.distanceToRouteMetres);
+              candidate.distanceToRouteMetres <
+                  inference.distanceToRouteMetres);
       if (better) {
         selected = leg;
         inference = candidate;
@@ -355,7 +357,8 @@ class BackgroundTripTracking {
     // replayed delivery (same/older timestamp) could otherwise satisfy the
     // 2-measurement thresholds on its own and fire a false delay/missed prompt.
     final isNewSample =
-        state.lastSampleAt == null || sample.timestamp.isAfter(state.lastSampleAt!);
+        state.lastSampleAt == null ||
+        sample.timestamp.isAfter(state.lastSampleAt!);
 
     MissedConnectionRescue? missedRescue;
     for (final leg in plan.legs) {
@@ -399,7 +402,8 @@ class BackgroundTripTracking {
         state.lastProgress == null ||
         inference.progress >= state.lastProgress! - .015;
     if (isNewSample) {
-      final qualifies = missedRescue == null &&
+      final qualifies =
+          missedRescue == null &&
           !inference.shouldNotifyExit &&
           inference.progress >= .05 &&
           inference.progress <= .97 &&

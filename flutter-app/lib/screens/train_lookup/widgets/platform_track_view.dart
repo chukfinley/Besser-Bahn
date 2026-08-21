@@ -46,7 +46,8 @@ class PlatformTrackView extends StatelessWidget {
     final coaches = s.allCoaches;
     if (coaches.isEmpty) return false;
     return coaches.every(
-        (c) => c.platformPosition != null && c.platformPosition!.length > 0);
+      (c) => c.platformPosition != null && c.platformPosition!.length > 0,
+    );
   }
 
   @override
@@ -55,10 +56,12 @@ class PlatformTrackView extends StatelessWidget {
     final coaches = sequence.allCoaches;
     final plat = sequence.platform;
 
-    final trainStart =
-        coaches.map((c) => c.platformPosition!.start).reduce(math.min);
-    final trainEnd =
-        coaches.map((c) => c.platformPosition!.end).reduce(math.max);
+    final trainStart = coaches
+        .map((c) => c.platformPosition!.start)
+        .reduce(math.min);
+    final trainEnd = coaches
+        .map((c) => c.platformPosition!.end)
+        .reduce(math.max);
     final trainLen = (trainEnd - trainStart).abs();
     if (trainLen <= 0) return const SizedBox.shrink();
 
@@ -108,9 +111,11 @@ class PlatformTrackView extends StatelessWidget {
     final totalW = span * scale + leadPad * 2;
 
     final bandEven = theme.colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.55);
+      alpha: 0.55,
+    );
     final bandOdd = theme.colorScheme.surfaceContainerHighest.withValues(
-        alpha: 0.20);
+      alpha: 0.20,
+    );
     final boundary = theme.colorScheme.outlineVariant;
 
     final children = <Widget>[];
@@ -122,77 +127,96 @@ class PlatformTrackView extends StatelessWidget {
       final left = px(s.start);
       final w = (s.end - s.start) * scale;
       if (w <= 0 || left + w <= 0 || left >= totalW) continue;
-      children.add(Positioned(
-        left: left,
-        width: w,
-        top: 0,
-        bottom: 0,
-        child: Container(
-          decoration: BoxDecoration(
-            color: i.isEven ? bandEven : bandOdd,
-            border: Border(right: BorderSide(color: boundary, width: 1)),
-          ),
-        ),
-      ));
-      // Big, clear section letter at the top of the band.
-      children.add(Positioned(
-        left: left,
-        width: w,
-        top: dirH,
-        height: labelH,
-        child: Center(
-          child: Text(
-            s.name,
-            style: TextStyle(
-              fontSize: carHeight >= 56 ? 18 : 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-              color: theme.colorScheme.onSurface,
+      children.add(
+        Positioned(
+          left: left,
+          width: w,
+          top: 0,
+          bottom: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: i.isEven ? bandEven : bandOdd,
+              border: Border(right: BorderSide(color: boundary, width: 1)),
             ),
           ),
         ),
-      ));
+      );
+      // Big, clear section letter at the top of the band.
+      children.add(
+        Positioned(
+          left: left,
+          width: w,
+          top: dirH,
+          height: labelH,
+          child: Center(
+            child: Text(
+              s.name,
+              style: TextStyle(
+                fontSize: carHeight >= 56 ? 18 : 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     // 2) The Gleis (track) running the full width under the cars.
-    children.add(Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: trackH,
-      child: CustomPaint(painter: _TrackPainter(color: AppColors.locomotive)),
-    ));
+    children.add(
+      Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: trackH,
+        child: CustomPaint(painter: _TrackPainter(color: AppColors.locomotive)),
+      ),
+    );
 
     // 2b) Fahrtrichtung arrow in the top strip, at the leading end.
     if (hasDir) {
-      children.add(Positioned(
-        left: 0,
-        right: 0,
-        top: 0,
-        height: dirH,
-        child: Align(
-          alignment: dirToStart ? Alignment.centerLeft : Alignment.centerRight,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (dirToStart)
-                  Icon(Icons.keyboard_double_arrow_left,
-                      size: 15, color: theme.colorScheme.primary),
-                Text(' Fahrtrichtung ',
+      children.add(
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: dirH,
+          child: Align(
+            alignment: dirToStart
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (dirToStart)
+                    Icon(
+                      Icons.keyboard_double_arrow_left,
+                      size: 15,
+                      color: theme.colorScheme.primary,
+                    ),
+                  Text(
+                    ' Fahrtrichtung ',
                     style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.primary)),
-                if (!dirToStart)
-                  Icon(Icons.keyboard_double_arrow_right,
-                      size: 15, color: theme.colorScheme.primary),
-              ],
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  if (!dirToStart)
+                    Icon(
+                      Icons.keyboard_double_arrow_right,
+                      size: 15,
+                      color: theme.colorScheme.primary,
+                    ),
+                ],
+              ),
             ),
           ),
         ),
-      ));
+      );
     }
 
     // 3) The cars at their true platform positions. The FIRST and LAST car are
@@ -215,39 +239,43 @@ class PlatformTrackView extends StatelessWidget {
         final front = isFirst;
         final left = front ? slotLeft - overhang : slotLeft;
         final w = slotW + overhang;
-        children.add(Positioned(
-          left: left,
-          width: w,
-          top: carTop,
-          height: carHeight,
-          child: _TrackEndCar(
-            coach: c,
-            front: front,
-            highSpeed: highSpeed,
+        children.add(
+          Positioned(
+            left: left,
             width: w,
+            top: carTop,
             height: carHeight,
-            selectable: selectable,
-            freeCount: freeCount,
-            isSelected: isSel,
-            onTap: onTap,
+            child: _TrackEndCar(
+              coach: c,
+              front: front,
+              highSpeed: highSpeed,
+              width: w,
+              height: carHeight,
+              selectable: selectable,
+              freeCount: freeCount,
+              isSelected: isSel,
+              onTap: onTap,
+            ),
           ),
-        ));
+        );
       } else {
-        children.add(Positioned(
-          left: slotLeft,
-          width: slotW,
-          top: carTop,
-          height: carHeight,
-          child: _TrackCar(
-            coach: c,
+        children.add(
+          Positioned(
+            left: slotLeft,
             width: slotW,
+            top: carTop,
             height: carHeight,
-            selectable: selectable,
-            freeCount: freeCount,
-            isSelected: isSel,
-            onTap: onTap,
+            child: _TrackCar(
+              coach: c,
+              width: slotW,
+              height: carHeight,
+              selectable: selectable,
+              freeCount: freeCount,
+              isSelected: isSel,
+              onTap: onTap,
+            ),
           ),
-        ));
+        );
       }
     }
 
@@ -331,8 +359,22 @@ Path _endCarPath(Size size, {required bool front, required bool highSpeed}) {
       ..lineTo(w, h) // flat underframe to the inner end
       ..lineTo(w, 0) // full-height inner (coupling) edge
       ..lineTo(nf, 0) // body roof to where the NOSE starts
-      ..cubicTo(0.48 * nf, 0, 0, 0.16 * h, 0, 0.60 * h) // immediate round fwd+down
-      ..cubicTo(0, 0.85 * h, 0.12 * nf, h, 0.30 * nf, h) // quick steep bottom round
+      ..cubicTo(
+        0.48 * nf,
+        0,
+        0,
+        0.16 * h,
+        0,
+        0.60 * h,
+      ) // immediate round fwd+down
+      ..cubicTo(
+        0,
+        0.85 * h,
+        0.12 * nf,
+        h,
+        0.30 * nf,
+        h,
+      ) // quick steep bottom round
       ..close();
   } else {
     // A quarter-circle front: flat roof to (r,0), then a 90° arc (cubic with
@@ -389,7 +431,8 @@ class _TrackEndCar extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _coachAccent(coach);
     final fg = AppColors.onClass(accent);
-    final canSelect = selectable && !coach.isLocomotive && coach.wagonNumber > 0;
+    final canSelect =
+        selectable && !coach.isLocomotive && coach.wagonNumber > 0;
     final compact = height < 50;
     final bodyW = (width - _snoutPx(width, height, highSpeed)) * 0.96;
 
@@ -397,7 +440,9 @@ class _TrackEndCar extends StatelessWidget {
       alignment: front ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
         padding: EdgeInsets.only(
-            right: front ? width * 0.06 : 0, left: front ? 0 : width * 0.06),
+          right: front ? width * 0.06 : 0,
+          left: front ? 0 : width * 0.06,
+        ),
         child: SizedBox(
           width: bodyW,
           child: Column(
@@ -429,10 +474,11 @@ class _TrackEndCar extends StatelessWidget {
         Positioned.fill(
           child: CustomPaint(
             painter: _EndCarPainter(
-                front: front,
-                highSpeed: highSpeed,
-                accent: accent,
-                selected: isSelected),
+              front: front,
+              highSpeed: highSpeed,
+              accent: accent,
+              selected: isSelected,
+            ),
           ),
         ),
         Positioned.fill(child: content),
@@ -445,7 +491,8 @@ class _TrackEndCar extends StatelessWidget {
           ? InkWell(
               onTap: onTap,
               borderRadius: BorderRadius.circular(6),
-              child: car)
+              child: car,
+            )
           : car,
     );
   }
@@ -456,11 +503,12 @@ class _EndCarPainter extends CustomPainter {
   final bool highSpeed;
   final Color accent;
   final bool selected;
-  const _EndCarPainter(
-      {required this.front,
-      required this.highSpeed,
-      required this.accent,
-      required this.selected});
+  const _EndCarPainter({
+    required this.front,
+    required this.highSpeed,
+    required this.accent,
+    required this.selected,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -471,7 +519,9 @@ class _EndCarPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = selected ? 3 : 1.2
-        ..color = selected ? AppColors.onTime : Colors.black.withValues(alpha: 0.22),
+        ..color = selected
+            ? AppColors.onTime
+            : Colors.black.withValues(alpha: 0.22),
     );
   }
 
@@ -525,12 +575,12 @@ class _TrackCar extends StatelessWidget {
   Color get _classColor => coach.isLocomotive
       ? AppColors.locomotive
       : coach.isRestaurant
-          ? AppColors.restaurant
-          : coach.isFirstClass
-              ? AppColors.firstClass
-              : coach.isMixed
-                  ? AppColors.firstClass
-                  : AppColors.secondClass;
+      ? AppColors.restaurant
+      : coach.isFirstClass
+      ? AppColors.firstClass
+      : coach.isMixed
+      ? AppColors.firstClass
+      : AppColors.secondClass;
 
   @override
   Widget build(BuildContext context) {
@@ -549,7 +599,9 @@ class _TrackCar extends StatelessWidget {
         color: accent,
         borderRadius: BorderRadius.circular(5),
         border: Border.all(
-          color: isSelected ? AppColors.onTime : Colors.black.withValues(alpha: 0.18),
+          color: isSelected
+              ? AppColors.onTime
+              : Colors.black.withValues(alpha: 0.18),
           width: isSelected ? 3 : 1,
         ),
       ),
@@ -656,14 +708,19 @@ class _FreeSeatBadge extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(Icons.event_seat,
-                    size: sz,
-                    color: full ? AppColors.closedCoach : AppColors.onTime),
+                Icon(
+                  Icons.event_seat,
+                  size: sz,
+                  color: full ? AppColors.closedCoach : AppColors.onTime,
+                ),
                 if (full)
                   Transform.rotate(
                     angle: -0.7,
                     child: Container(
-                        width: sz + 2, height: 1.6, color: AppColors.delay),
+                      width: sz + 2,
+                      height: 1.6,
+                      color: AppColors.delay,
+                    ),
                   ),
               ],
             ),

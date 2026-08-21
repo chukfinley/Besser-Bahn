@@ -120,8 +120,8 @@ PlatformLine? fitLine(List<math.Point<double>> pts) {
   double dLat,
   double dLon,
   PlatformLine? axis,
-}) resolveIsland(StationMap map, MapPoi plat, String g, int startIdx,
-    int endIdx) {
+})
+resolveIsland(StationMap map, MapPoi plat, String g, int startIdx, int endIdx) {
   const empty = (
     cubes: <({int idx, LatLng pos})>[],
     dLat: 0.0,
@@ -142,8 +142,9 @@ PlatformLine? fitLine(List<math.Point<double>> pts) {
       (byLevel[p.level ?? ''] ??= []).add(p);
     }
     if (byLevel.isNotEmpty) {
-      final best = byLevel.entries
-          .reduce((a, b) => b.value.length > a.value.length ? b : a);
+      final best = byLevel.entries.reduce(
+        (a, b) => b.value.length > a.value.length ? b : a,
+      );
       cubes = best.value;
     }
   }
@@ -242,7 +243,8 @@ PlatformLine? fitLine(List<math.Point<double>> pts) {
   // island's Gleis markers) is the platform's true direction — far steadier
   // than fitting through the few resolved cubes, which can sit slightly off
   // and tilt the train. Fall back to the cube fit only when no island axis.
-  final axis = (ourKey != null ? lines[ourKey] : null) ??
+  final axis =
+      (ourKey != null ? lines[ourKey] : null) ??
       fitLine([for (final c in out) xy(c.pos.latitude, c.pos.longitude)]);
 
   // Nudge from the platform centre toward the boarding rail.
@@ -325,15 +327,18 @@ List<({String letter, LatLng pos})> platformSectionLine(
   // With OSM rail geometry, snap each sector's nudged cube onto the real track
   // so the band sits exactly on the rail; without it, keep the cube positions
   // unchanged (the existing behaviour).
-  final curve =
-      (osmRail != null && osmRail.length >= 2) ? RoutePath.build(osmRail) : null;
+  final curve = (osmRail != null && osmRail.length >= 2)
+      ? RoutePath.build(osmRail)
+      : null;
   return [
     for (final c in island.cubes)
       (
         letter: String.fromCharCode(65 + c.idx),
         pos: curve == null
-            ? LatLng(c.pos.latitude + island.dLat,
-                c.pos.longitude + island.dLon)
+            ? LatLng(
+                c.pos.latitude + island.dLat,
+                c.pos.longitude + island.dLon,
+              )
             : curve.pointAt(curve.locate(_nudgedCube(island, c.pos))),
       ),
   ];
@@ -362,7 +367,9 @@ String? trackLevel(StationMap map) {
 /// "Abschnitt A–E" labels along the platform. Empty when the Gleis/island can't
 /// be resolved.
 List<({String letter, LatLng pos})> platformSectors(
-    StationMap map, String gleis) {
+  StationMap map,
+  String gleis,
+) {
   final plat = _platformForGleis(map, gleis);
   if (plat == null) return const [];
   final island = resolveIsland(map, plat, gleis, 0, 8);
@@ -370,7 +377,10 @@ List<({String letter, LatLng pos})> platformSectors(
     for (final c in island.cubes)
       (
         letter: String.fromCharCode(65 + c.idx),
-        pos: LatLng(c.pos.latitude + island.dLat, c.pos.longitude + island.dLon),
+        pos: LatLng(
+          c.pos.latitude + island.dLat,
+          c.pos.longitude + island.dLon,
+        ),
       ),
   ];
 }
@@ -399,21 +409,26 @@ List<({List<LatLng> outline, Coach coach, bool boarding})> platformTrainCars(
     // Collapsed: the route map calls this per stop on every cache poll, so a
     // plain log would repeat the same "no train here" line endlessly. Only
     // failing stops log, and identical reasons fold into "… (×N)".
-    AppLog.logCollapsed('platformTrainCars "${map.slug}" Gleis $gleis: $r',
-        tag: 'train');
+    AppLog.logCollapsed(
+      'platformTrainCars "${map.slug}" Gleis $gleis: $r',
+      tag: 'train',
+    );
     return r;
   }
 
   final plat = _platformForGleis(map, gleis);
   if (plat == null) {
-    why('no PLATFORM poi matches Gleis '
-        '(have: ${map.platforms.map((p) => normalizeGleis(p.name)).toSet().join(",")})');
+    why(
+      'no PLATFORM poi matches Gleis '
+      '(have: ${map.platforms.map((p) => normalizeGleis(p.name)).toSet().join(",")})',
+    );
     return const [];
   }
 
   final coaches = cs.allCoaches
       .where(
-          (c) => c.platformPosition != null && c.platformPosition!.length > 0)
+        (c) => c.platformPosition != null && c.platformPosition!.length > 0,
+      )
       .toList();
   if (coaches.isEmpty) {
     why('Wagenreihung has no coach platformPositions');
@@ -439,7 +454,12 @@ List<({List<LatLng> outline, Coach coach, bool boarding})> platformTrainCars(
     // only real value is side-selecting the rail at multi-track platforms,
     // which already happened upstream when osmRailForGleis built this curve).
     return platformTrainFromComposition(
-        map, gleis: gleis, section: section, cs: cs, osmRail: osmRail);
+      map,
+      gleis: gleis,
+      section: section,
+      cs: cs,
+      osmRail: osmRail,
+    );
   }
 
   // A Wagenreihung that publishes NO sector table at all can't be anchored to
@@ -451,7 +471,12 @@ List<({List<LatLng> outline, Coach coach, bool boarding})> platformTrainCars(
   // nothing with it.
   if (cs.platform.sectors.every((s) => letterIdx(s.name) == null)) {
     return platformTrainFromComposition(
-        map, gleis: gleis, section: section, cs: cs, osmRail: osmRail);
+      map,
+      gleis: gleis,
+      section: section,
+      cs: cs,
+      osmRail: osmRail,
+    );
   }
 
   // (Wagenreihung metre offset → arc-length ALONG the curve) anchors, from the
@@ -468,9 +493,11 @@ List<({List<LatLng> outline, Coach coach, bool boarding})> platformTrainCars(
     ));
   }
   if (anchors.length < 2) {
-    why('<2 sector→cube anchors '
-        '(Wagenreihung sectors: ${cs.platform.sectors.map((s) => s.name).join(",")}; '
-        'resolved cube letters: ${island.cubes.map((c) => String.fromCharCode(65 + c.idx)).join(",")})');
+    why(
+      '<2 sector→cube anchors '
+      '(Wagenreihung sectors: ${cs.platform.sectors.map((s) => s.name).join(",")}; '
+      'resolved cube letters: ${island.cubes.map((c) => String.fromCharCode(65 + c.idx)).join(",")})',
+    );
     return const [];
   }
 
@@ -535,10 +562,15 @@ RoutePath? _platformCurve(List<LatLng>? osmRail) {
 
 /// The boarding-rail-nudged LatLng of a resolved sector cube.
 LatLng _nudgedCube(
-        ({List<({int idx, LatLng pos})> cubes, double dLat, double dLon, PlatformLine? axis})
-            island,
-        LatLng p) =>
-    LatLng(p.latitude + island.dLat, p.longitude + island.dLon);
+  ({
+    List<({int idx, LatLng pos})> cubes,
+    double dLat,
+    double dLon,
+    PlatformLine? axis,
+  })
+  island,
+  LatLng p,
+) => LatLng(p.latitude + island.dLat, p.longitude + island.dLon);
 
 /// Place a known train COMPOSITION (coach order + real lengths, from a stop
 /// that HAS a Wagenreihung) onto ANOTHER stop's platform — for stops the
@@ -550,7 +582,7 @@ LatLng _nudgedCube(
 /// train to its real length, in order, curved along the cubes, centred on the
 /// highlighted boarding section (where it stops) or the platform centre.
 List<({List<LatLng> outline, Coach coach, bool boarding})>
-    platformTrainFromComposition(
+platformTrainFromComposition(
   StationMap map, {
   required String gleis,
   ({String start, String end})? section,
@@ -558,7 +590,9 @@ List<({List<LatLng> outline, Coach coach, bool boarding})>
   List<LatLng>? osmRail,
 }) {
   final coaches = cs.allCoaches
-      .where((c) => c.platformPosition != null && c.platformPosition!.length > 0)
+      .where(
+        (c) => c.platformPosition != null && c.platformPosition!.length > 0,
+      )
       .toList();
   if (coaches.isEmpty) return const [];
   final plat = _platformForGleis(map, gleis);
@@ -635,7 +669,13 @@ List<LatLng> platformGenericBody(
 /// platform when it fits.
 double _anchorStartArc(
   RoutePath curve,
-  ({List<({int idx, LatLng pos})> cubes, double dLat, double dLon, PlatformLine? axis}) island,
+  ({
+    List<({int idx, LatLng pos})> cubes,
+    double dLat,
+    double dLon,
+    PlatformLine? axis,
+  })
+  island,
   ({String start, String end})? section,
   double lengthM,
 ) {

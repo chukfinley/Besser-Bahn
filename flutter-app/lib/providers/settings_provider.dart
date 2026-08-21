@@ -154,11 +154,13 @@ class SettingsNotifier extends Notifier<AppSettings> {
       arrivalAlertEnabled: prefs.getBool('arrivalAlertEnabled') ?? true,
       arrivalAlarmSound: prefs.getBool('arrivalAlarmSound') ?? false,
       exitAlarmEnabled: prefs.getBool('exitAlarmEnabled') ?? false,
-      transferProfile:
-          TransferProfile.fromName(prefs.getString('transferProfile')),
+      transferProfile: TransferProfile.fromName(
+        prefs.getString('transferProfile'),
+      ),
       // First run (no stored party): seed from the single-card settings so the
       // search behaves exactly as before until the user customises the party.
-      searchParty: SearchParty.tryDecode(prefs.getString('searchParty')) ??
+      searchParty:
+          SearchParty.tryDecode(prefs.getString('searchParty')) ??
           SearchParty.fromSettings(bahnCard, dTicket),
       partyCustomized: prefs.getBool('partyCustomized') ?? false,
       plainLanguage: prefs.getBool('plainLanguage') ?? false,
@@ -332,5 +334,6 @@ class SettingsNotifier extends Notifier<AppSettings> {
   }
 }
 
-final settingsProvider =
-    NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(
+  SettingsNotifier.new,
+);

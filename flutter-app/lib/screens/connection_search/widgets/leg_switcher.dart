@@ -113,8 +113,10 @@ class LegAlternativeSwitcherState
   int? get _gap {
     final planned = widget.incomingGapMinutes;
     if (planned == null) return null;
-    return ref.read(settingsProvider).transferProfile.effectiveGap(planned,
-        samePlatform: widget.samePlatformTransfer);
+    return ref
+        .read(settingsProvider)
+        .transferProfile
+        .effectiveGap(planned, samePlatform: widget.samePlatformTransfer);
   }
 
   bool get _atRisk => _gap != null && _gap! <= 2;
@@ -172,12 +174,15 @@ class LegAlternativeSwitcherState
     }
     setState(() => _loading = true);
     try {
-      final res = await ref.read(vendoServiceProvider).fetchWeitereAbfahrten(
+      final res = await ref
+          .read(vendoServiceProvider)
+          .fetchWeitereAbfahrten(
             abgangsLocationId: from,
             zielLocationId: to,
             ankunft: an,
-            produktGattungen:
-                VendoService.produktGattungenFor(leg.line?.product),
+            produktGattungen: VendoService.produktGattungenFor(
+              leg.line?.product,
+            ),
           );
       if (!mounted) return;
       setState(() {
@@ -205,7 +210,9 @@ class LegAlternativeSwitcherState
     setState(() => _alightLoading = true);
     final settings = ref.read(settingsProvider);
     try {
-      final res = await ref.read(earlierAlightServiceProvider).findOptions(
+      final res = await ref
+          .read(earlierAlightServiceProvider)
+          .findOptions(
             currentLeg: input.currentLeg,
             onwardLeg: widget.leg,
             original: input.journey,
@@ -239,12 +246,15 @@ class LegAlternativeSwitcherState
     if (an == null) return;
     setState(() => _loading = true);
     try {
-      final res = await ref.read(vendoServiceProvider).fetchWeitereAbfahrten(
+      final res = await ref
+          .read(vendoServiceProvider)
+          .fetchWeitereAbfahrten(
             abgangsLocationId: leg.origin.vendoLocationId,
             zielLocationId: leg.destination.vendoLocationId,
             ankunft: an,
-            produktGattungen:
-                VendoService.produktGattungenFor(leg.line?.product),
+            produktGattungen: VendoService.produktGattungenFor(
+              leg.line?.product,
+            ),
             context: _laterRef,
           );
       if (!mounted) return;
@@ -272,8 +282,9 @@ class LegAlternativeSwitcherState
     if (idx < 0) {
       final curDep = _currentDep;
       if (curDep != null) {
-        idx = _alts
-            .indexWhere((a) => !((_depOf(a) ?? curDep).isBefore(curDep)));
+        idx = _alts.indexWhere(
+          (a) => !((_depOf(a) ?? curDep).isBefore(curDep)),
+        );
       }
       if (idx < 0) idx = 0;
     }
@@ -284,7 +295,9 @@ class LegAlternativeSwitcherState
       if (l == null || line == null || line.fahrtNr.isEmpty) continue;
       // Fire-and-forget: caches by train+stop+time, so the swiped-to detail
       // draws its platform train immediately.
-      ref.read(coachSequenceServiceProvider).getCoachSequenceForDeparture(
+      ref
+          .read(coachSequenceServiceProvider)
+          .getCoachSequenceForDeparture(
             category: line.productName,
             trainNumber: line.fahrtNr,
             stationEva: l.origin.id,
@@ -309,10 +322,10 @@ class LegAlternativeSwitcherState
       _alts.add(j);
     }
     _alts.sort((a, b) {
-      final da = a.legs.firstOrNull?.departure ??
-          a.legs.firstOrNull?.plannedDeparture;
-      final db = b.legs.firstOrNull?.departure ??
-          b.legs.firstOrNull?.plannedDeparture;
+      final da =
+          a.legs.firstOrNull?.departure ?? a.legs.firstOrNull?.plannedDeparture;
+      final db =
+          b.legs.firstOrNull?.departure ?? b.legs.firstOrNull?.plannedDeparture;
       if (da == null || db == null) return 0;
       return da.compareTo(db);
     });
@@ -390,12 +403,14 @@ class LegAlternativeSwitcherState
     }
     if (dir > 0) {
       final j = _alts.firstWhere(
-          (a) => (_depOf(a) ?? curDep).isAfter(curDep),
-          orElse: () => _alts.last);
+        (a) => (_depOf(a) ?? curDep).isAfter(curDep),
+        orElse: () => _alts.last,
+      );
       _select(j);
     } else {
-      final earlier =
-          _alts.where((a) => (_depOf(a) ?? curDep).isBefore(curDep)).toList();
+      final earlier = _alts
+          .where((a) => (_depOf(a) ?? curDep).isBefore(curDep))
+          .toList();
       if (earlier.isNotEmpty) _select(earlier.last);
     }
   }
@@ -430,8 +445,8 @@ class LegAlternativeSwitcherState
       decoration: BoxDecoration(
         color: warn
             ? (_atRisk
-                ? theme.colorScheme.errorContainer
-                : const Color(0xFFFFF3E0))
+                  ? theme.colorScheme.errorContainer
+                  : const Color(0xFFFFF3E0))
             : theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(10),
         border: warn
@@ -439,7 +454,8 @@ class LegAlternativeSwitcherState
                 color: _atRisk
                     ? theme.colorScheme.error
                     : const Color(0xFFCC8800),
-                width: 1.5)
+                width: 1.5,
+              )
             : null,
       ),
       clipBehavior: Clip.antiAlias,
@@ -456,8 +472,11 @@ class LegAlternativeSwitcherState
             if (showAlight)
               Padding(
                 padding: EdgeInsets.fromLTRB(4, showRiskOffer ? 0 : 4, 4, 6),
-                child: _earlierAlight(theme, _riskFg(theme),
-                    standalone: !showRiskOffer),
+                child: _earlierAlight(
+                  theme,
+                  _riskFg(theme),
+                  standalone: !showRiskOffer,
+                ),
               ),
             _stepper(theme),
           ],
@@ -477,9 +496,8 @@ class LegAlternativeSwitcherState
 
   /// Readable-on-the-banner foreground, shared by both rescue offers so they
   /// can't drift apart.
-  Color _riskFg(ThemeData theme) => _atRisk
-      ? theme.colorScheme.onErrorContainer
-      : const Color(0xFF7A4E00);
+  Color _riskFg(ThemeData theme) =>
+      _atRisk ? theme.colorScheme.onErrorContainer : const Color(0xFF7A4E00);
 
   Widget _riskOffer(ThemeData theme, Journey best) {
     final l = best.legs.firstOrNull;
@@ -495,15 +513,13 @@ class LegAlternativeSwitcherState
     final profile = ref.read(settingsProvider).transferProfile;
     // Say so when the profile — not the clock — is what raised this, otherwise
     // "Knapper Anschluss · 12 min" reads as a bug.
-    final byProfile = profile != TransferProfile.normal &&
-        gap != null &&
-        gap > 5 &&
-        _tight;
+    final byProfile =
+        profile != TransferProfile.normal && gap != null && gap > 5 && _tight;
     final headline = _atRisk
         ? 'Anschluss${station != null ? ' in $station' : ''} evtl. nicht erreichbar'
-            '${gap != null ? ' · nur $gap min' : ''}'
+              '${gap != null ? ' · nur $gap min' : ''}'
         : 'Knapper Anschluss${gap != null ? ' · $gap min' : ''}'
-            '${byProfile ? ' für „${profile.label}"' : ''}';
+              '${byProfile ? ' für „${profile.label}"' : ''}';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 2, 4, 6),
@@ -515,9 +531,13 @@ class LegAlternativeSwitcherState
               Icon(Icons.warning_amber_rounded, size: 18, color: fg),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(headline,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w700, color: fg)),
+                child: Text(
+                  headline,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                  ),
+                ),
               ),
             ],
           ),
@@ -529,8 +549,10 @@ class LegAlternativeSwitcherState
             Text(
               'Wenn der Anschluss platzt: ${_hm(cost)} später am Ziel'
               '${arr != null ? ' (an ${arr.hhmm})' : ''}.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: fg, fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 6),
           ],
@@ -552,8 +574,9 @@ class LegAlternativeSwitcherState
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  backgroundColor:
-                      _atRisk ? theme.colorScheme.error : const Color(0xFFCC8800),
+                  backgroundColor: _atRisk
+                      ? theme.colorScheme.error
+                      : const Color(0xFFCC8800),
                 ),
               ),
             ],
@@ -587,8 +610,10 @@ class LegAlternativeSwitcherState
                 child: Text(
                   'Anschluss${station != null ? ' in $station' : ''} '
                   'gefährdet${gap != null ? ' · nur $gap min' : ''}',
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w700, color: fg),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                  ),
                 ),
               ),
             ],
@@ -609,8 +634,10 @@ class LegAlternativeSwitcherState
               child: CircularProgressIndicator(strokeWidth: 2, color: fg),
             ),
             const SizedBox(width: 8),
-            Text('Suche frühere Ausstiege…',
-                style: theme.textTheme.bodySmall?.copyWith(color: fg)),
+            Text(
+              'Suche frühere Ausstiege…',
+              style: theme.textTheme.bodySmall?.copyWith(color: fg),
+            ),
           ],
         ),
       );
@@ -689,9 +716,13 @@ class LegAlternativeSwitcherState
             children: [
               Icon(Icons.alt_route, size: 16, color: fg),
               const SizedBox(width: 6),
-              Text('Oder früher aussteigen',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w700, color: fg)),
+              Text(
+                'Oder früher aussteigen',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: fg,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -705,7 +736,8 @@ class LegAlternativeSwitcherState
 
   Widget _alightOption(ThemeData theme, Color fg, EarlierAlightOption o) {
     final first = o.onward.legs.where((l) => !l.isWalking).firstOrNull;
-    final name = first?.line?.titleWithNumber ??
+    final name =
+        first?.line?.titleWithNumber ??
         first?.line?.displayName ??
         'Weiterfahrt';
     final changes = o.onward.transfers;
@@ -721,8 +753,10 @@ class LegAlternativeSwitcherState
         children: [
           Text(
             'Aussteigen in ${o.stop.station.name} · an ${o.alightArrival.hhmm}',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(fontWeight: FontWeight.w700, color: fg),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -736,8 +770,10 @@ class LegAlternativeSwitcherState
           Text(
             'Am Ziel ${o.arrival.hhmm} — ${_hm(o.gainMinutes)} früher als der '
             'nächste Zug',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(fontWeight: FontWeight.w700, color: fg),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
           ),
           const SizedBox(height: 6),
           // Never optional (#26): a Sparpreis is bound to the booked trains, so
@@ -747,11 +783,12 @@ class LegAlternativeSwitcherState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                  o.ticketNote == AlightTicketNote.dTicketCovered
-                      ? Icons.check_circle_outline
-                      : Icons.confirmation_number_outlined,
-                  size: 14,
-                  color: fg),
+                o.ticketNote == AlightTicketNote.dTicketCovered
+                    ? Icons.check_circle_outline
+                    : Icons.confirmation_number_outlined,
+                size: 14,
+                color: fg,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -785,8 +822,9 @@ class LegAlternativeSwitcherState
     final dep = _currentDep;
     String position = '';
     if (_loaded && _alts.isNotEmpty) {
-      final idx =
-          _alts.indexWhere((j) => j.legs.firstOrNull?.tripId == widget.leg.tripId);
+      final idx = _alts.indexWhere(
+        (j) => j.legs.firstOrNull?.tripId == widget.leg.tripId,
+      );
       if (idx >= 0) position = '  ·  ${idx + 1}/${_alts.length}';
     }
     return Row(
@@ -798,17 +836,20 @@ class LegAlternativeSwitcherState
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      final base = 'Diese Abfahrt'
+                      final base =
+                          'Diese Abfahrt'
                           '${dep != null ? ' · ab ${dep.hhmm}' : ''}$position';
                       // The "Block wischen für andere" hint is a nice-to-have;
                       // on a narrow screen (e.g. the Fold7 cover display, #76)
                       // it only got ellipsised away and clipped the essentials
                       // with it. Show it only where it actually fits.
                       const hint = '   ·   Block wischen für andere';
-                      final label = _error ??
+                      final label =
+                          _error ??
                           (constraints.maxWidth > 300 ? '$base$hint' : base);
                       return Text(
                         label,
@@ -816,7 +857,9 @@ class LegAlternativeSwitcherState
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodySmall?.copyWith(
-                            color: muted, fontWeight: FontWeight.w500),
+                          color: muted,
+                          fontWeight: FontWeight.w500,
+                        ),
                       );
                     },
                   ),
@@ -828,7 +871,11 @@ class LegAlternativeSwitcherState
   }
 
   Widget _navBtn(
-      ThemeData theme, IconData icon, String tip, VoidCallback onTap) {
+    ThemeData theme,
+    IconData icon,
+    String tip,
+    VoidCallback onTap,
+  ) {
     // Tonal circle so the stepper reads as a real control, not two loose
     // glyphs — same footprint, so it can't re-clip the label on a narrow
     // (fold-cover) screen (#76).

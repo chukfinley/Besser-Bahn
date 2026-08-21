@@ -70,7 +70,7 @@ List<AlightStop> alightStopsOfLeg(JourneyLeg leg, {Trip? trip}) {
             plannedArrival: so.plannedArrival,
             cancelled: so.cancelled,
             noAlighting: so.noAlighting,
-          )
+          ),
       ];
     }
   }
@@ -84,7 +84,7 @@ List<AlightStop> alightStopsOfLeg(JourneyLeg leg, {Trip? trip}) {
         arrival: so.arrival,
         cancelled: so.cancelled,
         noAlighting: so.noAlighting,
-      )
+      ),
   ];
 }
 
@@ -183,12 +183,18 @@ AlightTicketNote ticketNoteFor({
   required bool hasDeutschlandTicket,
 }) {
   if (!hasDeutschlandTicket) return AlightTicketNote.mayBeTrainBound;
-  final booked = [for (final l in original.legs) if (!l.isWalking) l];
+  final booked = [
+    for (final l in original.legs)
+      if (!l.isWalking) l,
+  ];
   if (booked.isEmpty ||
       !booked.every((l) => isDTicketProduct(l.line?.product))) {
     return AlightTicketNote.mayBeTrainBound;
   }
-  final next = [for (final l in onward.legs) if (!l.isWalking) l];
+  final next = [
+    for (final l in onward.legs)
+      if (!l.isWalking) l,
+  ];
   if (next.isEmpty) return AlightTicketNote.mayBeTrainBound;
   return next.every((l) => isDTicketProduct(l.line?.product))
       ? AlightTicketNote.dTicketCovered
@@ -308,8 +314,11 @@ EarlierAlightOption? evaluateAlightCandidate({
     waitMinutes: wait,
     arrival: arr,
     gainMinutes: gain,
-    ticketNote:
-        ticketNoteFor(original: original, onward: onward, hasDeutschlandTicket: hasDeutschlandTicket),
+    ticketNote: ticketNoteFor(
+      original: original,
+      onward: onward,
+      hasDeutschlandTicket: hasDeutschlandTicket,
+    ),
   );
 }
 
@@ -317,7 +326,8 @@ EarlierAlightOption? evaluateAlightCandidate({
 /// fewer changes, then the later exit (stay on the train while you can — the
 /// less of the plan you throw away, the less can go wrong).
 List<EarlierAlightOption> rankEarlierAlightOptions(
-    List<EarlierAlightOption> options) {
+  List<EarlierAlightOption> options,
+) {
   final sorted = List<EarlierAlightOption>.of(options);
   sorted.sort((a, b) {
     final byArrival = a.arrival.compareTo(b.arrival);
@@ -345,11 +355,7 @@ List<JourneyLeg>? rerouteViaEarlierAlight({
   final current = legs[currentLegIndex];
   final cut = _truncateLegAt(current, option.stop);
   if (cut == null) return null;
-  return [
-    ...legs.sublist(0, currentLegIndex),
-    cut,
-    ...option.onward.legs,
-  ];
+  return [...legs.sublist(0, currentLegIndex), cut, ...option.onward.legs];
 }
 
 /// [leg] as ridden only up to [stop] — the same train, a shorter ride.

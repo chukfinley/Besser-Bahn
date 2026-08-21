@@ -36,14 +36,16 @@ class CheckinCollisionException extends TraewellingException {
 /// identifiable `User-Agent` and answers 403 without one (#34).
 class TraewellingService {
   TraewellingService({FlutterSecureStorage? storage, http.Client? client})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              // iOS: allow reads after first unlock since boot. Android 10.x
-              // uses its own ciphers by default; no extra options needed.
-              iOptions:
-                  IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            // iOS: allow reads after first unlock since boot. Android 10.x
+            // uses its own ciphers by default; no extra options needed.
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock,
             ),
-        _client = UserAgentClient(client ?? http.Client(), _userAgent);
+          ),
+      _client = UserAgentClient(client ?? http.Client(), _userAgent);
 
   /// Identifies this app to Träwelling. Kept as a named constant so the tests
   /// assert the very string the service ships.
@@ -83,13 +85,17 @@ class TraewellingService {
   Future<void> _write(String key, String value) async {
     try {
       await _storage.write(key: key, value: value);
-    } catch (_) {/* not persisted on this platform */}
+    } catch (_) {
+      /* not persisted on this platform */
+    }
   }
 
   Future<void> _delete(String key) async {
     try {
       await _storage.delete(key: key);
-    } catch (_) {/* nothing to clear / unsupported */}
+    } catch (_) {
+      /* nothing to clear / unsupported */
+    }
   }
 
   /// Whether a token exists (in memory or storage). Does not validate it.
@@ -177,7 +183,8 @@ class TraewellingService {
     final code = returned.queryParameters['code'];
     final returnedState = returned.queryParameters['state'];
     if (code == null) {
-      final err = returned.queryParameters['error_description'] ??
+      final err =
+          returned.queryParameters['error_description'] ??
           returned.queryParameters['error'] ??
           'Kein Autorisierungscode erhalten';
       throw TraewellingException(err);
@@ -196,21 +203,27 @@ class TraewellingService {
   }
 
   Future<Map<String, dynamic>> _exchangeCode(
-      String code, String verifier) async {
-    final res = await _client.post(
-      Uri.parse(TraewellingConstants.tokenUrl),
-      headers: {'Accept': 'application/json'},
-      body: {
-        'grant_type': 'authorization_code',
-        'client_id': TraewellingConstants.clientId,
-        'redirect_uri': TraewellingConstants.redirectUrl,
-        'code_verifier': verifier,
-        'code': code,
-      },
-    ).timeout(_kTimeout);
+    String code,
+    String verifier,
+  ) async {
+    final res = await _client
+        .post(
+          Uri.parse(TraewellingConstants.tokenUrl),
+          headers: {'Accept': 'application/json'},
+          body: {
+            'grant_type': 'authorization_code',
+            'client_id': TraewellingConstants.clientId,
+            'redirect_uri': TraewellingConstants.redirectUrl,
+            'code_verifier': verifier,
+            'code': code,
+          },
+        )
+        .timeout(_kTimeout);
     if (res.statusCode != 200) {
       throw TraewellingException(
-          'Token-Tausch fehlgeschlagen: ${res.body}', res.statusCode);
+        'Token-Tausch fehlgeschlagen: ${res.body}',
+        res.statusCode,
+      );
     }
     return json.decode(res.body) as Map<String, dynamic>;
   }
@@ -227,16 +240,18 @@ class TraewellingService {
     if (refresh == null) return _TrwlRefresh.rejected;
     final http.Response res;
     try {
-      res = await _client.post(
-        Uri.parse(TraewellingConstants.tokenUrl),
-        headers: {'Accept': 'application/json'},
-        body: {
-          'grant_type': 'refresh_token',
-          'refresh_token': refresh,
-          'client_id': TraewellingConstants.clientId,
-          'scope': TraewellingConstants.scopes,
-        },
-      ).timeout(_kTimeout);
+      res = await _client
+          .post(
+            Uri.parse(TraewellingConstants.tokenUrl),
+            headers: {'Accept': 'application/json'},
+            body: {
+              'grant_type': 'refresh_token',
+              'refresh_token': refresh,
+              'client_id': TraewellingConstants.clientId,
+              'scope': TraewellingConstants.scopes,
+            },
+          )
+          .timeout(_kTimeout);
     } catch (_) {
       // Timeout, DNS, socket, TLS — the network, not the session.
       return _TrwlRefresh.transient;
@@ -276,8 +291,9 @@ class TraewellingService {
       throw const TraewellingException('Nicht angemeldet', 401);
     }
 
-    final uri = Uri.parse('${TraewellingConstants.apiBaseUrl}$path')
-        .replace(queryParameters: query);
+    final uri = Uri.parse(
+      '${TraewellingConstants.apiBaseUrl}$path',
+    ).replace(queryParameters: query);
     final headers = {
       'Authorization': 'Bearer $_accessToken',
       'Accept': 'application/json',
@@ -307,19 +323,26 @@ class TraewellingService {
       }
     } on TimeoutException {
       throw const TraewellingException(
-          'Zeitüberschreitung – Träwelling antwortet nicht. Erneut versuchen.');
+        'Zeitüberschreitung – Träwelling antwortet nicht. Erneut versuchen.',
+      );
     }
 
     if (res.statusCode == 401 && retryOn401) {
       switch (await _refresh()) {
         case _TrwlRefresh.ok:
-          return _send(method, path,
-              query: query, body: body, retryOn401: false);
+          return _send(
+            method,
+            path,
+            query: query,
+            body: body,
+            retryOn401: false,
+          );
         case _TrwlRefresh.transient:
           // Keep the session: we don't know it's dead, only that we couldn't
           // ask right now (#39).
           throw const TraewellingException(
-              'Träwelling ist gerade nicht erreichbar. Erneut versuchen.');
+            'Träwelling ist gerade nicht erreichbar. Erneut versuchen.',
+          );
         case _TrwlRefresh.rejected:
           await _clearTokens();
           throw const TraewellingException('Sitzung abgelaufen', 401);
@@ -365,13 +388,19 @@ class TraewellingService {
   }
 
   Future<List<TrwlStatus>> userStatuses(String username, {int page = 1}) async {
-    final res =
-        await _send('GET', '/user/$username/statuses', query: {'page': '$page'});
+    final res = await _send(
+      'GET',
+      '/user/$username/statuses',
+      query: {'page': '$page'},
+    );
     return _statusList(_data(res));
   }
 
   Future<List<TrwlUser>> searchUsers(String query) async {
-    final res = await _send('GET', '/user/search/${Uri.encodeComponent(query)}');
+    final res = await _send(
+      'GET',
+      '/user/search/${Uri.encodeComponent(query)}',
+    );
     return _userList(_data(res));
   }
 
@@ -428,7 +457,9 @@ class TraewellingService {
 
   Future<List<TrwlStation>> searchStations(String query) async {
     final res = await _send(
-        'GET', '/trains/station/autocomplete/${Uri.encodeComponent(query)}');
+      'GET',
+      '/trains/station/autocomplete/${Uri.encodeComponent(query)}',
+    );
     final data = _data(res);
     return (data as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
@@ -436,9 +467,15 @@ class TraewellingService {
         .toList();
   }
 
-  Future<List<TrwlDeparture>> departures(int stationId, {DateTime? when}) async {
-    final res = await _send('GET', '/station/$stationId/departures',
-        query: when != null ? {'when': when.toIso8601String()} : null);
+  Future<List<TrwlDeparture>> departures(
+    int stationId, {
+    DateTime? when,
+  }) async {
+    final res = await _send(
+      'GET',
+      '/station/$stationId/departures',
+      query: when != null ? {'when': when.toIso8601String()} : null,
+    );
     final data = _data(res);
     return (data as List<dynamic>? ?? [])
         .whereType<Map<String, dynamic>>()
@@ -450,10 +487,11 @@ class TraewellingService {
     required String hafasTripId,
     required String lineName,
   }) async {
-    final res = await _send('GET', '/trains/trip', query: {
-      'hafasTripId': hafasTripId,
-      'lineName': lineName,
-    });
+    final res = await _send(
+      'GET',
+      '/trains/trip',
+      query: {'hafasTripId': hafasTripId, 'lineName': lineName},
+    );
     return TrwlTrip.fromJson(_data(res) as Map<String, dynamic>);
   }
 
@@ -471,21 +509,26 @@ class TraewellingService {
     int business = 0,
     bool force = false,
   }) async {
-    final res = await _send('POST', '/trains/checkin', body: {
-      'tripId': tripId,
-      'lineName': lineName,
-      'start': start,
-      'destination': destination,
-      'departure': departure.toIso8601String(),
-      'arrival': arrival.toIso8601String(),
-      if (body.isNotEmpty) 'body': body,
-      'visibility': visibility,
-      'business': business,
-      'force': force,
-    });
+    final res = await _send(
+      'POST',
+      '/trains/checkin',
+      body: {
+        'tripId': tripId,
+        'lineName': lineName,
+        'start': start,
+        'destination': destination,
+        'departure': departure.toIso8601String(),
+        'arrival': arrival.toIso8601String(),
+        if (body.isNotEmpty) 'body': body,
+        'visibility': visibility,
+        'business': business,
+        'force': force,
+      },
+    );
     if (res.statusCode == 409) {
       throw const CheckinCollisionException(
-          'Du bist bereits für eine überlappende Fahrt eingecheckt.');
+        'Du bist bereits für eine überlappende Fahrt eingecheckt.',
+      );
     }
     final data = _data(res);
     // CheckinSuccessResource nests the created status under `status`.
@@ -514,7 +557,8 @@ class TraewellingService {
     final stations = await searchStations(boardingName);
     if (stations.isEmpty) {
       throw TraewellingException(
-          'Bahnhof „$boardingName" bei Träwelling nicht gefunden.');
+        'Bahnhof „$boardingName" bei Träwelling nicht gefunden.',
+      );
     }
     // Prefer an exact-ish name match, else the first hit.
     final station = stations.firstWhere(
@@ -523,33 +567,39 @@ class TraewellingService {
     );
 
     final deps = await departures(
-        station.id, when: boardingDeparture.subtract(const Duration(minutes: 6)));
+      station.id,
+      when: boardingDeparture.subtract(const Duration(minutes: 6)),
+    );
     final dep = _matchDeparture(deps, lineName, boardingDeparture);
     if (dep == null) {
       throw TraewellingException(
-          'Abfahrt „$lineName" um diese Zeit nicht gefunden.');
+        'Abfahrt „$lineName" um diese Zeit nicht gefunden.',
+      );
     }
 
     final t = await trip(hafasTripId: dep.tripId, lineName: dep.lineName);
     final boardIdx = t.stopovers.indexWhere(
-        (s) => s.stationId == station.id || _nameEq(s.name, boardingName));
-    final after =
-        boardIdx >= 0 ? t.stopovers.sublist(boardIdx + 1) : t.stopovers;
+      (s) => s.stationId == station.id || _nameEq(s.name, boardingName),
+    );
+    final after = boardIdx >= 0
+        ? t.stopovers.sublist(boardIdx + 1)
+        : t.stopovers;
     final dest = after.firstWhere(
       (s) => _nameEq(s.name, alightingName),
       orElse: () => after.isNotEmpty
           ? after.last
           : (throw TraewellingException(
-              'Ziel „$alightingName" nicht im Laufweg.')),
+              'Ziel „$alightingName" nicht im Laufweg.',
+            )),
     );
 
-    final depTime = (boardIdx >= 0
-            ? t.stopovers[boardIdx].departurePlanned
-            : null) ??
+    final depTime =
+        (boardIdx >= 0 ? t.stopovers[boardIdx].departurePlanned : null) ??
         dep.plannedWhen ??
         dep.when ??
         boardingDeparture;
-    final arrTime = dest.arrivalPlanned ?? dest.arrivalReal ?? dest.departurePlanned;
+    final arrTime =
+        dest.arrivalPlanned ?? dest.arrivalReal ?? dest.departurePlanned;
     if (arrTime == null) {
       throw const TraewellingException('Ankunftszeit am Ziel fehlt.');
     }
@@ -570,7 +620,10 @@ class TraewellingService {
   /// Pick the departure whose line matches [lineName] and whose time is closest
   /// to [target] (within ~40 min). Returns null when nothing reasonable matches.
   TrwlDeparture? _matchDeparture(
-      List<TrwlDeparture> deps, String lineName, DateTime target) {
+    List<TrwlDeparture> deps,
+    String lineName,
+    DateTime target,
+  ) {
     final want = _normLine(lineName);
     TrwlDeparture? best;
     Duration bestDiff = const Duration(minutes: 40);
@@ -605,11 +658,10 @@ class TraewellingService {
 
   // --- Parsing helpers ------------------------------------------------------
 
-  List<TrwlStatus> _statusList(dynamic data) =>
-      (data as List<dynamic>? ?? [])
-          .whereType<Map<String, dynamic>>()
-          .map(TrwlStatus.fromJson)
-          .toList();
+  List<TrwlStatus> _statusList(dynamic data) => (data as List<dynamic>? ?? [])
+      .whereType<Map<String, dynamic>>()
+      .map(TrwlStatus.fromJson)
+      .toList();
 
   List<TrwlUser> _userList(dynamic data) => (data as List<dynamic>? ?? [])
       .whereType<Map<String, dynamic>>()
@@ -623,8 +675,10 @@ class TraewellingService {
 
   String _randomString(int length) {
     final rnd = Random.secure();
-    return List.generate(length, (_) => _chars[rnd.nextInt(_chars.length)])
-        .join();
+    return List.generate(
+      length,
+      (_) => _chars[rnd.nextInt(_chars.length)],
+    ).join();
   }
 
   String _codeChallenge(String verifier) {

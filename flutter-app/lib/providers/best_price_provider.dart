@@ -16,8 +16,11 @@ class BestPriceRequest {
   final Station to;
   final DateTime date;
 
-  const BestPriceRequest(
-      {required this.from, required this.to, required this.date});
+  const BestPriceRequest({
+    required this.from,
+    required this.to,
+    required this.date,
+  });
 
   /// Only the day matters — the endpoint prices the whole day, so two requests
   /// differing by the hour must not be two cache entries.
@@ -38,26 +41,29 @@ class BestPriceRequest {
 /// The day's Bestpreis calendar. One request per day, cached by [ref.keepAlive]
 /// for as long as the screen lives — the backend rate-limits hard, and paging
 /// back and forth between days would otherwise re-ask for what we have.
-final bestPriceProvider =
-    FutureProvider.autoDispose.family<BestPriceDay, BestPriceRequest>(
-        (ref, req) async {
-  final settings = ref.watch(settingsProvider);
-  final search = ref.watch(journeySearchProvider);
-  final party = settings.searchParty;
+final bestPriceProvider = FutureProvider.autoDispose
+    .family<BestPriceDay, BestPriceRequest>((ref, req) async {
+      final settings = ref.watch(settingsProvider);
+      final search = ref.watch(journeySearchProvider);
+      final party = settings.searchParty;
 
-  final link = ref.keepAlive();
-  ref.onDispose(link.close);
+      final link = ref.keepAlive();
+      ref.onDispose(link.close);
 
-  AppLog.log('best price ${req.from.name} → ${req.to.name} on ${req._day}',
-      tag: 'bestprice');
-  return ref.read(vendoServiceProvider).fetchBestPrices(
-        fromLocationId: req.from.vendoLocationId,
-        toLocationId: req.to.vendoLocationId,
-        date: req.date,
-        firstClass: party.firstClass,
-        reisende: party.toReisendeJson(),
-        deutschlandTicket: party.deutschlandTicket,
-        verkehrsmittel: ProductCategory.codesFor(search.products),
-        nurDeutschlandTicketVerbindungen: search.onlyDeutschlandTicket,
+      AppLog.log(
+        'best price ${req.from.name} → ${req.to.name} on ${req._day}',
+        tag: 'bestprice',
       );
-});
+      return ref
+          .read(vendoServiceProvider)
+          .fetchBestPrices(
+            fromLocationId: req.from.vendoLocationId,
+            toLocationId: req.to.vendoLocationId,
+            date: req.date,
+            firstClass: party.firstClass,
+            reisende: party.toReisendeJson(),
+            deutschlandTicket: party.deutschlandTicket,
+            verkehrsmittel: ProductCategory.codesFor(search.products),
+            nurDeutschlandTicketVerbindungen: search.onlyDeutschlandTicket,
+          );
+    });

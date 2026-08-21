@@ -94,12 +94,15 @@ class _WeitereAbfahrtenSheetState
       _error = null;
     });
     try {
-      final res = await ref.read(vendoServiceProvider).fetchWeitereAbfahrten(
+      final res = await ref
+          .read(vendoServiceProvider)
+          .fetchWeitereAbfahrten(
             abgangsLocationId: from,
             zielLocationId: to,
             ankunft: an,
-            produktGattungen:
-                VendoService.produktGattungenFor(leg.line?.product),
+            produktGattungen: VendoService.produktGattungenFor(
+              leg.line?.product,
+            ),
             context: context,
           );
       if (!mounted) return;
@@ -177,13 +180,19 @@ class _WeitereAbfahrtenSheetState
               padding: const EdgeInsets.fromLTRB(20, 0, 16, 8),
               child: Row(
                 children: [
-                  Icon(Icons.departure_board,
-                      size: 20, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.departure_board,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text('Weitere Abfahrten',
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'Weitere Abfahrten',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -202,9 +211,10 @@ class _WeitereAbfahrtenSheetState
         padding: EdgeInsets.symmetric(vertical: 32),
         child: Center(
           child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2)),
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         ),
       );
     }
@@ -212,7 +222,10 @@ class _WeitereAbfahrtenSheetState
       return Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
-          child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+          child: Text(
+            _error!,
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
         ),
       );
     }
@@ -238,17 +251,24 @@ class _WeitereAbfahrtenSheetState
                 children: [
                   if (_loading)
                     const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   else
-                    Icon(Icons.expand_more,
-                        size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.expand_more,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
                   const SizedBox(width: 8),
-                  Text('Mehr anzeigen',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    'Mehr anzeigen',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -283,11 +303,21 @@ class _WeitereAbfahrtenSheetState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _timeCell(theme, leg.plannedDeparture, leg.departure,
-                      leg.departureDelay, bold: true),
+                  _timeCell(
+                    theme,
+                    leg.plannedDeparture,
+                    leg.departure,
+                    leg.departureDelay,
+                    bold: true,
+                  ),
                   const SizedBox(height: 4),
-                  _timeCell(theme, leg.plannedArrival, leg.arrival,
-                      leg.arrivalDelay, bold: false),
+                  _timeCell(
+                    theme,
+                    leg.plannedArrival,
+                    leg.arrival,
+                    leg.arrivalDelay,
+                    bold: false,
+                  ),
                 ],
               ),
             ),
@@ -301,14 +331,20 @@ class _WeitereAbfahrtenSheetState
                       if (name.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(name,
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w600)),
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       if (leg.occupancy != null) ...[
                         const SizedBox(width: 6),
@@ -322,8 +358,9 @@ class _WeitereAbfahrtenSheetState
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 13,
-                        color: theme.colorScheme.onSurfaceVariant),
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -332,14 +369,20 @@ class _WeitereAbfahrtenSheetState
               const SizedBox(width: 8),
               Padding(
                 padding: const EdgeInsets.only(top: 1),
-                child: Text('Gl. $platform',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant)),
+                child: Text(
+                  'Gl. $platform',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
             ],
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right,
-                size: 18, color: theme.colorScheme.onSurfaceVariant),
+            Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
@@ -347,8 +390,13 @@ class _WeitereAbfahrtenSheetState
   }
 
   /// Planned time, struck through + realtime in red when delayed ≥ 1 min.
-  Widget _timeCell(ThemeData theme, DateTime? planned, DateTime? real,
-      int? delaySec, {required bool bold}) {
+  Widget _timeCell(
+    ThemeData theme,
+    DateTime? planned,
+    DateTime? real,
+    int? delaySec, {
+    required bool bold,
+  }) {
     if (planned == null) return const SizedBox.shrink();
     final delayed = (delaySec ?? 0) >= 60;
     final base = bold
@@ -370,9 +418,10 @@ class _WeitereAbfahrtenSheetState
           Text(
             real.hhmm,
             style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: delaySec.delayColor),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: delaySec.delayColor,
+            ),
           ),
       ],
     );

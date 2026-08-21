@@ -51,8 +51,8 @@ class NotificationService {
   /// trip to point at (then a tap just opens the app, as before).
   static String? _tripPayload(String? tripKey) =>
       (tripKey == null || tripKey.isEmpty)
-          ? null
-          : '$_tripPayloadPrefix$tripKey';
+      ? null
+      : '$_tripPayloadPrefix$tripKey';
 
   /// Lowest notification id used for *scheduled* trip reminders. Reserved range
   /// so [cancelReminders] can reconcile them without touching the one-shot
@@ -220,8 +220,11 @@ class NotificationService {
           .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin
           >();
-      final granted =
-          await ios?.requestPermissions(alert: true, badge: true, sound: true);
+      final granted = await ios?.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
       return granted ?? true;
     } catch (e) {
       AppLog.log('notification permission request failed ($e)', tag: 'notify');
@@ -347,14 +350,17 @@ class NotificationService {
           ],
         ),
         iOS: const DarwinNotificationDetails(
-            categoryIdentifier: _missedCategoryId),
+          categoryIdentifier: _missedCategoryId,
+        ),
         macOS: const DarwinNotificationDetails(
-            categoryIdentifier: _missedCategoryId),
+          categoryIdentifier: _missedCategoryId,
+        ),
       );
       await _plugin.show(
         id: 4000 + (id % 1000),
         title: '${rescue.label}?',
-        body: 'Deine Position spricht dafür. Jetzt Alternativen ab '
+        body:
+            'Deine Position spricht dafür. Jetzt Alternativen ab '
             '${rescue.from.name} suchen?',
         notificationDetails: details,
         payload: '$_missedPayloadPrefix${rescue.encode()}',

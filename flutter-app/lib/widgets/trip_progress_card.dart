@@ -93,8 +93,9 @@ class _TripProgressCardState extends State<TripProgressCard> {
               Text(
                 'ab ${p.originName} → ${p.destinationName}',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSecondaryContainer
-                      .withValues(alpha: 0.8),
+                  color: theme.colorScheme.onSecondaryContainer.withValues(
+                    alpha: 0.8,
+                  ),
                 ),
               ),
             ],
@@ -123,10 +124,12 @@ class _TripProgressCardState extends State<TripProgressCard> {
                 ),
               ),
             ),
-            Text('${(p.fraction * 100).round()} %',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSecondaryContainer,
-                )),
+            Text(
+              '${(p.fraction * 100).round()} %',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -135,8 +138,9 @@ class _TripProgressCardState extends State<TripProgressCard> {
           child: LinearProgressIndicator(
             value: p.fraction,
             minHeight: 6,
-            backgroundColor:
-                theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.15),
+            backgroundColor: theme.colorScheme.onSecondaryContainer.withValues(
+              alpha: 0.15,
+            ),
             color: theme.colorScheme.onSecondaryContainer,
           ),
         ),
@@ -146,8 +150,9 @@ class _TripProgressCardState extends State<TripProgressCard> {
             'Umstieg in ${p.nextTransferStation}'
             '${p.minutesToTransfer != null ? ' · in ${_dur(p.minutesToTransfer!)}' : ''}',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSecondaryContainer
-                  .withValues(alpha: 0.85),
+              color: theme.colorScheme.onSecondaryContainer.withValues(
+                alpha: 0.85,
+              ),
             ),
           ),
         ],

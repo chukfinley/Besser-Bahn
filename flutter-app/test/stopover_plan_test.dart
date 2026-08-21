@@ -6,12 +6,21 @@ import 'package:flutter_test/flutter_test.dart';
 /// Breaking a trip in two at a hub: the second leg is nailed to the appointment,
 /// the first is free to be much earlier, and the gap between them is the point.
 
-const _selent =
-    Station(id: '8005292', name: 'Selent', locationId: 'A=1@L=8005292@');
-const _kiel =
-    Station(id: '8000199', name: 'Kiel Hbf', locationId: 'A=1@L=8000199@');
+const _selent = Station(
+  id: '8005292',
+  name: 'Selent',
+  locationId: 'A=1@L=8005292@',
+);
+const _kiel = Station(
+  id: '8000199',
+  name: 'Kiel Hbf',
+  locationId: 'A=1@L=8000199@',
+);
 const _praxis = Station(
-    id: '625109', name: 'Kiel Professor-Peters-Platz', locationId: 'A=1@L=1@');
+  id: '625109',
+  name: 'Kiel Professor-Peters-Platz',
+  locationId: 'A=1@L=1@',
+);
 
 final _deadline = DateTime(2026, 7, 27, 9, 48);
 
@@ -24,44 +33,52 @@ Journey _leg({
   required DateTime arrival,
   bool cancelled = false,
   String? token,
-}) =>
-    Journey(
-      refreshToken: token ??
-          '${departure.hour}${departure.minute}-${arrival.hour}${arrival.minute}',
-      legs: [
-        JourneyLeg(
-          origin: from,
-          destination: to,
-          departure: departure,
-          plannedDeparture: departure,
-          arrival: arrival,
-          plannedArrival: arrival,
-          cancelled: cancelled,
-        ),
-      ],
-    );
+}) => Journey(
+  refreshToken:
+      token ??
+      '${departure.hour}${departure.minute}-${arrival.hour}${arrival.minute}',
+  legs: [
+    JourneyLeg(
+      origin: from,
+      destination: to,
+      departure: departure,
+      plannedDeparture: departure,
+      arrival: arrival,
+      plannedArrival: arrival,
+      cancelled: cancelled,
+    ),
+  ],
+);
 
 /// Kiel Hbf → the practice, arriving [arrH]:[arrM].
-Journey _second(int depH, int depM, int arrH, int arrM,
-        {bool cancelled = false}) =>
-    _leg(
-      from: _kiel,
-      to: _praxis,
-      departure: _at(depH, depM),
-      arrival: _at(arrH, arrM),
-      cancelled: cancelled,
-    );
+Journey _second(
+  int depH,
+  int depM,
+  int arrH,
+  int arrM, {
+  bool cancelled = false,
+}) => _leg(
+  from: _kiel,
+  to: _praxis,
+  departure: _at(depH, depM),
+  arrival: _at(arrH, arrM),
+  cancelled: cancelled,
+);
 
 /// Selent → Kiel Hbf, arriving [arrH]:[arrM].
-Journey _first(int depH, int depM, int arrH, int arrM,
-        {bool cancelled = false}) =>
-    _leg(
-      from: _selent,
-      to: _kiel,
-      departure: _at(depH, depM),
-      arrival: _at(arrH, arrM),
-      cancelled: cancelled,
-    );
+Journey _first(
+  int depH,
+  int depM,
+  int arrH,
+  int arrM, {
+  bool cancelled = false,
+}) => _leg(
+  from: _selent,
+  to: _kiel,
+  departure: _at(depH, depM),
+  arrival: _at(arrH, arrM),
+  cancelled: cancelled,
+);
 
 void main() {
   group('latestArrivingBy — the leg nailed to the appointment', () {
@@ -105,9 +122,15 @@ void main() {
     });
 
     test('a connection missing a time is skipped, not treated as 00:00', () {
-      final noArrival = Journey(legs: [
-        JourneyLeg(origin: _kiel, destination: _praxis, departure: _at(9, 40)),
-      ]);
+      final noArrival = Journey(
+        legs: [
+          JourneyLeg(
+            origin: _kiel,
+            destination: _praxis,
+            departure: _at(9, 40),
+          ),
+        ],
+      );
       expect(latestArrivingBy([noArrival], _deadline), isNull);
     });
   });
@@ -121,9 +144,15 @@ void main() {
     });
 
     test('null when either end has no time', () {
-      final noArrival = Journey(legs: [
-        JourneyLeg(origin: _selent, destination: _kiel, departure: _at(7, 30)),
-      ]);
+      final noArrival = Journey(
+        legs: [
+          JourneyLeg(
+            origin: _selent,
+            destination: _kiel,
+            departure: _at(7, 30),
+          ),
+        ],
+      );
       expect(stayBetween(noArrival, _second(9, 30, 9, 42)), isNull);
     });
   });
@@ -137,24 +166,34 @@ void main() {
       _first(9, 20, 9, 55), // arrives after the train has gone
     ];
 
-    test('only what leaves the wanted stay, and nothing that misses the train',
-        () {
-      final options =
-          firstLegOptions(candidates, hubDeparture, minStayMinutes: 30);
+    test(
+      'only what leaves the wanted stay, and nothing that misses the train',
+      () {
+        final options = firstLegOptions(
+          candidates,
+          hubDeparture,
+          minStayMinutes: 30,
+        );
 
-      expect(options.length, 2);
-      expect([for (final o in options) o.arrival], [_at(7, 55), _at(8, 55)]);
-    });
+        expect(options.length, 2);
+        expect([for (final o in options) o.arrival], [_at(7, 55), _at(8, 55)]);
+      },
+    );
 
-    test('chronological — earliest start on top, which is also the most time',
-        () {
-      final options =
-          firstLegOptions(candidates, hubDeparture, minStayMinutes: 15);
-      expect(
-        [for (final o in options) o.departure],
-        [_at(7, 20), _at(8, 20)],
-      );
-    });
+    test(
+      'chronological — earliest start on top, which is also the most time',
+      () {
+        final options = firstLegOptions(
+          candidates,
+          hubDeparture,
+          minStayMinutes: 15,
+        );
+        expect(
+          [for (final o in options) o.departure],
+          [_at(7, 20), _at(8, 20)],
+        );
+      },
+    );
 
     test('exactly the wanted stay qualifies', () {
       final options = firstLegOptions(
@@ -166,8 +205,11 @@ void main() {
     });
 
     test('a stay of 0 means "any train I can still catch"', () {
-      final options =
-          firstLegOptions(candidates, hubDeparture, minStayMinutes: 0);
+      final options = firstLegOptions(
+        candidates,
+        hubDeparture,
+        minStayMinutes: 0,
+      );
       // The 09:55 arrival is still out: the onward train left at 09:30.
       expect(options.length, 3);
     });

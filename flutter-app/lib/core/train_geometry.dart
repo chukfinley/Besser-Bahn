@@ -58,7 +58,7 @@ class TrainGeometry {
         () {
           final t = tangentAt(i);
           return math.Point(-t.y, t.x);
-        }()
+        }(),
     ];
 
     final left = [for (var i = 0; i < n; i++) v[i] + normals[i] * halfWidthM];
@@ -67,15 +67,29 @@ class TrainGeometry {
     final ring = <math.Point<double>>[];
     ring.addAll(left); // start-left … end-left
     if (noseEnd && noseLenM > 0) {
-      ring.addAll(_arc(v[n - 1], normals[n - 1], segDir.last, halfWidthM,
+      ring.addAll(
+        _arc(
+          v[n - 1],
+          normals[n - 1],
+          segDir.last,
+          halfWidthM,
           noseLenM,
-          plusToMinus: true));
+          plusToMinus: true,
+        ),
+      );
     }
     ring.addAll(right.reversed); // end-right … start-right
     if (noseStart && noseLenM > 0) {
-      ring.addAll(_arc(v[0], normals[0], segDir.first * -1.0, halfWidthM,
+      ring.addAll(
+        _arc(
+          v[0],
+          normals[0],
+          segDir.first * -1.0,
+          halfWidthM,
           noseLenM,
-          plusToMinus: false));
+          plusToMinus: false,
+        ),
+      );
     }
     return [for (final p in ring) f.ll(p)];
   }
@@ -320,8 +334,8 @@ class RoutePath {
 class _Frame {
   final double mlat, mlon;
   _Frame(double lat0)
-      : mlat = 111320.0,
-        mlon = 111320.0 * math.cos(lat0 * math.pi / 180);
+    : mlat = 111320.0,
+      mlon = 111320.0 * math.cos(lat0 * math.pi / 180);
 
   math.Point<double> xy(LatLng p) =>
       math.Point(p.longitude * mlon, p.latitude * mlat);

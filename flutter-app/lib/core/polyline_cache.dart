@@ -36,10 +36,12 @@ class PolylineCache {
         final pts = (value as List<dynamic>)
             .whereType<List<dynamic>>()
             .where((p) => p.length >= 2)
-            .map((p) => {
-                  'lat': (p[0] as num).toDouble(),
-                  'lng': (p[1] as num).toDouble(),
-                })
+            .map(
+              (p) => {
+                'lat': (p[0] as num).toDouble(),
+                'lng': (p[1] as num).toDouble(),
+              },
+            )
             .toList();
         if (pts.isNotEmpty) _mem[key] = pts;
       });
@@ -53,8 +55,7 @@ class PolylineCache {
     return _mem[routeKey];
   }
 
-  Future<void> put(
-      String routeKey, List<Map<String, double>> polyline) async {
+  Future<void> put(String routeKey, List<Map<String, double>> polyline) async {
     if (polyline.isEmpty) return;
     await _ensureLoaded();
     // Re-insert at the end to mark as most-recent.
@@ -70,10 +71,10 @@ class PolylineCache {
     try {
       final prefs = await SharedPreferences.getInstance();
       // Store as compact [[lat,lng],...] arrays to keep the blob small.
-      final out = _mem.map((key, pts) => MapEntry(
-            key,
-            pts.map((p) => [p['lat'], p['lng']]).toList(),
-          ));
+      final out = _mem.map(
+        (key, pts) =>
+            MapEntry(key, pts.map((p) => [p['lat'], p['lng']]).toList()),
+      );
       await prefs.setString(_kKey, json.encode(out));
     } catch (_) {
       // Best effort; an unwritable cache must never break trip loading.

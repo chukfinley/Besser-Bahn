@@ -38,10 +38,10 @@ class DbProfile {
       [vorname, nachname].where((s) => s.trim().isNotEmpty).join(' ').trim();
 
   String get anredeText => switch (anrede) {
-        'HR' => 'Herr',
-        'FR' => 'Frau',
-        _ => '',
-      };
+    'HR' => 'Herr',
+    'FR' => 'Frau',
+    _ => '',
+  };
 
   factory DbProfile.fromJson(Map<String, dynamic> j) {
     final profile = (j['kundenprofile'] as List<dynamic>?)
@@ -67,28 +67,28 @@ class DbProfile {
   /// Serialise to the same shape `kundenkonten/{id}` returns (so [fromJson]
   /// re-parses it byte-identically). Used by the on-disk profile cache.
   Map<String, dynamic> toJson() => {
-        'kundenkontoId': kundenkontoId,
-        'kundennummer': kundennummer,
-        'vorname': vorname,
-        'nachname': nachname,
-        if (anrede != null) 'anrede': anrede,
-        if (geburtsdatum != null) 'geburtsdatum': geburtsdatum,
-        if (kundendatensatzId != null) 'kundendatensatzId': kundendatensatzId,
-        if (bahnbonusStatus != null) 'bahnbonusStatus': bahnbonusStatus,
-        if (adresse != null)
-          'hauptadresse': {
-            if (adresse!.strasse != null) 'strasse': adresse!.strasse,
-            if (adresse!.plz != null) 'plz': adresse!.plz,
-            if (adresse!.ort != null) 'ort': adresse!.ort,
-            if (adresse!.land != null) 'land': adresse!.land,
-          },
-        'kundenprofile': [
-          {
-            if (kundenprofilId != null) 'id': kundenprofilId,
-            if (email != null) 'kontaktmailadresse': {'email': email},
-          },
-        ],
-      };
+    'kundenkontoId': kundenkontoId,
+    'kundennummer': kundennummer,
+    'vorname': vorname,
+    'nachname': nachname,
+    if (anrede != null) 'anrede': anrede,
+    if (geburtsdatum != null) 'geburtsdatum': geburtsdatum,
+    if (kundendatensatzId != null) 'kundendatensatzId': kundendatensatzId,
+    if (bahnbonusStatus != null) 'bahnbonusStatus': bahnbonusStatus,
+    if (adresse != null)
+      'hauptadresse': {
+        if (adresse!.strasse != null) 'strasse': adresse!.strasse,
+        if (adresse!.plz != null) 'plz': adresse!.plz,
+        if (adresse!.ort != null) 'ort': adresse!.ort,
+        if (adresse!.land != null) 'land': adresse!.land,
+      },
+    'kundenprofile': [
+      {
+        if (kundenprofilId != null) 'id': kundenprofilId,
+        if (email != null) 'kontaktmailadresse': {'email': email},
+      },
+    ],
+  };
 }
 
 /// One server-side Bahnhof favorite — from
@@ -142,11 +142,11 @@ class DbAddress {
   const DbAddress({this.strasse, this.plz, this.ort, this.land});
 
   factory DbAddress.fromJson(Map<String, dynamic> j) => DbAddress(
-        strasse: j['strasse'] as String?,
-        plz: j['plz'] as String?,
-        ort: j['ort'] as String?,
-        land: j['land'] as String?,
-      );
+    strasse: j['strasse'] as String?,
+    plz: j['plz'] as String?,
+    ort: j['ort'] as String?,
+    land: j['land'] as String?,
+  );
 
   /// "Musterstraße 1, 12345 Musterstadt".
   String get oneLine {
@@ -174,29 +174,29 @@ class DbBahnBonus {
 
   /// DB's BahnBonus tiers by numeric level.
   String get levelName => switch (statusLevel) {
-        '1' => 'Silber',
-        '2' => 'Gold',
-        '3' => 'Platin',
-        _ => 'Blau',
-      };
+    '1' => 'Silber',
+    '2' => 'Gold',
+    '3' => 'Platin',
+    _ => 'Blau',
+  };
 
   factory DbBahnBonus.fromJson(Map<String, dynamic> j) => DbBahnBonus(
-        activeBonusPoints: (j['activeBonusPoints'] as num?)?.toInt() ?? 0,
-        activeStatusPoints: (j['activeStatusPoints'] as num?)?.toInt() ?? 0,
-        statusLevel: (j['statusLevel'] ?? '0').toString(),
-        subscription: j['bbSubscription'] as bool? ?? false,
-        loyaltyNumber: j['loyaltyNumber'] as String?,
-      );
+    activeBonusPoints: (j['activeBonusPoints'] as num?)?.toInt() ?? 0,
+    activeStatusPoints: (j['activeStatusPoints'] as num?)?.toInt() ?? 0,
+    statusLevel: (j['statusLevel'] ?? '0').toString(),
+    subscription: j['bbSubscription'] as bool? ?? false,
+    loyaltyNumber: j['loyaltyNumber'] as String?,
+  );
 
   /// Mirrors the API's key names so the on-disk cache round-trips back
   /// through [fromJson].
   Map<String, dynamic> toJson() => {
-        'activeBonusPoints': activeBonusPoints,
-        'activeStatusPoints': activeStatusPoints,
-        'statusLevel': statusLevel,
-        'bbSubscription': subscription,
-        if (loyaltyNumber != null) 'loyaltyNumber': loyaltyNumber,
-      };
+    'activeBonusPoints': activeBonusPoints,
+    'activeStatusPoints': activeStatusPoints,
+    'statusLevel': statusLevel,
+    'bbSubscription': subscription,
+    if (loyaltyNumber != null) 'loyaltyNumber': loyaltyNumber,
+  };
 }
 
 /// The signed-in user's official current-year CO₂ balance from the BahnBonus
@@ -226,7 +226,9 @@ class DbBahnBonusCo2Balance {
     final period = j['periodOfTime'];
     final emissions = j['emissions'];
     if (period is! Map<String, dynamic> || emissions is! Map<String, dynamic>) {
-      throw const FormatException('CO₂ balance: missing periodOfTime/emissions');
+      throw const FormatException(
+        'CO₂ balance: missing periodOfTime/emissions',
+      );
     }
     final startDate = (period['startDate'] ?? '').toString();
     final year = int.tryParse(startDate.split('-').first);
@@ -247,14 +249,14 @@ class DbBahnBonusCo2Balance {
   }
 
   Map<String, dynamic> toJson() => {
-        'periodOfTime': {'startDate': startDate, 'endDate': endDate},
-        'emissions': {
-          'co2EmissionTravelByTrain': trainEmissionKg,
-          'co2EmissionTravelByCar': carEmissionKg,
-          'co2Reduction': reductionKg,
-        },
-        'travelDistance': travelDistanceKm,
-      };
+    'periodOfTime': {'startDate': startDate, 'endDate': endDate},
+    'emissions': {
+      'co2EmissionTravelByTrain': trainEmissionKg,
+      'co2EmissionTravelByCar': carEmissionKg,
+      'co2Reduction': reductionKg,
+    },
+    'travelDistance': travelDistanceKm,
+  };
 }
 
 /// A BahnCard — from `GET /mob/emobilebahncards`. `bildSichtHtml` /
@@ -309,7 +311,9 @@ class DbBahnCard {
   bool isExpiredAt(DateTime now) {
     final until = validUntil;
     if (until == null) return false;
-    return now.isAfter(DateTime(until.year, until.month, until.day, 23, 59, 59));
+    return now.isAfter(
+      DateTime(until.year, until.month, until.day, 23, 59, 59),
+    );
   }
 
   bool isNotYetValidAt(DateTime now) {
@@ -327,38 +331,38 @@ class DbBahnCard {
   bool get isValidNow => isValidAt(DateTime.now());
 
   factory DbBahnCard.fromJson(Map<String, dynamic> j) => DbBahnCard(
-        nummer: (j['bahnCardNummer'] ?? '').toString(),
-        typ: (j['bahnCardTyp'] ?? '').toString(),
-        produktBezeichnung: (j['produktBezeichnung'] ?? '').toString(),
-        karteninhaber: j['karteninhaber'] as String?,
-        klasse: (j['klasse'] ?? 'KLASSE_2').toString(),
-        gueltigAb: j['gueltigAb'] as String?,
-        gueltigBis: j['gueltigBis'] as String?,
-        kontrollSichtGueltigBis: j['kontrollSichtGueltigBis'] as String?,
-        business: j['isBahnCardBusiness'] as bool? ?? false,
-        bildSichtHtml: _decodeHtml(j['bildSicht'] as String?),
-        kontrollSichtHtml: _decodeHtml(j['kontrollSicht'] as String?),
-      );
+    nummer: (j['bahnCardNummer'] ?? '').toString(),
+    typ: (j['bahnCardTyp'] ?? '').toString(),
+    produktBezeichnung: (j['produktBezeichnung'] ?? '').toString(),
+    karteninhaber: j['karteninhaber'] as String?,
+    klasse: (j['klasse'] ?? 'KLASSE_2').toString(),
+    gueltigAb: j['gueltigAb'] as String?,
+    gueltigBis: j['gueltigBis'] as String?,
+    kontrollSichtGueltigBis: j['kontrollSichtGueltigBis'] as String?,
+    business: j['isBahnCardBusiness'] as bool? ?? false,
+    bildSichtHtml: _decodeHtml(j['bildSicht'] as String?),
+    kontrollSichtHtml: _decodeHtml(j['kontrollSicht'] as String?),
+  );
 
   /// Persistable shape — mirrors the API JSON (base64-HTML) so the same
   /// [fromJson] reads it back. Used by the on-disk cache so the BahnCard
   /// view (incl. the Kontrollansicht) survives offline / between launches.
   Map<String, dynamic> toJson() => {
-        'bahnCardNummer': nummer,
-        'bahnCardTyp': typ,
-        'produktBezeichnung': produktBezeichnung,
-        if (karteninhaber != null) 'karteninhaber': karteninhaber,
-        'klasse': klasse,
-        if (gueltigAb != null) 'gueltigAb': gueltigAb,
-        if (gueltigBis != null) 'gueltigBis': gueltigBis,
-        if (kontrollSichtGueltigBis != null)
-          'kontrollSichtGueltigBis': kontrollSichtGueltigBis,
-        'isBahnCardBusiness': business,
-        if (bildSichtHtml != null)
-          'bildSicht': base64Encode(utf8.encode(bildSichtHtml!)),
-        if (kontrollSichtHtml != null)
-          'kontrollSicht': base64Encode(utf8.encode(kontrollSichtHtml!)),
-      };
+    'bahnCardNummer': nummer,
+    'bahnCardTyp': typ,
+    'produktBezeichnung': produktBezeichnung,
+    if (karteninhaber != null) 'karteninhaber': karteninhaber,
+    'klasse': klasse,
+    if (gueltigAb != null) 'gueltigAb': gueltigAb,
+    if (gueltigBis != null) 'gueltigBis': gueltigBis,
+    if (kontrollSichtGueltigBis != null)
+      'kontrollSichtGueltigBis': kontrollSichtGueltigBis,
+    'isBahnCardBusiness': business,
+    if (bildSichtHtml != null)
+      'bildSicht': base64Encode(utf8.encode(bildSichtHtml!)),
+    if (kontrollSichtHtml != null)
+      'kontrollSicht': base64Encode(utf8.encode(kontrollSichtHtml!)),
+  };
 
   static String? _decodeHtml(String? b64) {
     if (b64 == null || b64.isEmpty) return null;

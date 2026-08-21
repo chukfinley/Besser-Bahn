@@ -15,8 +15,10 @@ void main() {
       final map = await svc.fetchByStationName('Kiel Hbf');
       final cubes = map.pois.where((p) => p.isPlatformSector).length;
       // ignore: avoid_print
-      print('Kiel live: ${map.platforms.length} platforms, $cubes cubes, '
-          '${map.platformAnchors.length} anchors, ${map.levels.length} levels');
+      print(
+        'Kiel live: ${map.platforms.length} platforms, $cubes cubes, '
+        '${map.platformAnchors.length} anchors, ${map.levels.length} levels',
+      );
       expect(map.platforms, isNotEmpty, reason: 'should find Gleise');
       expect(cubes, greaterThan(0), reason: 'should find A/B/C sector cubes');
     } on StationMapException catch (e) {

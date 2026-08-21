@@ -37,11 +37,7 @@ import 'chuk_squircle.dart';
 /// One destination in a [ChukNavBar].
 @immutable
 class ChukNavItem {
-  const ChukNavItem({
-    required this.icon,
-    required this.label,
-    this.activeIcon,
-  });
+  const ChukNavItem({required this.icon, required this.label, this.activeIcon});
 
   /// Icon shown when the tab is inactive.
   final IconData icon;
@@ -123,9 +119,7 @@ class _ChukNavBarState extends State<ChukNavBar> {
     final safeArea = widget.safeArea;
 
     final n = items.length;
-    final height = collapsed
-        ? (s.collapsedHeight ?? 52)
-        : (s.height ?? 64);
+    final height = collapsed ? (s.collapsedHeight ?? 52) : (s.height ?? 64);
     final barRadius = s.radius ?? kChukPillRadius;
     final radius = BorderRadius.circular(barRadius);
     // Upstream falls back to the colour tokens (textPrimary / textTertiary).
@@ -201,8 +195,9 @@ class _ChukNavBarState extends State<ChukNavBar> {
                                 item.label,
                                 style: t.labelStyle.copyWith(
                                   fontSize: 10,
-                                  fontWeight:
-                                      active ? FontWeight.w600 : FontWeight.w500,
+                                  fontWeight: active
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
                                   color: color,
                                 ),
                               ),
@@ -237,11 +232,7 @@ class _ChukNavBarState extends State<ChukNavBar> {
               ),
             ),
           ),
-          Row(
-            children: [
-              for (var i = 0; i < n; i++) Expanded(child: tab(i)),
-            ],
-          ),
+          Row(children: [for (var i = 0; i < n; i++) Expanded(child: tab(i))]),
         ],
       ),
     );
@@ -271,10 +262,7 @@ class _ChukNavBarState extends State<ChukNavBar> {
       ),
     );
 
-    bar = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      child: bar,
-    );
+    bar = Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 6), child: bar);
 
     if (safeArea) {
       bar = SafeArea(top: false, child: bar);

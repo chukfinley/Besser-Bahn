@@ -21,8 +21,9 @@ class BahnCardWebViewCache {
 
   /// The controller for [key], built with [create] on first use.
   static WebViewController putIfAbsent(
-          String key, WebViewController Function() create) =>
-      _cache[key] ??= create();
+    String key,
+    WebViewController Function() create,
+  ) => _cache[key] ??= create();
 
   static void clear() => _cache.clear();
 

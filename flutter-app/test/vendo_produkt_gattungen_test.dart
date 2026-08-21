@@ -33,8 +33,11 @@ void main() {
         'taxi',
       ];
       for (final p in products) {
-        expect(_accepted, contains(VendoService.produktGattungenFor(p)),
-            reason: 'product "$p" would 400 the whole switcher');
+        expect(
+          _accepted,
+          contains(VendoService.produktGattungenFor(p)),
+          reason: 'product "$p" would 400 the whole switcher',
+        );
       }
     });
 

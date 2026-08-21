@@ -29,8 +29,11 @@ class TraewellingAvatarButton extends ConsumerWidget {
               : null,
           child: (user?.profilePicture?.isNotEmpty ?? false)
               ? null
-              : Icon(Icons.person_outline,
-                  size: 18, color: theme.colorScheme.onPrimaryContainer),
+              : Icon(
+                  Icons.person_outline,
+                  size: 18,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
         ),
       ),
     );

@@ -53,28 +53,30 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
   late int? _viaStay = widget.initial.viaStayMinutes;
 
   void _apply() {
-    Navigator.of(context).pop(SearchOptions(
-      maxTransfers: _maxTransfers,
-      minTransferMinutes: _minTransfer,
-      via: _via,
-      // A stay without a via is meaningless.
-      viaStayMinutes: _via == null ? null : _viaStay,
-    ));
+    Navigator.of(context).pop(
+      SearchOptions(
+        maxTransfers: _maxTransfers,
+        minTransferMinutes: _minTransfer,
+        via: _via,
+        // A stay without a via is meaningless.
+        viaStayMinutes: _via == null ? null : _viaStay,
+      ),
+    );
   }
 
   void _reset() => setState(() {
-        _maxTransfers = null;
-        _minTransfer = null;
-        _via = null;
-        _viaStay = null;
-      });
+    _maxTransfers = null;
+    _minTransfer = null;
+    _via = null;
+    _viaStay = null;
+  });
 
   String _capLabel(int? cap) => switch (cap) {
-        null => 'Beliebig',
-        0 => 'Direkt',
-        1 => 'Max. 1',
-        _ => 'Max. $cap',
-      };
+    null => 'Beliebig',
+    0 => 'Direkt',
+    1 => 'Max. 1',
+    _ => 'Max. $cap',
+  };
 
   /// What the search will actually ask for when "Automatisch" is selected —
   /// the profile's own minimum, or nothing at all for fast/normal riders.
@@ -93,7 +95,8 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final maxH = MediaQuery.of(context).size.height * 0.85;
-    final dirty = SearchOptions(
+    final dirty =
+        SearchOptions(
           maxTransfers: _maxTransfers,
           minTransferMinutes: _minTransfer,
           via: _via,
@@ -158,9 +161,10 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
                       _minTransfer == null
                           ? _autoHint
                           : 'Die Bahn sucht nur Verbindungen mit mindestens '
-                              '$_minTransfer min pro Umstieg.',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.outline),
+                                '$_minTransfer min pro Umstieg.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -185,8 +189,9 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
                           child: Text(
                             'Die Verbindung führt über ${_via!.name} — '
                             'umsteigen musst du dort nicht.',
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: theme.colorScheme.outline),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
                           ),
                         ),
                         TextButton.icon(
@@ -200,18 +205,23 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _label(theme, Icons.local_cafe_outlined,
-                        'Mindestaufenthalt dort'),
+                    _label(
+                      theme,
+                      Icons.local_cafe_outlined,
+                      'Mindestaufenthalt dort',
+                    ),
                     Wrap(
                       spacing: 8,
                       children: [
                         for (final stay in _viaStayMinutes)
                           ChoiceChip(
-                            label: Text(stay == null
-                                ? 'Egal'
-                                : stay >= 60
-                                    ? '${stay ~/ 60} h'
-                                    : '$stay min'),
+                            label: Text(
+                              stay == null
+                                  ? 'Egal'
+                                  : stay >= 60
+                                  ? '${stay ~/ 60} h'
+                                  : '$stay min',
+                            ),
                             selected: _viaStay == stay,
                             onSelected: (_) => setState(() => _viaStay = stay),
                           ),
@@ -227,7 +237,8 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
               child: Row(
                 children: [
                   TextButton(
-                    onPressed: _maxTransfers == null &&
+                    onPressed:
+                        _maxTransfers == null &&
                             _minTransfer == null &&
                             _via == null
                         ? null
@@ -249,15 +260,18 @@ class _SearchOptionsSheetState extends State<_SearchOptionsSheet> {
   }
 
   Widget _label(ThemeData theme, IconData icon, String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: theme.colorScheme.outline),
-            const SizedBox(width: 8),
-            Text(text,
-                style: theme.textTheme.labelLarge
-                    ?.copyWith(color: theme.colorScheme.outline)),
-          ],
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: theme.colorScheme.outline),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.outline,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }

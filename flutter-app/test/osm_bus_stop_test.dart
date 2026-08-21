@@ -7,84 +7,84 @@ import 'package:latlong2/latlong.dart';
 /// them signed A and B. Note OSM spells the stop "Gravelottestraße" while the
 /// timetable says "Gravelottestraße, Kiel".
 Map<String, dynamic> _gravelotte() => {
-      'elements': [
-        {
-          'type': 'node',
-          'id': 398958539,
-          'lat': 54.32508,
-          'lon': 10.11283,
-          'tags': {
-            'highway': 'bus_stop',
-            'name': 'Gravelottestraße',
-            'local_ref': 'A',
-            'shelter': 'yes',
-          },
-        },
-        {
-          'type': 'node',
-          'id': 5901578831,
-          'lat': 54.32525,
-          'lon': 10.11307,
-          'tags': {
-            'highway': 'bus_stop',
-            'name': 'Gravelottestraße',
-            'local_ref': 'B',
-            'shelter': 'no',
-          },
-        },
-        {
-          'type': 'node',
-          'id': 412264225,
-          'lat': 54.32463,
-          'lon': 10.11316,
-          'tags': {'highway': 'bus_stop', 'name': 'Gravelottestraße'},
-        },
-        // Another stop 400 m down the road — outside the radius, must not show.
-        {
-          'type': 'node',
-          'id': 999,
-          'lat': 54.3285,
-          'lon': 10.1180,
-          'tags': {'highway': 'bus_stop', 'name': 'Wilhelmplatz'},
-        },
-        {
-          'type': 'relation',
-          'id': 1,
-          'tags': {
-            'type': 'route',
-            'route': 'bus',
-            'ref': '14',
-            'to': 'Laboe, Hafen',
-          },
-          'members': [
-            {'type': 'node', 'ref': 398958539, 'role': 'platform'},
-            {'type': 'way', 'ref': 555, 'role': ''},
-          ],
-        },
-        {
-          'type': 'relation',
-          'id': 2,
-          'tags': {
-            'type': 'route',
-            'route': 'bus',
-            'ref': '14',
-            'to': 'Roskilder Weg',
-          },
-          'members': [
-            {'type': 'node', 'ref': 5901578831, 'role': 'platform'},
-          ],
-        },
-        // No `to` — nothing to say about direction, must be skipped.
-        {
-          'type': 'relation',
-          'id': 3,
-          'tags': {'type': 'route', 'route': 'bus', 'ref': '81'},
-          'members': [
-            {'type': 'node', 'ref': 398958539, 'role': 'platform'},
-          ],
-        },
+  'elements': [
+    {
+      'type': 'node',
+      'id': 398958539,
+      'lat': 54.32508,
+      'lon': 10.11283,
+      'tags': {
+        'highway': 'bus_stop',
+        'name': 'Gravelottestraße',
+        'local_ref': 'A',
+        'shelter': 'yes',
+      },
+    },
+    {
+      'type': 'node',
+      'id': 5901578831,
+      'lat': 54.32525,
+      'lon': 10.11307,
+      'tags': {
+        'highway': 'bus_stop',
+        'name': 'Gravelottestraße',
+        'local_ref': 'B',
+        'shelter': 'no',
+      },
+    },
+    {
+      'type': 'node',
+      'id': 412264225,
+      'lat': 54.32463,
+      'lon': 10.11316,
+      'tags': {'highway': 'bus_stop', 'name': 'Gravelottestraße'},
+    },
+    // Another stop 400 m down the road — outside the radius, must not show.
+    {
+      'type': 'node',
+      'id': 999,
+      'lat': 54.3285,
+      'lon': 10.1180,
+      'tags': {'highway': 'bus_stop', 'name': 'Wilhelmplatz'},
+    },
+    {
+      'type': 'relation',
+      'id': 1,
+      'tags': {
+        'type': 'route',
+        'route': 'bus',
+        'ref': '14',
+        'to': 'Laboe, Hafen',
+      },
+      'members': [
+        {'type': 'node', 'ref': 398958539, 'role': 'platform'},
+        {'type': 'way', 'ref': 555, 'role': ''},
       ],
-    };
+    },
+    {
+      'type': 'relation',
+      'id': 2,
+      'tags': {
+        'type': 'route',
+        'route': 'bus',
+        'ref': '14',
+        'to': 'Roskilder Weg',
+      },
+      'members': [
+        {'type': 'node', 'ref': 5901578831, 'role': 'platform'},
+      ],
+    },
+    // No `to` — nothing to say about direction, must be skipped.
+    {
+      'type': 'relation',
+      'id': 3,
+      'tags': {'type': 'route', 'route': 'bus', 'ref': '81'},
+      'members': [
+        {'type': 'node', 'ref': 398958539, 'role': 'platform'},
+      ],
+    },
+  ],
+};
 
 /// The timetable coordinate of the stop, i.e. what DB hands us.
 const _center = LatLng(54.325005, 10.113323);
@@ -122,8 +122,9 @@ void main() {
       final poles = OsmBusStopService.parseResponse(_gravelotte(), _center);
       final a = poles.firstWhere((p) => p.bay == 'A');
       final b = poles.firstWhere((p) => p.bay == 'B');
-      expect(a.directions, ['14 → Laboe, Hafen'],
-          reason: 'the opposite direction belongs to the other pole');
+      expect(a.directions, [
+        '14 → Laboe, Hafen',
+      ], reason: 'the opposite direction belongs to the other pole');
       expect(b.directions, ['14 → Roskilder Weg']);
       expect(a.directionLabel, 'Richtung 14 → Laboe, Hafen');
     });
@@ -139,8 +140,9 @@ void main() {
     test('junk in, empty list out', () {
       expect(OsmBusStopService.parseResponse('nope', _center), isEmpty);
       expect(
-          OsmBusStopService.parseResponse({'elements': 'nope'}, _center),
-          isEmpty);
+        OsmBusStopService.parseResponse({'elements': 'nope'}, _center),
+        isEmpty,
+      );
     });
   });
 

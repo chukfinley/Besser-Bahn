@@ -77,8 +77,8 @@ class AppMap extends StatelessWidget {
           flags: !interactive
               ? InteractiveFlag.none
               : (allowRotation
-                  ? InteractiveFlag.all
-                  : InteractiveFlag.all & ~InteractiveFlag.rotate),
+                    ? InteractiveFlag.all
+                    : InteractiveFlag.all & ~InteractiveFlag.rotate),
         ),
       ),
       children: [
@@ -143,52 +143,53 @@ List<Widget> mapLocateLayers({
   required UserFix fix,
   required LatLng target,
   List<LatLng>? walkingRoute,
-}) =>
-    [
-      PolylineLayer(
-        polylines: [
-          Polyline(
-            points: (walkingRoute != null && walkingRoute.length >= 2)
-                ? walkingRoute
-                : [fix.latLng, target],
-            color: AppColors.dbBlue.withAlpha(180),
-            strokeWidth: 4,
-            pattern: (walkingRoute != null && walkingRoute.length >= 2)
-                ? const StrokePattern.solid()
-                : StrokePattern.dotted(),
-          ),
-        ],
+}) => [
+  PolylineLayer(
+    polylines: [
+      Polyline(
+        points: (walkingRoute != null && walkingRoute.length >= 2)
+            ? walkingRoute
+            : [fix.latLng, target],
+        color: AppColors.dbBlue.withAlpha(180),
+        strokeWidth: 4,
+        pattern: (walkingRoute != null && walkingRoute.length >= 2)
+            ? const StrokePattern.solid()
+            : StrokePattern.dotted(),
       ),
-      CircleLayer(
-        circles: [
-          CircleMarker(
-            point: fix.latLng,
-            radius: fix.accuracy,
-            useRadiusInMeter: true,
-            color: AppColors.dbBlue.withAlpha(30),
-            borderColor: AppColors.dbBlue.withAlpha(90),
-            borderStrokeWidth: 1,
-          ),
-        ],
+    ],
+  ),
+  CircleLayer(
+    circles: [
+      CircleMarker(
+        point: fix.latLng,
+        radius: fix.accuracy,
+        useRadiusInMeter: true,
+        color: AppColors.dbBlue.withAlpha(30),
+        borderColor: AppColors.dbBlue.withAlpha(90),
+        borderStrokeWidth: 1,
       ),
-      MarkerLayer(markers: [
-        Marker(
-          point: fix.latLng,
-          width: 22,
-          height: 22,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.dbBlue,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 4, spreadRadius: 1),
-              ],
-            ),
+    ],
+  ),
+  MarkerLayer(
+    markers: [
+      Marker(
+        point: fix.latLng,
+        width: 22,
+        height: 22,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.dbBlue,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 4, spreadRadius: 1),
+            ],
           ),
         ),
-      ]),
-    ];
+      ),
+    ],
+  ),
+];
 
 /// The round "Mein Standort" button shared by the locating maps.
 class MapLocateButton extends StatelessWidget {

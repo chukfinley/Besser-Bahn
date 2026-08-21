@@ -101,8 +101,10 @@ class _StopTimelineState extends State<StopTimeline> {
     // Resolve the ridden segment [board, alight]. Fall back to whole trip.
     final rawBoard = _indexOf(widget.boardingId);
     // Look for the exit *after* boarding — see [_indexOf].
-    final rawAlight =
-        _indexOf(widget.alightingId, from: rawBoard >= 0 ? rawBoard + 1 : 0);
+    final rawAlight = _indexOf(
+      widget.alightingId,
+      from: rawBoard >= 0 ? rawBoard + 1 : 0,
+    );
     // This is a journey leg (vs. a standalone train lookup) only when at least
     // one endpoint was actually resolved — then we also collapse the stops
     // *between* the endpoints, since 99% just board and alight.
@@ -135,15 +137,17 @@ class _StopTimelineState extends State<StopTimeline> {
 
     // --- stops before boarding (collapsed by default) ---------------------
     if (beforeCount > 0) {
-      rows.add(_collapseHeader(
-        context,
-        expanded: _expandedBefore,
-        count: beforeCount,
-        label: _expandedBefore
-            ? 'Halte vorher ausblenden'
-            : '$beforeCount ${beforeCount == 1 ? 'Halt' : 'Halte'} vorher · ab ${stops.first.stop.name}',
-        onTap: () => setState(() => _expandedBefore = !_expandedBefore),
-      ));
+      rows.add(
+        _collapseHeader(
+          context,
+          expanded: _expandedBefore,
+          count: beforeCount,
+          label: _expandedBefore
+              ? 'Halte vorher ausblenden'
+              : '$beforeCount ${beforeCount == 1 ? 'Halt' : 'Halte'} vorher · ab ${stops.first.stop.name}',
+          onTap: () => setState(() => _expandedBefore = !_expandedBefore),
+        ),
+      );
       if (_expandedBefore) {
         for (var i = 0; i < board; i++) {
           rows.add(_stopRow(i, board, alight, hasTop: i != 0, hasBottom: true));
@@ -154,31 +158,46 @@ class _StopTimelineState extends State<StopTimeline> {
     if (useInline) {
       // board endpoint (big Gleis) → train card on the spine → (expanded
       // intermediate stops) → alight endpoint (big Gleis).
-      rows.add(_stopRow(board, board, alight,
+      rows.add(
+        _stopRow(
+          board,
+          board,
+          alight,
           hasTop: beforeCount > 0 && _expandedBefore,
           hasBottom: true,
           // Connector into the train-card block: full the moment the ride has
           // started, so the block below picks the fill up seamlessly (no gap).
-          belowFillOverride: _blockFill(board, alight) > 0 ? 1.0 : 0.0));
+          belowFillOverride: _blockFill(board, alight) > 0 ? 1.0 : 0.0,
+        ),
+      );
       // Train card + Wagenreihung in ONE spine block, so the leg duration in the
       // gutter sits vertically centred across the whole thing (between the board
       // departure above and the alight arrival below), and the route line runs
       // continuously down their left side.
-      rows.add(_inlineTrainBlock(
-        context,
-        middleCount: middleCount,
-        duration: _legDuration(stops, board, alight),
-        expandable: middleCount > 0,
-        extra: widget.trainExtra,
-        fill: _blockFill(board, alight),
-      ));
+      rows.add(
+        _inlineTrainBlock(
+          context,
+          middleCount: middleCount,
+          duration: _legDuration(stops, board, alight),
+          expandable: middleCount > 0,
+          extra: widget.trainExtra,
+          fill: _blockFill(board, alight),
+        ),
+      );
       if (_expandedMiddle && middleCount > 0) {
         for (var i = board + 1; i < alight; i++) {
           rows.add(_stopRow(i, board, alight, hasTop: true, hasBottom: true));
         }
       }
-      rows.add(_stopRow(alight, board, alight,
-          hasTop: true, hasBottom: afterCount > 0));
+      rows.add(
+        _stopRow(
+          alight,
+          board,
+          alight,
+          hasTop: true,
+          hasBottom: afterCount > 0,
+        ),
+      );
     } else {
       // --- the ridden segment (header-on-top layout) ----------------------
       // Endpoints (board, alight) are always shown. On a journey leg the stops
@@ -188,36 +207,53 @@ class _StopTimelineState extends State<StopTimeline> {
       if (collapseMiddle) {
         // board endpoint — connector full once the ride has started, so the
         // middle block below continues the fill with no gap.
-        rows.add(_stopRow(board, board, alight,
+        rows.add(
+          _stopRow(
+            board,
+            board,
+            alight,
             hasTop: beforeCount > 0 && _expandedBefore,
             hasBottom: true,
-            belowFillOverride: _blockFill(board, alight) > 0 ? 1.0 : 0.0));
+            belowFillOverride: _blockFill(board, alight) > 0 ? 1.0 : 0.0,
+          ),
+        );
         // collapsible middle — continuous spine line + duration
-        rows.add(_middleHeader(
-          context,
-          expanded: _expandedMiddle,
-          count: middleCount,
-          duration: _legDuration(stops, board, alight),
-          fill: _blockFill(board, alight),
-          onTap: () => setState(() => _expandedMiddle = !_expandedMiddle),
-        ));
+        rows.add(
+          _middleHeader(
+            context,
+            expanded: _expandedMiddle,
+            count: middleCount,
+            duration: _legDuration(stops, board, alight),
+            fill: _blockFill(board, alight),
+            onTap: () => setState(() => _expandedMiddle = !_expandedMiddle),
+          ),
+        );
         if (_expandedMiddle) {
           for (var i = board + 1; i < alight; i++) {
             rows.add(_stopRow(i, board, alight, hasTop: true, hasBottom: true));
           }
         }
         // alight endpoint
-        rows.add(_stopRow(alight, board, alight,
-            hasTop: true, hasBottom: afterCount > 0));
-      } else {
-        for (var i = board; i <= alight; i++) {
-          rows.add(_stopRow(
-            i,
+        rows.add(
+          _stopRow(
+            alight,
             board,
             alight,
-            hasTop: i != board || (beforeCount > 0 && _expandedBefore),
-            hasBottom: i != alight || (afterCount > 0),
-          ));
+            hasTop: true,
+            hasBottom: afterCount > 0,
+          ),
+        );
+      } else {
+        for (var i = board; i <= alight; i++) {
+          rows.add(
+            _stopRow(
+              i,
+              board,
+              alight,
+              hasTop: i != board || (beforeCount > 0 && _expandedBefore),
+              hasBottom: i != alight || (afterCount > 0),
+            ),
+          );
         }
       }
     }
@@ -226,19 +262,28 @@ class _StopTimelineState extends State<StopTimeline> {
     if (afterCount > 0) {
       if (_expandedAfter) {
         for (var i = alight + 1; i < stops.length; i++) {
-          rows.add(_stopRow(i, board, alight,
-              hasTop: true, hasBottom: i != stops.length - 1));
+          rows.add(
+            _stopRow(
+              i,
+              board,
+              alight,
+              hasTop: true,
+              hasBottom: i != stops.length - 1,
+            ),
+          );
         }
       }
-      rows.add(_collapseHeader(
-        context,
-        expanded: _expandedAfter,
-        count: afterCount,
-        label: _expandedAfter
-            ? 'Halte danach ausblenden'
-            : '$afterCount ${afterCount == 1 ? 'Halt' : 'Halte'} danach · bis ${stops.last.stop.name}',
-        onTap: () => setState(() => _expandedAfter = !_expandedAfter),
-      ));
+      rows.add(
+        _collapseHeader(
+          context,
+          expanded: _expandedAfter,
+          count: afterCount,
+          label: _expandedAfter
+              ? 'Halte danach ausblenden'
+              : '$afterCount ${afterCount == 1 ? 'Halt' : 'Halte'} danach · bis ${stops.last.stop.name}',
+          onTap: () => setState(() => _expandedAfter = !_expandedAfter),
+        ),
+      );
     }
 
     final body = Column(
@@ -255,10 +300,9 @@ class _StopTimelineState extends State<StopTimeline> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Text(
               'Halte',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -342,9 +386,16 @@ class _StopTimelineState extends State<StopTimeline> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (ff > 0) Expanded(flex: ff, child: Container(width: 4, color: done)),
+          if (ff > 0)
+            Expanded(
+              flex: ff,
+              child: Container(width: 4, color: done),
+            ),
           if (ff < 1000)
-            Expanded(flex: 1000 - ff, child: Container(width: 2, color: faint)),
+            Expanded(
+              flex: 1000 - ff,
+              child: Container(width: 2, color: faint),
+            ),
         ],
       ),
     );
@@ -356,10 +407,14 @@ class _StopTimelineState extends State<StopTimeline> {
   /// for an endpoint that connects into the train-card block: that short
   /// connector must be FULL as soon as the block has any progress, so the rail
   /// reads as one continuous bar instead of "partial, gap, then the block".
-  Widget _stopRow(int i, int board, int alight,
-      {required bool hasTop,
-      required bool hasBottom,
-      double? belowFillOverride}) {
+  Widget _stopRow(
+    int i,
+    int board,
+    int alight, {
+    required bool hasTop,
+    required bool hasBottom,
+    double? belowFillOverride,
+  }) {
     final s = widget.stopovers[i];
     final inSegment = i >= board && i <= alight;
     final isEndpoint = i == board || i == alight;
@@ -392,11 +447,13 @@ class _StopTimelineState extends State<StopTimeline> {
   }
 
   /// Tappable "N Halte vorher / danach" pill that expands the hidden stops.
-  Widget _collapseHeader(BuildContext context,
-      {required bool expanded,
-      required int count,
-      required String label,
-      required VoidCallback onTap}) {
+  Widget _collapseHeader(
+    BuildContext context, {
+    required bool expanded,
+    required int count,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
@@ -411,8 +468,11 @@ class _StopTimelineState extends State<StopTimeline> {
             const SizedBox(width: 12),
             const SizedBox(width: 20),
             const SizedBox(width: 12),
-            Icon(expanded ? Icons.unfold_less : Icons.more_horiz,
-                size: 18, color: theme.colorScheme.primary),
+            Icon(
+              expanded ? Icons.unfold_less : Icons.more_horiz,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -423,8 +483,11 @@ class _StopTimelineState extends State<StopTimeline> {
                 ),
               ),
             ),
-            Icon(expanded ? Icons.expand_less : Icons.expand_more,
-                size: 18, color: theme.colorScheme.primary),
+            Icon(
+              expanded ? Icons.expand_less : Icons.expand_more,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
           ],
         ),
       ),
@@ -434,12 +497,14 @@ class _StopTimelineState extends State<StopTimeline> {
   /// Collapsed middle of a leg: the spine line runs straight through (no break)
   /// with the leg duration on the left, and the expander icon + label sit in
   /// the content column — mirrors the DB Navigator look.
-  Widget _middleHeader(BuildContext context,
-      {required bool expanded,
-      required int count,
-      required String? duration,
-      required double fill,
-      required VoidCallback onTap}) {
+  Widget _middleHeader(
+    BuildContext context, {
+    required bool expanded,
+    required int count,
+    required String? duration,
+    required double fill,
+    required VoidCallback onTap,
+  }) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
     final amenities = widget.legAmenities;
@@ -483,8 +548,11 @@ class _StopTimelineState extends State<StopTimeline> {
                     children: [
                       Row(
                         children: [
-                          Icon(expanded ? Icons.unfold_less : Icons.more_horiz,
-                              size: 18, color: primary),
+                          Icon(
+                            expanded ? Icons.unfold_less : Icons.more_horiz,
+                            size: 18,
+                            color: primary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -496,8 +564,11 @@ class _StopTimelineState extends State<StopTimeline> {
                               ),
                             ),
                           ),
-                          Icon(expanded ? Icons.expand_less : Icons.expand_more,
-                              size: 18, color: primary),
+                          Icon(
+                            expanded ? Icons.expand_less : Icons.expand_more,
+                            size: 18,
+                            color: primary,
+                          ),
                         ],
                       ),
                       if (amenities.isNotEmpty) ...[
@@ -509,10 +580,11 @@ class _StopTimelineState extends State<StopTimeline> {
                             for (final a in amenities)
                               Tooltip(
                                 message: a.label,
-                                child: Icon(a.icon,
-                                    size: 17,
-                                    color:
-                                        theme.colorScheme.onSurfaceVariant),
+                                child: Icon(
+                                  a.icon,
+                                  size: 17,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
                           ],
                         ),
@@ -545,12 +617,14 @@ class _StopTimelineState extends State<StopTimeline> {
   /// the train header (line, direction, per-train prediction, occupancy, action)
   /// and — when the leg has intermediate stops — the "N Zwischenhalte" expander
   /// (reusing [_expandedMiddle]) plus the leg-wide amenities.
-  Widget _inlineTrainBlock(BuildContext context,
-      {required int middleCount,
-      required String? duration,
-      required bool expandable,
-      required double fill,
-      Widget? extra}) {
+  Widget _inlineTrainBlock(
+    BuildContext context, {
+    required int middleCount,
+    required String? duration,
+    required bool expandable,
+    required double fill,
+    Widget? extra,
+  }) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
     final amenities = widget.legAmenities;
@@ -573,8 +647,11 @@ class _StopTimelineState extends State<StopTimeline> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(expanded ? Icons.unfold_less : Icons.more_horiz,
-                      size: 18, color: primary),
+                  Icon(
+                    expanded ? Icons.unfold_less : Icons.more_horiz,
+                    size: 18,
+                    color: primary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -586,8 +663,11 @@ class _StopTimelineState extends State<StopTimeline> {
                       ),
                     ),
                   ),
-                  Icon(expanded ? Icons.expand_less : Icons.expand_more,
-                      size: 18, color: primary),
+                  Icon(
+                    expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 18,
+                    color: primary,
+                  ),
                 ],
               ),
             ],
@@ -600,9 +680,11 @@ class _StopTimelineState extends State<StopTimeline> {
                   for (final a in amenities)
                     Tooltip(
                       message: a.label,
-                      child: Icon(a.icon,
-                          size: 17,
-                          color: theme.colorScheme.onSurfaceVariant),
+                      child: Icon(
+                        a.icon,
+                        size: 17,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                 ],
               ),
@@ -647,10 +729,7 @@ class _StopTimelineState extends State<StopTimeline> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  trainPart,
-                  ?extra,
-                ],
+                children: [trainPart, ?extra],
               ),
             ),
           ],
@@ -732,7 +811,8 @@ class _StopRow extends StatelessWidget {
     // The "an HH:MM / ab HH:MM" dwell detail — intermediate stops only (an
     // endpoint shows just its one relevant time, DB-app style). Shown when the
     // stop actually dwells (both times present and differing).
-    final showAnAb = !emphasize &&
+    final showAnAb =
+        !emphasize &&
         stopover.plannedArrival != null &&
         stopover.plannedDeparture != null &&
         stopover.plannedArrival != stopover.plannedDeparture;
@@ -744,10 +824,10 @@ class _StopRow extends StatelessWidget {
     final dotColor = cancelled
         ? Colors.red
         : muted
-            ? theme.colorScheme.outlineVariant
-            : reached
-                ? doneColor
-                : theme.colorScheme.primary.withAlpha(90);
+        ? theme.colorScheme.outlineVariant
+        : reached
+        ? doneColor
+        : theme.colorScheme.primary.withAlpha(90);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 16, 0),
@@ -759,7 +839,12 @@ class _StopRow extends StatelessWidget {
             SizedBox(
               width: _kSpineWidth,
               child: _spineTime(
-                  spinePlanned, spineReal, spineDelay, cancelled, textColor),
+                spinePlanned,
+                spineReal,
+                spineDelay,
+                cancelled,
+                textColor,
+              ),
             ),
 
             const SizedBox(width: 12),
@@ -768,66 +853,72 @@ class _StopRow extends StatelessWidget {
             // lines up with the vertical centre of the (fixed-height) station
             // name row beside it — same offset on every row, big chip or not,
             // so the first dot, last dot and every name align identically.
-            Builder(builder: (context) {
-              // The not-yet-reached line must stay clearly visible (a solid
-              // muted track), not a near-invisible tint — otherwise the rail
-              // looks broken between a reached stop and the next.
-              final faint = theme.colorScheme.outlineVariant;
-              final dotSize = emphasize ? 14.0 : 10.0;
-              final topGap = _nameRowHeight / 2 - dotSize / 2;
-              // The line ABOVE the dot belongs to the segment that arrives here;
-              // it's done once the train has reached this stop.
-              final topDone = reached;
-              // The line BELOW splits into a solid "done" part (belowFill) and a
-              // faint "ahead" part.
-              final fill = muted ? 0.0 : belowFill.clamp(0.0, 1.0);
-              final fillFlex = (fill * 1000).round();
-              return SizedBox(
-                width: 20,
-                child: Column(
-                  children: [
-                    SizedBox(
-                      height: topGap,
-                      child: hasTop
-                          ? Container(
-                              width: topDone ? 4 : 2,
-                              color: topDone ? doneColor : faint)
-                          : null,
-                    ),
-                    Container(
-                      width: dotSize,
-                      height: dotSize,
-                      decoration: BoxDecoration(
-                        color: dotColor,
-                        shape: BoxShape.circle,
-                        border: emphasize
-                            ? Border.all(
-                                color: theme.colorScheme.primary.withAlpha(100),
-                                width: 2)
+            Builder(
+              builder: (context) {
+                // The not-yet-reached line must stay clearly visible (a solid
+                // muted track), not a near-invisible tint — otherwise the rail
+                // looks broken between a reached stop and the next.
+                final faint = theme.colorScheme.outlineVariant;
+                final dotSize = emphasize ? 14.0 : 10.0;
+                final topGap = _nameRowHeight / 2 - dotSize / 2;
+                // The line ABOVE the dot belongs to the segment that arrives here;
+                // it's done once the train has reached this stop.
+                final topDone = reached;
+                // The line BELOW splits into a solid "done" part (belowFill) and a
+                // faint "ahead" part.
+                final fill = muted ? 0.0 : belowFill.clamp(0.0, 1.0);
+                final fillFlex = (fill * 1000).round();
+                return SizedBox(
+                  width: 20,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: topGap,
+                        child: hasTop
+                            ? Container(
+                                width: topDone ? 4 : 2,
+                                color: topDone ? doneColor : faint,
+                              )
                             : null,
                       ),
-                    ),
-                    if (hasBottom)
-                      Expanded(
-                        child: Column(
-                          children: [
-                            if (fillFlex > 0)
-                              Expanded(
-                                flex: fillFlex,
-                                child: Container(width: 4, color: doneColor),
-                              ),
-                            if (fillFlex < 1000)
-                              Expanded(
-                                flex: 1000 - fillFlex,
-                                child: Container(width: 2, color: faint),
-                              ),
-                          ],
+                      Container(
+                        width: dotSize,
+                        height: dotSize,
+                        decoration: BoxDecoration(
+                          color: dotColor,
+                          shape: BoxShape.circle,
+                          border: emphasize
+                              ? Border.all(
+                                  color: theme.colorScheme.primary.withAlpha(
+                                    100,
+                                  ),
+                                  width: 2,
+                                )
+                              : null,
                         ),
                       ),
-                  ],
-                ),
-              );
-            }),
+                      if (hasBottom)
+                        Expanded(
+                          child: Column(
+                            children: [
+                              if (fillFlex > 0)
+                                Expanded(
+                                  flex: fillFlex,
+                                  child: Container(width: 4, color: doneColor),
+                                ),
+                              if (fillFlex < 1000)
+                                Expanded(
+                                  flex: 1000 - fillFlex,
+                                  child: Container(width: 2, color: faint),
+                                ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
 
             const SizedBox(width: 12),
 
@@ -840,7 +931,8 @@ class _StopRow extends StatelessWidget {
                 // wing-train split banner) the train card sits right under it,
                 // so we tighten the gap — no ~1cm of dead space between them.
                 padding: EdgeInsets.only(
-                    bottom: footer != null ? 6 : (hasBottom ? 22 : 4)),
+                  bottom: footer != null ? 6 : (hasBottom ? 22 : 4),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -851,8 +943,9 @@ class _StopRow extends StatelessWidget {
                     // station name off mid-glyph: the second line was there,
                     // just clipped to its first pixel row (#57).
                     ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(minHeight: _nameRowHeight),
+                      constraints: const BoxConstraints(
+                        minHeight: _nameRowHeight,
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -896,12 +989,22 @@ class _StopRow extends StatelessWidget {
                           spacing: 14,
                           runSpacing: 2,
                           children: [
-                            _anAb(context, 'an', stopover.plannedArrival,
-                                stopover.arrival, stopover.arrivalDelay,
-                                cancelled),
-                            _anAb(context, 'ab', stopover.plannedDeparture,
-                                stopover.departure, stopover.departureDelay,
-                                cancelled),
+                            _anAb(
+                              context,
+                              'an',
+                              stopover.plannedArrival,
+                              stopover.arrival,
+                              stopover.arrivalDelay,
+                              cancelled,
+                            ),
+                            _anAb(
+                              context,
+                              'ab',
+                              stopover.plannedDeparture,
+                              stopover.departure,
+                              stopover.departureDelay,
+                              cancelled,
+                            ),
                           ],
                         ),
                       ),
@@ -913,21 +1016,27 @@ class _StopRow extends StatelessWidget {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         if (cancelled)
-                          Text('Ausfall',
-                              style: TextStyle(
-                                  color: theme.colorScheme.error,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold)),
+                          Text(
+                            'Ausfall',
+                            style: TextStyle(
+                              color: theme.colorScheme.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         // A stop the train picked up that isn't timetabled —
                         // without this the rider can't tell an extra stop from
                         // a normal one, which is what makes a diversion
                         // readable as a route change rather than a delay (#17).
                         if (stopover.additional)
-                          Text('Zusatzhalt',
-                              style: TextStyle(
-                                  color: Colors.amber.shade800,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold)),
+                          Text(
+                            'Zusatzhalt',
+                            style: TextStyle(
+                              color: Colors.amber.shade800,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         // The train stops here but won't let you on/off. Looks
                         // like an ordinary stop otherwise, so anyone planning
                         // to board or change here would only find out on the
@@ -935,14 +1044,16 @@ class _StopRow extends StatelessWidget {
                         if (!cancelled &&
                             (stopover.noBoarding || stopover.noAlighting))
                           Text(
-                              stopover.serviceNote ??
-                                  (stopover.noBoarding
-                                      ? 'Hält nur zum Aussteigen'
-                                      : 'Hält nur zum Einsteigen'),
-                              style: TextStyle(
-                                  color: Colors.amber.shade800,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold)),
+                            stopover.serviceNote ??
+                                (stopover.noBoarding
+                                    ? 'Hält nur zum Aussteigen'
+                                    : 'Hält nur zum Einsteigen'),
+                            style: TextStyle(
+                              color: Colors.amber.shade800,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         if (!hideOccupancy &&
                             stopover.occupancy != OccupancyLevel.unknown)
                           Row(
@@ -953,7 +1064,8 @@ class _StopRow extends StatelessWidget {
                               Text(
                                 stopover.occupancy.expectedLabel,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant),
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
@@ -982,7 +1094,8 @@ class _StopRow extends StatelessWidget {
     final theme = Theme.of(context);
     final display = stopover.platform ?? stopover.plannedPlatform;
     if (display == null || display.isEmpty) return const SizedBox.shrink();
-    final changed = stopover.platform != null &&
+    final changed =
+        stopover.platform != null &&
         stopover.plannedPlatform != null &&
         stopover.platform != stopover.plannedPlatform;
     final color = changed ? Colors.red : Colors.blue;
@@ -993,19 +1106,20 @@ class _StopRow extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-            color: color.withAlpha(muted ? 120 : 200), width: big ? 1.2 : 1),
+          color: color.withAlpha(muted ? 120 : 200),
+          width: big ? 1.2 : 1,
+        ),
         color: color.withAlpha(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           TrackIcon(
-              size: big ? 14 : 13,
-              color: changed
-                  ? Colors.red
-                  : (muted
-                      ? theme.colorScheme.onSurfaceVariant
-                      : color)),
+            size: big ? 14 : 13,
+            color: changed
+                ? Colors.red
+                : (muted ? theme.colorScheme.onSurfaceVariant : color),
+          ),
           SizedBox(width: big ? 4 : 3),
           if (changed && stopover.plannedPlatform != null) ...[
             Text(
@@ -1026,8 +1140,8 @@ class _StopRow extends StatelessWidget {
               color: changed
                   ? Colors.red
                   : (muted
-                      ? theme.colorScheme.onSurfaceVariant
-                      : theme.colorScheme.onSurface),
+                        ? theme.colorScheme.onSurfaceVariant
+                        : theme.colorScheme.onSurface),
             ),
           ),
         ],
@@ -1036,8 +1150,13 @@ class _StopRow extends StatelessWidget {
   }
 
   /// Left "spine" time: planned struck through + realtime in red on delay.
-  Widget _spineTime(DateTime? planned, DateTime? real, int? delaySec,
-      bool cancelled, Color baseColor) {
+  Widget _spineTime(
+    DateTime? planned,
+    DateTime? real,
+    int? delaySec,
+    bool cancelled,
+    Color baseColor,
+  ) {
     if (planned == null) return const SizedBox.shrink();
     final delayed = !cancelled && (delaySec ?? 0) >= 60;
     return Column(
@@ -1079,8 +1198,14 @@ class _StopRow extends StatelessWidget {
   }
 
   /// "an"/"ab" chunk: label + planned (struck on delay) + realtime + "+N" red.
-  Widget _anAb(BuildContext context, String label, DateTime? planned,
-      DateTime? real, int? delaySec, bool cancelled) {
+  Widget _anAb(
+    BuildContext context,
+    String label,
+    DateTime? planned,
+    DateTime? real,
+    int? delaySec,
+    bool cancelled,
+  ) {
     if (planned == null) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
@@ -1088,8 +1213,7 @@ class _StopRow extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('$label ',
-            style: TextStyle(fontSize: 11, color: muted)),
+        Text('$label ', style: TextStyle(fontSize: 11, color: muted)),
         Text(
           planned.hhmm,
           style: TextStyle(
@@ -1103,9 +1227,10 @@ class _StopRow extends StatelessWidget {
           Text(
             '${real.hhmm} (+${delaySec! ~/ 60})',
             style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: delaySec.delayColor),
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: delaySec.delayColor,
+            ),
           ),
         ],
       ],

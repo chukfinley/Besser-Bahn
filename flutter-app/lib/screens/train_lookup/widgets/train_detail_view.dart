@@ -76,12 +76,16 @@ class _TrainDetailViewState extends ConsumerState<TrainDetailView> {
     // boarding stop (where you decide which portion to board). Only a REAL
     // split (portions to different destinations) gets the red warning.
     final splitBanner = (isLeg && coach != null && coach.splits)
-        ? splitTrainBanner(context, coach,
-            targetDestination: widget.legDestinationName)
+        ? splitTrainBanner(
+            context,
+            coach,
+            targetDestination: widget.legDestinationName,
+          )
         : null;
 
-    final Widget? trainExtra =
-        hasExtra ? _wagenreihungTile(context, hasCoach: coach != null) : null;
+    final Widget? trainExtra = hasExtra
+        ? _wagenreihungTile(context, hasCoach: coach != null)
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -142,18 +146,27 @@ class _TrainDetailViewState extends ConsumerState<TrainDetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title,
-                          style: theme.textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(subtitle,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right,
-                    size: 22, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  size: 22,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
@@ -183,7 +196,9 @@ class _TrainDetailViewState extends ConsumerState<TrainDetailView> {
   /// of whether a Wagenreihung exists. Family/quiet zones, which live only in
   /// the Wagenreihung, are merged in when available.
   List<({IconData icon, String label})> _legAmenities(
-      Trip trip, CoachSequence? cs) {
+    Trip trip,
+    CoachSequence? cs,
+  ) {
     final out = <({IconData icon, String label})>[];
     final seen = <String>{};
     void add(IconData icon, String label) {

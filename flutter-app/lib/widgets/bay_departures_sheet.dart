@@ -85,8 +85,9 @@ bool poiMatchesDeparture(MapPoi poi, Departure d) {
   final hay = '${poi.detail ?? ''} ${poi.name}';
   bool token(String t) =>
       t.isNotEmpty &&
-      RegExp('(^|[^0-9A-Za-z])${RegExp.escape(t)}([^0-9A-Za-z]|\$)')
-          .hasMatch(hay);
+      RegExp(
+        '(^|[^0-9A-Za-z])${RegExp.escape(t)}([^0-9A-Za-z]|\$)',
+      ).hasMatch(hay);
   return token(base) || token(raw);
 }
 
@@ -179,7 +180,9 @@ class _BayDeparturesSheetState extends ConsumerState<BayDeparturesSheet> {
         if (near.isNotEmpty && near.first.id.isNotEmpty) {
           eva = near.first.id;
         }
-      } catch (_) {/* keep searched-station eva */}
+      } catch (_) {
+        /* keep searched-station eva */
+      }
     }
 
     final all = await hafas.getDepartures(eva, results: 100);
@@ -192,8 +195,9 @@ class _BayDeparturesSheetState extends ConsumerState<BayDeparturesSheet> {
         : all.where((d) => products.contains(d.line.product)).toList();
 
     // 2) Within that mode, match the specific bay/track.
-    final matched =
-        modeDeps.where((d) => poiMatchesDeparture(widget.poi, d)).toList();
+    final matched = modeDeps
+        .where((d) => poiMatchesDeparture(widget.poi, d))
+        .toList();
     if (matched.isNotEmpty) return _BayResult(matched, true);
 
     // 3) Bay label couldn't be matched (e.g. multi-level ZOB uses a different
@@ -237,8 +241,10 @@ class _BayDeparturesSheetState extends ConsumerState<BayDeparturesSheet> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                  child: Text(title,
-                      style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 if (res != null && !res.matchedBay)
                   Padding(
@@ -254,8 +260,10 @@ class _BayDeparturesSheetState extends ConsumerState<BayDeparturesSheet> {
                       ? const Center(
                           child: Padding(
                             padding: EdgeInsets.all(24),
-                            child: Text('Aktuell keine Abfahrten.',
-                                textAlign: TextAlign.center),
+                            child: Text(
+                              'Aktuell keine Abfahrten.',
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         )
                       : ListView.separated(
@@ -282,8 +290,11 @@ class _DepartureRow extends StatelessWidget {
   final Departure dep;
   final VoidCallback onTap;
   final bool showBay;
-  const _DepartureRow(
-      {required this.dep, required this.onTap, this.showBay = false});
+  const _DepartureRow({
+    required this.dep,
+    required this.onTap,
+    this.showBay = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -296,8 +307,7 @@ class _DepartureRow extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       leading: _LineChip(dep: dep),
-      title:
-          Text(dep.direction, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(dep.direction, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: sub.isNotEmpty ? Text(sub) : null,
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -333,7 +343,10 @@ class _LineChip extends StatelessWidget {
       child: Text(
         label.length > 5 ? label.substring(0, 5) : label,
         style: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+        ),
         maxLines: 1,
       ),
     );

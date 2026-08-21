@@ -49,11 +49,11 @@ class JourneyCard extends ConsumerWidget {
     // Reisen tab, where there's nothing to compare against.
     final highlights = onTap == null
         ? ref
-            .watch(journeyHighlightsProvider)
-            .entries
-            .where((e) => identical(e.value, journey))
-            .map((e) => e.key)
-            .toList()
+              .watch(journeyHighlightsProvider)
+              .entries
+              .where((e) => identical(e.value, journey))
+              .map((e) => e.key)
+              .toList()
         : const <JourneyHighlight>[];
 
     // "Muss um 09:48 da sein": how much air this connection leaves in front of
@@ -61,22 +61,26 @@ class JourneyCard extends ConsumerWidget {
     // arrival search — the same card stands in for a saved trip or a booked
     // ticket elsewhere, where the search's deadline says nothing about it.
     final (deadline, minBuffer) = fromResults
-        ? ref.watch(journeySearchProvider
-            .select((s) => (s.deadline, s.minBufferMinutes)))
+        ? ref.watch(
+            journeySearchProvider.select(
+              (s) => (s.deadline, s.minBufferMinutes),
+            ),
+          )
         : (null, null);
-    final buffer =
-        deadline == null ? null : journeyBuffer(journey, deadline);
+    final buffer = deadline == null ? null : journeyBuffer(journey, deadline);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: onTap ??
+        onTap:
+            onTap ??
             () {
               // Show the FULL connection (all legs + transfers), not just leg 1.
               context.push(
-                  fromResults ? '/connection?src=search' : '/connection',
-                  extra: journey);
+                fromResults ? '/connection?src=search' : '/connection',
+                extra: journey,
+              );
             },
         // Long-press shares the official bahn.de "Reise teilen" link to this
         // exact connection — no need to open the detail screen first.
@@ -91,137 +95,154 @@ class JourneyCard extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
-            children: [
-              if (highlights.isNotEmpty) ...[
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
                   children: [
-                    for (final h in highlights) _HighlightChip(highlight: h),
-                  ],
-                ),
-                const SizedBox(height: 6),
-              ],
-              // Bike rules (#68) — a separate line from the highlight chips on
-              // purpose: those answer "which one should I take?", this is a
-              // condition of taking it at all. Only for riders with a bike in
-              // the search, and only when DB said something.
-              if (ref.watch(settingsProvider).searchParty.hasBike) ...[
-                if (journey.bike.label case final label?) ...[
-                  _BikeChip(
-                    label: label,
-                    urgent: journey.bike.reservationRequired,
-                  ),
-                  const SizedBox(height: 6),
-                ],
-              ],
-              // "Einzeln buchen spart 12,00 €" (#67) — only in a result list,
-              // where the comparison search actually ran, and only when the
-              // difference is worth a booking split.
-              if (fromResults) ...[
-                if (groupSavingFor(
-                        ref.watch(groupSavingsProvider).asData?.value ??
-                            const [],
-                        journey)
-                    case final saving?) ...[
-                  _GroupSavingChip(saving: saving),
-                  const SizedBox(height: 6),
-                ],
-              ],
-              // Cancellation banner — full width, red, above everything else so
-              // a dead connection can't be mistaken for a normal one.
-              if (journey.hasCancelledLeg || journey.hasPartialCancellation) ...[
-                _CancelBanner(
-                  partial: !journey.hasCancelledLeg,
-                ),
-                const SizedBox(height: 6),
-              ],
-              // Route row: origin (left) and destination (right). No arrow —
-              // a search always runs left→right, so it adds nothing.
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      journey.origin?.name ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      journey.destination?.name ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-
-              // Time row
-              Row(
-                children: [
-                  // Departure
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _timeWithDelay(context, journey.plannedDeparture,
-                          journey.legs.firstOrNull?.departureDelay),
-                    ],
-                  ),
-
-                  // Duration — bigger; the transfer count is obvious from the
-                  // train pills below, so no "N Umstiege" text here.
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        journey.durationString,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold, fontSize: 18),
+                    if (highlights.isNotEmpty) ...[
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          for (final h in highlights)
+                            _HighlightChip(highlight: h),
+                        ],
                       ),
-                    ),
-                  ),
-
-                  // Arrival — with the slack before the appointment under it,
-                  // where the number it is measured against already stands.
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _timeWithDelay(context, journey.plannedArrival,
-                          journey.legs.lastOrNull?.arrivalDelay),
-                      if (buffer != null)
-                        _BufferChip(buffer: buffer, minMinutes: minBuffer),
+                      const SizedBox(height: 6),
                     ],
-                  ),
-                ],
-              ),
+                    // Bike rules (#68) — a separate line from the highlight chips on
+                    // purpose: those answer "which one should I take?", this is a
+                    // condition of taking it at all. Only for riders with a bike in
+                    // the search, and only when DB said something.
+                    if (ref.watch(settingsProvider).searchParty.hasBike) ...[
+                      if (journey.bike.label case final label?) ...[
+                        _BikeChip(
+                          label: label,
+                          urgent: journey.bike.reservationRequired,
+                        ),
+                        const SizedBox(height: 6),
+                      ],
+                    ],
+                    // "Einzeln buchen spart 12,00 €" (#67) — only in a result list,
+                    // where the comparison search actually ran, and only when the
+                    // difference is worth a booking split.
+                    if (fromResults) ...[
+                      if (groupSavingFor(
+                            ref.watch(groupSavingsProvider).asData?.value ??
+                                const [],
+                            journey,
+                          )
+                          case final saving?) ...[
+                        _GroupSavingChip(saving: saving),
+                        const SizedBox(height: 6),
+                      ],
+                    ],
+                    // Cancellation banner — full width, red, above everything else so
+                    // a dead connection can't be mistaken for a normal one.
+                    if (journey.hasCancelledLeg ||
+                        journey.hasPartialCancellation) ...[
+                      _CancelBanner(partial: !journey.hasCancelledLeg),
+                      const SizedBox(height: 6),
+                    ],
+                    // Route row: origin (left) and destination (right). No arrow —
+                    // a search always runs left→right, so it adds nothing.
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            journey.origin?.name ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            journey.destination?.name ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
 
-              const SizedBox(height: 6),
+                    // Time row
+                    Row(
+                      children: [
+                        // Departure
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _timeWithDelay(
+                              context,
+                              journey.plannedDeparture,
+                              journey.legs.firstOrNull?.departureDelay,
+                            ),
+                          ],
+                        ),
 
-              // Per-train length comparison (one row each) on the left; price
-              // pinned top-right with the rows free to extend below it.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _LegLengthBar(legs: transitLegs)),
-                  if (journey.price != null) ...[
-                    const SizedBox(width: 8),
-                    Text(
-                      journey.price!.formatted,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary),
+                        // Duration — bigger; the transfer count is obvious from the
+                        // train pills below, so no "N Umstiege" text here.
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              journey.durationString,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Arrival — with the slack before the appointment under it,
+                        // where the number it is measured against already stands.
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _timeWithDelay(
+                              context,
+                              journey.plannedArrival,
+                              journey.legs.lastOrNull?.arrivalDelay,
+                            ),
+                            if (buffer != null)
+                              _BufferChip(
+                                buffer: buffer,
+                                minMinutes: minBuffer,
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // Per-train length comparison (one row each) on the left; price
+                    // pinned top-right with the rows free to extend below it.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _LegLengthBar(legs: transitLegs)),
+                        if (journey.price != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            journey.price!.formatted,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
-                ],
-              ),
-            ],
                 ),
               ),
             ],
@@ -236,7 +257,9 @@ class JourneyCard extends ConsumerWidget {
     String? link;
     try {
       link = await ref.read(vendoServiceProvider).shareJourney(journey);
-    } catch (_) {/* no shareable link */}
+    } catch (_) {
+      /* no shareable link */
+    }
     if (link == null) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Reise lässt sich nicht teilen.')),
@@ -250,7 +273,9 @@ class JourneyCard extends ConsumerWidget {
     Map<String, Trip>? live;
     try {
       live = await ref.read(hafasServiceProvider).liveTripsFor(journey);
-    } catch (_) {/* share the search-time values */}
+    } catch (_) {
+      /* share the search-time values */
+    }
     await SharePlus.instance.share(
       ShareParams(
         text: journeyShareText(journey, link, live: live),
@@ -260,7 +285,10 @@ class JourneyCard extends ConsumerWidget {
   }
 
   Widget _timeWithDelay(
-      BuildContext context, DateTime? planned, int? delaySec) {
+    BuildContext context,
+    DateTime? planned,
+    int? delaySec,
+  ) {
     if (planned == null) return const SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -274,7 +302,6 @@ class JourneyCard extends ConsumerWidget {
       ],
     );
   }
-
 }
 
 /// How much time this connection leaves before the appointment the rider
@@ -447,8 +474,11 @@ class _CancelBanner extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(partial ? Icons.warning_amber_rounded : Icons.cancel,
-              size: 15, color: color),
+          Icon(
+            partial ? Icons.warning_amber_rounded : Icons.cancel,
+            size: 15,
+            color: color,
+          ),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
@@ -456,7 +486,10 @@ class _CancelBanner extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  color: color, fontSize: 12, fontWeight: FontWeight.bold),
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -569,8 +602,13 @@ class _LegLengthBarState extends State<_LegLengthBar> {
     );
   }
 
-  Widget _legSegment(BuildContext context, String label, Color color,
-      OccupancyLevel? occupancy, double progress) {
+  Widget _legSegment(
+    BuildContext context,
+    String label,
+    Color color,
+    OccupancyLevel? occupancy,
+    double progress,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -606,9 +644,10 @@ class _LegLengthBarState extends State<_LegLengthBar> {
                         label,
                         maxLines: 1,
                         style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: color),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: color,
+                        ),
                       ),
                     ),
                   ),
@@ -629,8 +668,8 @@ class _LegLengthBarState extends State<_LegLengthBar> {
 
   /// Colour per train product, so segments are visually distinct.
   Color _productColor(BuildContext context, JourneyLeg leg) {
-    final p =
-        (leg.line?.productName ?? leg.line?.displayName ?? '').toUpperCase();
+    final p = (leg.line?.productName ?? leg.line?.displayName ?? '')
+        .toUpperCase();
     if (p.startsWith('ICE')) return Colors.red.shade700;
     if (p.startsWith('IC') || p.startsWith('EC')) return Colors.blue.shade700;
     if (p.startsWith('RE') || p.startsWith('RB')) return Colors.teal.shade700;

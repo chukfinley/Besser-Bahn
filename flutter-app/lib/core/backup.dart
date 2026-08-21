@@ -51,7 +51,10 @@ class Backup {
       List<int>.generate(_saltBytes, (_) => _random.nextInt(256));
 
   static Future<SecretKey> _deriveKey(
-      String password, List<int> salt, int iterations) async {
+    String password,
+    List<int> salt,
+    int iterations,
+  ) async {
     final kdf = Pbkdf2(
       macAlgorithm: Hmac.sha256(),
       iterations: iterations,
@@ -94,7 +97,9 @@ class Backup {
   /// file, a truncated one, a tampered one, or the wrong password. The rider
   /// gets one honest sentence instead of a stack trace.
   static Future<Map<String, dynamic>> decrypt(
-      List<int> bytes, String password) async {
+    List<int> bytes,
+    String password,
+  ) async {
     final magic = utf8.encode(_magic);
     final macBytes = 16; // AES-GCM tag
     if (bytes.length < magic.length + 4 + _saltBytes + _nonceBytes + macBytes) {
@@ -106,7 +111,8 @@ class Backup {
       }
     }
     var at = magic.length;
-    final iterations = (bytes[at] << 24) |
+    final iterations =
+        (bytes[at] << 24) |
         (bytes[at + 1] << 16) |
         (bytes[at + 2] << 8) |
         bytes[at + 3];
@@ -136,12 +142,17 @@ class Backup {
       // SecretBoxAuthenticationError and a wrong-password decode failure are
       // the same event from outside: this file will not open with this word.
       throw const BackupError(
-          'Falsches Passwort — oder die Datei ist beschädigt.');
+        'Falsches Passwort — oder die Datei ist beschädigt.',
+      );
     }
   }
 
-  static List<int> _uint32(int v) =>
-      [(v >> 24) & 0xFF, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF];
+  static List<int> _uint32(int v) => [
+    (v >> 24) & 0xFF,
+    (v >> 16) & 0xFF,
+    (v >> 8) & 0xFF,
+    v & 0xFF,
+  ];
 
   /// Suggested file name, e.g. `besser-bahn-2026-08-05.bbbk`.
   static String fileNameFor(DateTime now) {

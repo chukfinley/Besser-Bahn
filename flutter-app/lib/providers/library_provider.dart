@@ -164,18 +164,28 @@ class LibraryNotifier extends Notifier<LibraryState> {
     }
 
     state = LibraryState(
-      stations: merge(decode(_kStationsKey, FavoriteStation.fromJson),
-          pending.stations, (s) => s.station.id),
+      stations: merge(
+        decode(_kStationsKey, FavoriteStation.fromJson),
+        pending.stations,
+        (s) => s.station.id,
+      ),
       routes: merge(
-          decode(_kRoutesKey, SavedRoute.fromJson), pending.routes, (r) => r.key),
+        decode(_kRoutesKey, SavedRoute.fromJson),
+        pending.routes,
+        (r) => r.key,
+      ),
       trains: merge(
-          decode(_kTrainsKey, SavedTrain.fromJson), pending.trains, (t) => t.key),
+        decode(_kTrainsKey, SavedTrain.fromJson),
+        pending.trains,
+        (t) => t.key,
+      ),
       journeys: merge(journeys, pending.journeys, (j) => j.key),
       loaded: true,
     );
     // Persist the purge so dropped entries don't resurrect next launch. Uses
     // the raw writer: we ARE the load these waits are waiting for.
-    if (journeys.length != decode(_kJourneysKey, SavedJourney.fromJson).length) {
+    if (journeys.length !=
+        decode(_kJourneysKey, SavedJourney.fromJson).length) {
       _writeJourneys();
     }
   }
@@ -187,8 +197,10 @@ class LibraryNotifier extends Notifier<LibraryState> {
 
   Future<void> _writeStations() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kStationsKey,
-        jsonEncode(state.stations.map((s) => s.toJson()).toList()));
+    await prefs.setString(
+      _kStationsKey,
+      jsonEncode(state.stations.map((s) => s.toJson()).toList()),
+    );
   }
 
   Future<void> _saveRoutes() async {
@@ -198,8 +210,10 @@ class LibraryNotifier extends Notifier<LibraryState> {
 
   Future<void> _writeRoutes() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kRoutesKey,
-        jsonEncode(state.routes.map((r) => r.toJson()).toList()));
+    await prefs.setString(
+      _kRoutesKey,
+      jsonEncode(state.routes.map((r) => r.toJson()).toList()),
+    );
   }
 
   Future<void> _saveTrains() async {
@@ -209,8 +223,10 @@ class LibraryNotifier extends Notifier<LibraryState> {
 
   Future<void> _writeTrains() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kTrainsKey,
-        jsonEncode(state.trains.map((t) => t.toJson()).toList()));
+    await prefs.setString(
+      _kTrainsKey,
+      jsonEncode(state.trains.map((t) => t.toJson()).toList()),
+    );
   }
 
   Future<void> _saveJourneys() async {
@@ -220,8 +236,10 @@ class LibraryNotifier extends Notifier<LibraryState> {
 
   Future<void> _writeJourneys() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kJourneysKey,
-        jsonEncode(state.journeys.map((j) => j.toJson()).toList()));
+    await prefs.setString(
+      _kJourneysKey,
+      jsonEncode(state.journeys.map((j) => j.toJson()).toList()),
+    );
   }
 
   int _nowMs() => DateTime.now().millisecondsSinceEpoch;
@@ -241,12 +259,14 @@ class LibraryNotifier extends Notifier<LibraryState> {
         pinned: existing.pinned || newCount >= kAutoStarThreshold,
       );
     } else {
-      list.add(FavoriteStation(
-        station: station,
-        useCount: 1,
-        lastUsedMs: _nowMs(),
-        pinned: kAutoStarThreshold <= 1,
-      ));
+      list.add(
+        FavoriteStation(
+          station: station,
+          useCount: 1,
+          lastUsedMs: _nowMs(),
+          pinned: kAutoStarThreshold <= 1,
+        ),
+      );
     }
     state = state.copyWith(stations: list);
     _saveStations();
@@ -263,10 +283,12 @@ class LibraryNotifier extends Notifier<LibraryState> {
     var changed = false;
     for (final s in serverStations) {
       if (s.id.isEmpty && s.locationId == null) continue;
-      final idx = list.indexWhere((e) =>
-          (e.station.id.isNotEmpty && e.station.id == s.id) ||
-          (e.station.locationId != null &&
-              e.station.locationId == s.locationId));
+      final idx = list.indexWhere(
+        (e) =>
+            (e.station.id.isNotEmpty && e.station.id == s.id) ||
+            (e.station.locationId != null &&
+                e.station.locationId == s.locationId),
+      );
       if (idx >= 0) {
         // The user already knows this station — pin it but don't claim it
         // back as server-only; their useCount/manual pin make it theirs.
@@ -277,13 +299,15 @@ class LibraryNotifier extends Notifier<LibraryState> {
       } else {
         // Brand-new entry from the server — flag it so we can drop it on
         // logout without touching anything the user typed themselves.
-        list.add(FavoriteStation(
-          station: s,
-          useCount: 0,
-          lastUsedMs: _nowMs(),
-          pinned: true,
-          fromServer: true,
-        ));
+        list.add(
+          FavoriteStation(
+            station: s,
+            useCount: 0,
+            lastUsedMs: _nowMs(),
+            pinned: true,
+            fromServer: true,
+          ),
+        );
         changed = true;
       }
     }
@@ -299,9 +323,11 @@ class LibraryNotifier extends Notifier<LibraryState> {
   void dropServerFavorites() {
     final kept = state.stations
         .where((s) => !(s.fromServer && s.useCount == 0))
-        .map((s) => s.fromServer && s.useCount > 0
-            ? s.copyWith(fromServer: false)
-            : s)
+        .map(
+          (s) => s.fromServer && s.useCount > 0
+              ? s.copyWith(fromServer: false)
+              : s,
+        )
         .toList();
     if (kept.length == state.stations.length) {
       // Still strip the fromServer flag on entries the user has since used.
@@ -326,12 +352,14 @@ class LibraryNotifier extends Notifier<LibraryState> {
     if (idx >= 0) {
       list[idx] = list[idx].copyWith(pinned: !list[idx].pinned);
     } else {
-      list.add(FavoriteStation(
-        station: station,
-        useCount: 0,
-        lastUsedMs: _nowMs(),
-        pinned: true,
-      ));
+      list.add(
+        FavoriteStation(
+          station: station,
+          useCount: 0,
+          lastUsedMs: _nowMs(),
+          pinned: true,
+        ),
+      );
     }
     state = state.copyWith(stations: list);
     _saveStations();
@@ -342,8 +370,9 @@ class LibraryNotifier extends Notifier<LibraryState> {
   void toggleRoute(Station from, Station to) {
     if (from.id.isEmpty || to.id.isEmpty) return;
     final list = List<SavedRoute>.from(state.routes);
-    final idx =
-        list.indexWhere((r) => r.from.id == from.id && r.to.id == to.id);
+    final idx = list.indexWhere(
+      (r) => r.from.id == from.id && r.to.id == to.id,
+    );
     if (idx >= 0) {
       list.removeAt(idx);
     } else {
@@ -355,7 +384,8 @@ class LibraryNotifier extends Notifier<LibraryState> {
 
   void removeRoute(String key) {
     state = state.copyWith(
-        routes: state.routes.where((r) => r.key != key).toList());
+      routes: state.routes.where((r) => r.key != key).toList(),
+    );
     _saveRoutes();
   }
 
@@ -375,7 +405,8 @@ class LibraryNotifier extends Notifier<LibraryState> {
 
   void removeTrain(String key) {
     state = state.copyWith(
-        trains: state.trains.where((t) => t.key != key).toList());
+      trains: state.trains.where((t) => t.key != key).toList(),
+    );
     _saveTrains();
   }
 
@@ -397,7 +428,8 @@ class LibraryNotifier extends Notifier<LibraryState> {
 
   void removeJourney(String key) {
     state = state.copyWith(
-        journeys: state.journeys.where((j) => j.key != key).toList());
+      journeys: state.journeys.where((j) => j.key != key).toList(),
+    );
     _saveJourneys();
   }
 
@@ -458,5 +490,6 @@ class LibraryNotifier extends Notifier<LibraryState> {
       state.journeys.where((j) => j.key == key).firstOrNull?.watched ?? false;
 }
 
-final libraryProvider =
-    NotifierProvider<LibraryNotifier, LibraryState>(LibraryNotifier.new);
+final libraryProvider = NotifierProvider<LibraryNotifier, LibraryState>(
+  LibraryNotifier.new,
+);

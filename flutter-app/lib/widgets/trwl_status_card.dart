@@ -45,19 +45,28 @@ class TrwlStatusCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(user.displayName,
-                              style: theme.textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold)),
-                          Text('@${user.username}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.outline)),
+                          Text(
+                            user.displayName,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '@${user.username}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     if (status.createdAt != null)
-                      Text(_relative(status.createdAt!),
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: theme.colorScheme.outline)),
+                      Text(
+                        _relative(status.createdAt!),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -73,14 +82,22 @@ class TrwlStatusCard extends StatelessWidget {
             Row(
               children: [
                 if (t != null) ...[
-                  Icon(Icons.straighten,
-                      size: 15, color: theme.colorScheme.outline),
+                  Icon(
+                    Icons.straighten,
+                    size: 15,
+                    color: theme.colorScheme.outline,
+                  ),
                   const SizedBox(width: 4),
-                  Text('${t.distanceKm.toStringAsFixed(1)} km',
-                      style: theme.textTheme.bodySmall),
+                  Text(
+                    '${t.distanceKm.toStringAsFixed(1)} km',
+                    style: theme.textTheme.bodySmall,
+                  ),
                   const SizedBox(width: 12),
-                  Icon(Icons.timer_outlined,
-                      size: 15, color: theme.colorScheme.outline),
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 15,
+                    color: theme.colorScheme.outline,
+                  ),
                   const SizedBox(width: 4),
                   Text(_duration(t.duration), style: theme.textTheme.bodySmall),
                 ],
@@ -91,7 +108,9 @@ class TrwlStatusCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       child: Row(
                         children: [
                           Icon(
@@ -102,8 +121,10 @@ class TrwlStatusCard extends StatelessWidget {
                             color: status.liked ? AppColors.dbRed : null,
                           ),
                           const SizedBox(width: 4),
-                          Text('${status.likes}',
-                              style: theme.textTheme.bodySmall),
+                          Text(
+                            '${status.likes}',
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ],
                       ),
                     ),
@@ -159,19 +180,21 @@ class _TripRow extends StatelessWidget {
             color: lineColor,
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Text(transport.lineName,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13)),
+          child: Text(
+            transport.lineName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _stop(theme, origin?.name ?? '—',
-                  origin?.departure, true),
+              _stop(theme, origin?.name ?? '—', origin?.departure, true),
               const SizedBox(height: 2),
               _stop(theme, dest?.name ?? '—', dest?.arrival, false),
             ],
@@ -184,19 +207,27 @@ class _TripRow extends StatelessWidget {
   Widget _stop(ThemeData theme, String name, DateTime? time, bool isOrigin) {
     return Row(
       children: [
-        Icon(isOrigin ? Icons.trip_origin : Icons.place,
-            size: 13, color: theme.colorScheme.outline),
+        Icon(
+          isOrigin ? Icons.trip_origin : Icons.place,
+          size: 13,
+          color: theme.colorScheme.outline,
+        ),
         const SizedBox(width: 6),
         Expanded(
-          child: Text(name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium),
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium,
+          ),
         ),
         if (time != null)
-          Text(timeFmt.format(time.toLocal()),
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            timeFmt.format(time.toLocal()),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
       ],
     );
   }
@@ -217,9 +248,12 @@ class _Avatar extends StatelessWidget {
           ? NetworkImage(url!)
           : null,
       child: (url == null || url!.isEmpty)
-          ? Text(initials,
+          ? Text(
+              initials,
               style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimaryContainer))
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            )
           : null,
     );
   }

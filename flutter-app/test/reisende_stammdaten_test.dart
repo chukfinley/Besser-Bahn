@@ -37,9 +37,13 @@ void main() {
         for (final s in SbaOption.values)
           if (s.vendoKey.isNotEmpty) s.vendoKey,
       };
-      expect(ours, containsAll(_liveErmaessigungen),
-          reason: 'a discount DB lists and we do not is money the rider '
-              'silently leaves on the table');
+      expect(
+        ours,
+        containsAll(_liveErmaessigungen),
+        reason:
+            'a discount DB lists and we do not is money the rider '
+            'silently leaves on the table',
+      );
     });
 
     test('NL-100 is offered under "Weitere Ermäßigungen"', () {
@@ -47,18 +51,25 @@ void main() {
       // Köln→Amsterdam it takes 73,99 € to 51,60 €.
       expect(Reduction.nl100.vendoKey, 'NL-100 KLASSENLOS');
       expect(Reduction.weitereOptions, contains(Reduction.nl100));
-      expect(Reduction.bahnCardOptions, isNot(contains(Reduction.nl100)),
-          reason: 'a Dutch railcard is not a BahnCard');
+      expect(
+        Reduction.bahnCardOptions,
+        isNot(contains(Reduction.nl100)),
+        reason: 'a Dutch railcard is not a BahnCard',
+      );
     });
 
     test('the de-listed SBA option is kept on purpose', () {
       // The endpoint answers an invented key with 200 and an unchanged price,
       // so "not listed" is no evidence it stopped working — and dropping it
       // would take a real option from riders who hold that card.
-      expect(SbaOption.beeintrOhneRolli.vendoKey,
-          'SBA_BEEINTRAECHTIGUNGEN_KEIN_ROLLSTUHL KLASSENLOS');
-      expect(_liveErmaessigungen,
-          isNot(contains(SbaOption.beeintrOhneRolli.vendoKey)));
+      expect(
+        SbaOption.beeintrOhneRolli.vendoKey,
+        'SBA_BEEINTRAECHTIGUNGEN_KEIN_ROLLSTUHL KLASSENLOS',
+      );
+      expect(
+        _liveErmaessigungen,
+        isNot(contains(SbaOption.beeintrOhneRolli.vendoKey)),
+      );
     });
 
     test('a chosen discount reaches the request', () {
@@ -73,8 +84,11 @@ void main() {
       for (final r in Reduction.values) {
         expect(Reduction.byKey(r.vendoKey), r);
       }
-      expect(Reduction.byKey('SOMETHING DB INVENTED'), Reduction.none,
-          reason: 'an unknown stored key must not throw');
+      expect(
+        Reduction.byKey('SOMETHING DB INVENTED'),
+        Reduction.none,
+        reason: 'an unknown stored key must not throw',
+      );
     });
   });
 }

@@ -22,8 +22,8 @@ class TraewellingHubScreen extends ConsumerWidget {
       body: !auth.initialized
           ? const Center(child: CircularProgressIndicator())
           : auth.isLoggedIn
-              ? _Profile(user: auth.user!)
-              : _ConnectPrompt(auth: auth),
+          ? _Profile(user: auth.user!)
+          : _ConnectPrompt(auth: auth),
     );
   }
 }
@@ -43,31 +43,39 @@ class _ConnectPrompt extends ConsumerWidget {
           children: [
             const TraewellingLogo(size: 84),
             const SizedBox(height: 16),
-            Text('Mit Träwelling verbinden',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center),
+            Text(
+              'Mit Träwelling verbinden',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
             Text(
               'Checke in deine Züge ein, teile deine Fahrten mit Freund:innen '
               'und folge anderen. Träwelling ist ein kostenloser, '
               'gemeinnütziger Check-in-Dienst für den ÖPNV.',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.outline),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
             if (auth.error != null) ...[
-              Text(auth.error!,
-                  style: TextStyle(color: theme.colorScheme.error),
-                  textAlign: TextAlign.center),
+              Text(
+                auth.error!,
+                style: TextStyle(color: theme.colorScheme.error),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
             ],
             FilledButton.icon(
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.dbRed,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 14,
+                ),
               ),
               onPressed: auth.isLoading
                   ? null
@@ -77,14 +85,20 @@ class _ConnectPrompt extends ConsumerWidget {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Icon(Icons.login),
               label: Text(auth.isLoading ? 'Verbinde…' : 'Anmelden'),
             ),
             const SizedBox(height: 12),
-            Text('Du wirst zu traewelling.de weitergeleitet.',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.outline)),
+            Text(
+              'Du wirst zu traewelling.de weitergeleitet.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+            ),
           ],
         ),
       ),
@@ -125,19 +139,26 @@ class _Profile extends ConsumerWidget {
                           user.displayName.isNotEmpty
                               ? user.displayName[0].toUpperCase()
                               : '?',
-                          style: theme.textTheme.headlineSmall),
+                          style: theme.textTheme.headlineSmall,
+                        ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user.displayName,
-                          style: theme.textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      Text('@${user.username}',
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(color: theme.colorScheme.outline)),
+                      Text(
+                        user.displayName,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '@${user.username}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -155,16 +176,27 @@ class _Profile extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           // Actions
-          _action(context, Icons.dynamic_feed, 'Feed',
-              'Fahrten von Leuten, denen du folgst', () => context.push('/trawelling/feed')),
-          _action(context, Icons.people, 'Freunde',
-              'Follower, Following & Anfragen', () => context.push('/trawelling/friends')),
+          _action(
+            context,
+            Icons.dynamic_feed,
+            'Feed',
+            'Fahrten von Leuten, denen du folgst',
+            () => context.push('/trawelling/feed'),
+          ),
+          _action(
+            context,
+            Icons.people,
+            'Freunde',
+            'Follower, Following & Anfragen',
+            () => context.push('/trawelling/friends'),
+          ),
           ListTile(
             leading: Icon(Icons.info_outline, color: theme.colorScheme.outline),
             title: const Text('Einchecken'),
             subtitle: const Text(
-                'Tippe in der Zugansicht auf das Träwelling-Symbol – '
-                'die Fahrt wird automatisch übernommen.'),
+              'Tippe in der Zugansicht auf das Träwelling-Symbol – '
+              'die Fahrt wird automatisch übernommen.',
+            ),
           ),
           const Divider(height: 24),
           ListTile(
@@ -175,27 +207,38 @@ class _Profile extends ConsumerWidget {
           const Divider(height: 24),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Meine letzten Fahrten',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            child: Text(
+              'Meine letzten Fahrten',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           statuses.when(
             loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator())),
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
             error: (e, _) => Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text('Fahrten konnten nicht geladen werden.',
-                    style: TextStyle(color: theme.colorScheme.error))),
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'Fahrten konnten nicht geladen werden.',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ),
             data: (list) => list.isEmpty
                 ? Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Text('Noch keine Fahrten.',
-                        style: TextStyle(color: theme.colorScheme.outline)))
+                    child: Text(
+                      'Noch keine Fahrten.',
+                      style: TextStyle(color: theme.colorScheme.outline),
+                    ),
+                  )
                 : Column(
                     children: list
                         .map((s) => TrwlStatusCard(status: s))
-                        .toList()),
+                        .toList(),
+                  ),
           ),
           const SizedBox(height: 24),
         ],
@@ -204,25 +247,35 @@ class _Profile extends ConsumerWidget {
   }
 
   Widget _stat(ThemeData theme, String value, String label) => Column(
-        children: [
-          Text(value,
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          Text(label,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.outline)),
-        ],
-      );
+    children: [
+      Text(
+        value,
+        style: theme.textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.outline,
+        ),
+      ),
+    ],
+  );
 
-  Widget _action(BuildContext context, IconData icon, String title,
-          String subtitle, VoidCallback onTap) =>
-      ListTile(
-        leading: Icon(icon, color: AppColors.dbRed),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      );
+  Widget _action(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) => ListTile(
+    leading: Icon(icon, color: AppColors.dbRed),
+    title: Text(title),
+    subtitle: Text(subtitle),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
 
   static String _hours(int minutes) {
     final h = minutes ~/ 60;

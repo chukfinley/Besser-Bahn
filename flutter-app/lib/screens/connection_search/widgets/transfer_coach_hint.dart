@@ -125,7 +125,8 @@ class _TransferCoachHintState extends ConsumerState<TransferCoachHint> {
     // No "vorne"/"hinten" anywhere: which end of the platform is the front
     // depends on the train's direction, and that isn't proven here. The section
     // letter is painted on the platform and needs no orientation.
-    final line = '${widget.departing.line?.name ?? 'Dein Anschluss'} hält in '
+    final line =
+        '${widget.departing.line?.name ?? 'Dein Anschluss'} hält in '
         'Abschnitt ${advice.departingSectorLabel}';
     final coaches = advice.coachLabel;
 

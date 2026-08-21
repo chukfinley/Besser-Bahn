@@ -42,7 +42,10 @@ class BahnCardArtCache {
   /// a rotated / re-issued card can never serve the previous artwork.
   static String cacheKey(DbBahnCard card) {
     final html = card.bildSichtHtml ?? '';
-    final digest = sha256.convert(utf8.encode(html)).toString().substring(0, 16);
+    final digest = sha256
+        .convert(utf8.encode(html))
+        .toString()
+        .substring(0, 16);
     final nummer = card.nummer.isEmpty ? 'anon' : card.nummer;
     return '${sha256.convert(utf8.encode(nummer)).toString().substring(0, 12)}_$digest';
   }
@@ -59,13 +62,16 @@ class BahnCardArtCache {
     final art = BahnCardArt.parse(card.bildSichtHtml);
     _mem[key] = art;
     if (art == null) {
-      AppLog.log('bahncard art: bildSicht not parseable → WebView fallback',
-          tag: 'db-account');
+      AppLog.log(
+        'bahncard art: bildSicht not parseable → WebView fallback',
+        tag: 'db-account',
+      );
     } else {
       AppLog.log(
-          'bahncard art: parsed ${art.imageBytes.length}B ${art.mimeType}, '
-          '${art.texts.length} text box(es)',
-          tag: 'db-account');
+        'bahncard art: parsed ${art.imageBytes.length}B ${art.mimeType}, '
+        '${art.texts.length} text box(es)',
+        tag: 'db-account',
+      );
       // Best-effort; the memory copy is what renders, disk is just a head start
       // for the next cold launch.
       unawaited(_persist(key, art));
@@ -129,7 +135,9 @@ class BahnCardArtCache {
     try {
       final dir = await _dir();
       if (await dir.exists()) await dir.delete(recursive: true);
-    } catch (_) {/* best effort */}
+    } catch (_) {
+      /* best effort */
+    }
   }
 
   /// Total bytes held on disk — reported by the offline/storage screens.

@@ -19,30 +19,35 @@ final seatMapServiceProvider = Provider<SeatMapService>((ref) {
   return service;
 });
 
-final coachSequenceServiceProvider =
-    Provider<CoachSequenceService>((ref) => CoachSequenceService());
+final coachSequenceServiceProvider = Provider<CoachSequenceService>(
+  (ref) => CoachSequenceService(),
+);
 
-final dbApiServiceProvider =
-    Provider<DbApiService>((ref) => DbApiService());
+final dbApiServiceProvider = Provider<DbApiService>((ref) => DbApiService());
 
-final stationMapServiceProvider =
-    Provider<StationMapService>((ref) => StationMapService());
+final stationMapServiceProvider = Provider<StationMapService>(
+  (ref) => StationMapService(),
+);
 
-final locationServiceProvider =
-    Provider<LocationService>((ref) => LocationService());
+final locationServiceProvider = Provider<LocationService>(
+  (ref) => LocationService(),
+);
 
 final vendoServiceProvider = Provider<VendoService>((ref) => VendoService());
 
 /// App-lifetime on purpose: it carries the search cache that keeps the
 /// rescue-option-B fan-out off the rate-limited /mob backend (#26).
 final earlierAlightServiceProvider = Provider<EarlierAlightService>(
-    (ref) => EarlierAlightService(ref.watch(vendoServiceProvider)));
+  (ref) => EarlierAlightService(ref.watch(vendoServiceProvider)),
+);
 
-final traewellingServiceProvider =
-    Provider<TraewellingService>((ref) => TraewellingService());
+final traewellingServiceProvider = Provider<TraewellingService>(
+  (ref) => TraewellingService(),
+);
 
-final predictionServiceProvider =
-    Provider<PredictionService>((ref) => PredictionService());
+final predictionServiceProvider = Provider<PredictionService>(
+  (ref) => PredictionService(),
+);
 
 final dbAccountServiceProvider = Provider<DbAccountService>((ref) {
   final service = DbAccountService();

@@ -37,8 +37,7 @@ class TripMetrics {
 
   /// Arrival delay at the final destination in minutes (0 if early/unknown).
   static int finalArrivalDelayMinutes(Journey journey) {
-    final last =
-        journey.legs.where((l) => !l.isWalking).toList().lastOrNull;
+    final last = journey.legs.where((l) => !l.isWalking).toList().lastOrNull;
     final d = last?.arrivalDelayMinutes ?? 0;
     return d > 0 ? d : 0;
   }

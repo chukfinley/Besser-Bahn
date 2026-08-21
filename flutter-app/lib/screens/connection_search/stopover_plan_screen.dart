@@ -97,7 +97,8 @@ class _PlanBody extends StatelessWidget {
           _SectionHeader(
             index: 2,
             title: 'Zum Termin',
-            subtitle: '${args.hub.name} → ${args.to.name} · '
+            subtitle:
+                '${args.hub.name} → ${args.to.name} · '
                 'spätestens ${DateFormat('HH:mm').format(args.deadline)} da',
           ),
           JourneyCard(
@@ -111,7 +112,8 @@ class _PlanBody extends StatelessWidget {
           _SectionHeader(
             index: 1,
             title: 'Hinfahrt zum Zwischenstopp',
-            subtitle: '${args.from.name} → ${args.hub.name} · '
+            subtitle:
+                '${args.from.name} → ${args.hub.name} · '
                 'früher fahren = mehr Zeit',
           ),
           ..._firstLegRows(context),
@@ -130,10 +132,10 @@ class _PlanBody extends StatelessWidget {
             state.isLoading
                 ? 'Suche Hinfahrten …'
                 : state.hiddenFirstCount > 0
-                    ? 'Keine Hinfahrt mit ${state.stayMinutes} min Aufenthalt '
-                        '— ${state.hiddenFirstCount} kämen knapper an. '
-                        'Kürzeren Aufenthalt wählen.'
-                    : 'Keine Hinfahrt gefunden.',
+                ? 'Keine Hinfahrt mit ${state.stayMinutes} min Aufenthalt '
+                      '— ${state.hiddenFirstCount} kämen knapper an. '
+                      'Kürzeren Aufenthalt wählen.'
+                : 'Keine Hinfahrt gefunden.',
           ),
         ),
         if (state.firstEarlierRef != null) _earlierButton(),
@@ -154,13 +156,13 @@ class _PlanBody extends StatelessWidget {
   }
 
   Widget _earlierButton() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: OutlinedButton.icon(
-          onPressed: state.isLoading ? null : notifier.loadEarlierFirstLegs,
-          icon: const Icon(Icons.keyboard_arrow_up, size: 18),
-          label: const Text('Früher — noch mehr Zeit'),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    child: OutlinedButton.icon(
+      onPressed: state.isLoading ? null : notifier.loadEarlierFirstLegs,
+      icon: const Icon(Icons.keyboard_arrow_up, size: 18),
+      label: const Text('Früher — noch mehr Zeit'),
+    ),
+  );
 }
 
 /// From → hub → to plus the appointment, which is the one number here the rider
@@ -178,13 +180,15 @@ class _RouteCard extends StatelessWidget {
       helpText: 'Wann musst du da sein?',
     );
     if (picked == null) return;
-    notifier.setDeadline(DateTime(
-      args.deadline.year,
-      args.deadline.month,
-      args.deadline.day,
-      picked.hour,
-      picked.minute,
-    ));
+    notifier.setDeadline(
+      DateTime(
+        args.deadline.year,
+        args.deadline.month,
+        args.deadline.day,
+        picked.hour,
+        picked.minute,
+      ),
+    );
   }
 
   @override
@@ -198,8 +202,12 @@ class _RouteCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _routeLine(theme, Icons.trip_origin, args.from.name),
-            _routeLine(theme, Icons.pause_circle_outline, args.hub.name,
-                accent: true),
+            _routeLine(
+              theme,
+              Icons.pause_circle_outline,
+              args.hub.name,
+              accent: true,
+            ),
             _routeLine(theme, Icons.location_on, args.to.name),
             const Divider(height: 16),
             InkWell(
@@ -209,16 +217,20 @@ class _RouteCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    Icon(Icons.event_available,
-                        size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.event_available,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Da sein um '
                         '${DateFormat('HH:mm').format(args.deadline)}'
                         ' · ${DateFormat('dd.MM.').format(args.deadline)}',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     const Icon(Icons.edit, size: 16),
@@ -232,10 +244,15 @@ class _RouteCard extends StatelessWidget {
     );
   }
 
-  Widget _routeLine(ThemeData theme, IconData icon, String name,
-      {bool accent = false}) {
-    final color =
-        accent ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
+  Widget _routeLine(
+    ThemeData theme,
+    IconData icon,
+    String name, {
+    bool accent = false,
+  }) {
+    final color = accent
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -278,8 +295,10 @@ class _StayPicker extends StatelessWidget {
           children: [
             const Padding(
               padding: EdgeInsets.only(right: 8),
-              child: Text('Mind. Aufenthalt',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              child: Text(
+                'Mind. Aufenthalt',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
             ),
             for (final m in kStayChoices)
               Padding(
@@ -321,8 +340,11 @@ class _StayStrip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.free_breakfast_outlined,
-              size: 18, color: theme.colorScheme.onSecondaryContainer),
+          Icon(
+            Icons.free_breakfast_outlined,
+            size: 18,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -332,7 +354,7 @@ class _StayStrip extends StatelessWidget {
                   stay != null
                       ? 'Aufenthalt in $hubName: ${formatStay(stay)}'
                       : 'Aufenthalt in $hubName: '
-                          'mind. ${formatStay(Duration(minutes: state.stayMinutes))}',
+                            'mind. ${formatStay(Duration(minutes: state.stayMinutes))}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onSecondaryContainer,
@@ -343,7 +365,7 @@ class _StayStrip extends StatelessWidget {
                     stay != null
                         ? 'Weiter um ${DateFormat('HH:mm').format(hubDeparture)}'
                         : 'Hinfahrt unten wählen · weiter um '
-                            '${DateFormat('HH:mm').format(hubDeparture)}',
+                              '${DateFormat('HH:mm').format(hubDeparture)}',
                     style: TextStyle(
                       fontSize: 11,
                       color: theme.colorScheme.onSecondaryContainer,
@@ -400,8 +422,9 @@ class _SectionHeader extends StatelessWidget {
               children: [
                 Text(
                   'Etappe $index · $title',
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 Text(
                   subtitle,
@@ -511,18 +534,24 @@ class _SaveBar extends ConsumerWidget {
               ? null
               : () => _save(context, ref, first, second),
           icon: const Icon(Icons.bookmark_add_outlined),
-          label: Text(first == null
-              ? 'Hinfahrt wählen'
-              : stay != null
-                  ? 'Beide Etappen speichern (${formatStay(stay)} Pause)'
-                  : 'Beide Etappen speichern'),
+          label: Text(
+            first == null
+                ? 'Hinfahrt wählen'
+                : stay != null
+                ? 'Beide Etappen speichern (${formatStay(stay)} Pause)'
+                : 'Beide Etappen speichern',
+          ),
         ),
       ),
     );
   }
 
   void _save(
-      BuildContext context, WidgetRef ref, Journey first, Journey second) {
+    BuildContext context,
+    WidgetRef ref,
+    Journey first,
+    Journey second,
+  ) {
     final library = ref.read(libraryProvider);
     final notifier = ref.read(libraryProvider.notifier);
     var added = 0;
@@ -538,10 +567,12 @@ class _SaveBar extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         duration: const Duration(seconds: 3),
-        content: Text(added == 0
-            ? 'Beide Etappen sind schon im Reiseplan.'
-            : 'Als $added einzelne Etappe${added > 1 ? 'n' : ''} '
-                'im Reiseplan — nicht als eine Verbindung.'),
+        content: Text(
+          added == 0
+              ? 'Beide Etappen sind schon im Reiseplan.'
+              : 'Als $added einzelne Etappe${added > 1 ? 'n' : ''} '
+                    'im Reiseplan — nicht als eine Verbindung.',
+        ),
       ),
     );
   }

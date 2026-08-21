@@ -42,17 +42,18 @@ class FavoriteStation {
   }
 
   Map<String, dynamic> toJson() => {
-        'station': station.toJson(),
-        'pinned': pinned,
-        'useCount': useCount,
-        'lastUsedMs': lastUsedMs,
-        if (fromServer) 'fromServer': true,
-      };
+    'station': station.toJson(),
+    'pinned': pinned,
+    'useCount': useCount,
+    'lastUsedMs': lastUsedMs,
+    if (fromServer) 'fromServer': true,
+  };
 
   factory FavoriteStation.fromJson(Map<String, dynamic> json) =>
       FavoriteStation(
-        station:
-            Station.fromJson(json['station'] as Map<String, dynamic>? ?? {}),
+        station: Station.fromJson(
+          json['station'] as Map<String, dynamic>? ?? {},
+        ),
         pinned: json['pinned'] as bool? ?? false,
         useCount: json['useCount'] as int? ?? 0,
         lastUsedMs: json['lastUsedMs'] as int? ?? 0,
@@ -70,15 +71,12 @@ class SavedRoute {
   /// Stable identity, used for dedup and toggling.
   String get key => '${from.id}_${to.id}';
 
-  Map<String, dynamic> toJson() => {
-        'from': from.toJson(),
-        'to': to.toJson(),
-      };
+  Map<String, dynamic> toJson() => {'from': from.toJson(), 'to': to.toJson()};
 
   factory SavedRoute.fromJson(Map<String, dynamic> json) => SavedRoute(
-        from: Station.fromJson(json['from'] as Map<String, dynamic>? ?? {}),
-        to: Station.fromJson(json['to'] as Map<String, dynamic>? ?? {}),
-      );
+    from: Station.fromJson(json['from'] as Map<String, dynamic>? ?? {}),
+    to: Station.fromJson(json['to'] as Map<String, dynamic>? ?? {}),
+  );
 }
 
 /// A saved train. [query] is what gets fed back into the train lookup (e.g.
@@ -97,16 +95,16 @@ class SavedTrain {
   String get key => fromStationId == null ? query : '$query@$fromStationId';
 
   Map<String, dynamic> toJson() => {
-        'query': query,
-        'label': label,
-        'fromStationId': fromStationId,
-      };
+    'query': query,
+    'label': label,
+    'fromStationId': fromStationId,
+  };
 
   factory SavedTrain.fromJson(Map<String, dynamic> json) => SavedTrain(
-        query: json['query'] as String? ?? '',
-        label: json['label'] as String? ?? '',
-        fromStationId: json['fromStationId'] as String?,
-      );
+    query: json['query'] as String? ?? '',
+    label: json['label'] as String? ?? '',
+    fromStationId: json['fromStationId'] as String?,
+  );
 }
 
 /// A whole connection the user bookmarked from the search/detail view — the
@@ -135,10 +133,10 @@ class SavedJourney {
   });
 
   SavedJourney copyWith({bool? watched}) => SavedJourney(
-        journey: journey,
-        savedAtMs: savedAtMs,
-        watched: watched ?? this.watched,
-      );
+    journey: journey,
+    savedAtMs: savedAtMs,
+    watched: watched ?? this.watched,
+  );
 
   /// Stable identity: origin→destination at the planned departure minute.
   /// Same train on the same day dedupes; tomorrow's run is its own entry.
@@ -158,17 +156,16 @@ class SavedJourney {
   }
 
   Map<String, dynamic> toJson() => {
-        'journey': journey.toJson(),
-        'savedAtMs': savedAtMs,
-        'watched': watched,
-      };
+    'journey': journey.toJson(),
+    'savedAtMs': savedAtMs,
+    'watched': watched,
+  };
 
   factory SavedJourney.fromJson(Map<String, dynamic> json) => SavedJourney(
-        journey:
-            Journey.fromJson(json['journey'] as Map<String, dynamic>? ?? {}),
-        savedAtMs: json['savedAtMs'] as int? ?? 0,
-        // Absent = saved before this existed → keep tracking it, so the update
-        // doesn't quietly switch off alerts people already depend on.
-        watched: json['watched'] as bool? ?? true,
-      );
+    journey: Journey.fromJson(json['journey'] as Map<String, dynamic>? ?? {}),
+    savedAtMs: json['savedAtMs'] as int? ?? 0,
+    // Absent = saved before this existed → keep tracking it, so the update
+    // doesn't quietly switch off alerts people already depend on.
+    watched: json['watched'] as bool? ?? true,
+  );
 }

@@ -46,9 +46,9 @@ class Seat {
   const Seat({required this.number, required this.status});
 
   factory Seat.fromJson(Map<String, dynamic> json) => Seat(
-        number: (json['nummer'] ?? '').toString(),
-        status: seatStatusFromCode(json['status'] as int?),
-      );
+    number: (json['nummer'] ?? '').toString(),
+    status: seatStatusFromCode(json['status'] as int?),
+  );
 }
 
 /// A coach in the train, with its seats and (lazily loaded) physical layout.
@@ -81,11 +81,11 @@ class SeatCoach {
   }
 
   SeatCoach withLayout(CoachLayout? layout) => SeatCoach(
-        number: number,
-        wagentyp: wagentyp,
-        seats: seats,
-        layout: layout,
-      );
+    number: number,
+    wagentyp: wagentyp,
+    seats: seats,
+    layout: layout,
+  );
 
   factory SeatCoach.fromJson(Map<String, dynamic> json) {
     final plaetze = json['plaetze'] as List<dynamic>? ?? const [];
@@ -113,8 +113,10 @@ class SeatMap {
   /// Coach numbers that still have a free seat — so a rider on a nearly-full
   /// train sees *where* the space is ("frei in Wagen 6") instead of a bare
   /// count or a misleading empty state (#seat).
-  List<String> get freeCoachNumbers =>
-      [for (final c in coaches) if (c.hasFree) c.number];
+  List<String> get freeCoachNumbers => [
+    for (final c in coaches)
+      if (c.hasFree) c.number,
+  ];
 
   /// "  ·  frei in Wagen 6, 11" when seats are scarce (≤ 5 coaches with space),
   /// empty otherwise — appended to the "N von M frei" line when no coach is
@@ -127,7 +129,8 @@ class SeatMap {
 
   /// Parse the `ssr_data` JSON embedded in the gsd_v3 HTML page.
   factory SeatMap.fromSsr(Map<String, dynamic> ssr) {
-    final zugteile = (ssr['zugfahrt'] as Map<String, dynamic>?)?['zugteile']
+    final zugteile =
+        (ssr['zugfahrt'] as Map<String, dynamic>?)?['zugteile']
             as List<dynamic>? ??
         const [];
     final coaches = <SeatCoach>[];
@@ -174,7 +177,8 @@ class CoachLayout {
       klasse = (t['klasse'] as String?) ?? klasse;
       final els = t['elemente'] as List<dynamic>? ?? const [];
       elements.addAll(
-          els.whereType<Map<String, dynamic>>().map(LayoutElement.fromJson));
+        els.whereType<Map<String, dynamic>>().map(LayoutElement.fromJson),
+      );
     }
     return CoachLayout(
       id: (json['id'] ?? '').toString(),
@@ -239,14 +243,14 @@ class LayoutElement {
   });
 
   factory LayoutElement.fromJson(Map<String, dynamic> json) => LayoutElement(
-        x: (json['x'] as num?)?.toDouble() ?? 0,
-        y: (json['y'] as num?)?.toDouble() ?? 0,
-        type: _elementType(json['type'] as String?),
-        subtype: json['subtype'] as String?,
-        number: json['nummer']?.toString(),
-        direction: _direction(json['direction'] as String?),
-        hinweise: (json['hinweise'] as List<dynamic>? ?? const [])
-            .map((e) => e.toString())
-            .toList(),
-      );
+    x: (json['x'] as num?)?.toDouble() ?? 0,
+    y: (json['y'] as num?)?.toDouble() ?? 0,
+    type: _elementType(json['type'] as String?),
+    subtype: json['subtype'] as String?,
+    number: json['nummer']?.toString(),
+    direction: _direction(json['direction'] as String?),
+    hinweise: (json['hinweise'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .toList(),
+  );
 }

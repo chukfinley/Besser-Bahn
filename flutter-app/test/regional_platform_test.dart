@@ -24,73 +24,62 @@ const _kielHbf = Station(
 
 /// Kiel Hbf as the board really returns it (shortened, values verbatim).
 Map<String, dynamic> _board() => {
-      'common': {
-        'himL': [
-          {'head': 'Sperrung Bussteig B1 am Hauptbahnhof'},
-          {'head': 'Vollsperrung Reichenberger Allee'},
-        ],
-        'prodL': [
-          {'name': 'Bus 22'},
-          {'name': 'Bus 81'},
-          {'name': 'Bus 31'},
-          {'name': 'RE 72'},
-        ],
-      },
-      'jnyL': [
-        {
-          'prodX': 0,
-          'dirTxt': 'Schwentinental',
-          'stbStop': {
-            'dTimeS': '093800',
-            'dPlatfS': 'C2',
-            'dPlatfR': 'C2',
-          },
-        },
-        {
-          'prodX': 0,
-          'dirTxt': 'Suchsdorf',
-          'msgL': [
-            {'type': 'HIM', 'himX': 1},
-            {'type': 'HIM', 'himX': 0},
-          ],
-          'stbStop': {
-            'dTimeS': '093900',
-            'dTimeR': '094300',
-            'dPlatfS': 'B1',
-            'dPlatfR': 'B2',
-          },
-        },
-        {
-          'prodX': 1,
-          'dirTxt': 'Suchsdorf',
-          'stbStop': {
-            'dTimeS': '094300',
-            'dPlatfS': 'B1',
-            'dPlatfR': 'B2',
-          },
-        },
-        {
-          'prodX': 2,
-          'dirTxt': 'Mettenhof',
-          'stbStop': {
-            'dTimeS': '094900',
-            'dPlatfS': 'B2',
-            'dPlatfR': 'A1',
-          },
-        },
-        {
-          'prodX': 3,
-          'dirTxt': 'Eckernförde',
-          'stbStop': {
-            'dTimeS': '094300',
-            'dPltfS': {'txt': '6a'},
-            'dPltfR': {'txt': '6a'},
-          },
-        },
+  'common': {
+    'himL': [
+      {'head': 'Sperrung Bussteig B1 am Hauptbahnhof'},
+      {'head': 'Vollsperrung Reichenberger Allee'},
+    ],
+    'prodL': [
+      {'name': 'Bus 22'},
+      {'name': 'Bus 81'},
+      {'name': 'Bus 31'},
+      {'name': 'RE 72'},
+    ],
+  },
+  'jnyL': [
+    {
+      'prodX': 0,
+      'dirTxt': 'Schwentinental',
+      'stbStop': {'dTimeS': '093800', 'dPlatfS': 'C2', 'dPlatfR': 'C2'},
+    },
+    {
+      'prodX': 0,
+      'dirTxt': 'Suchsdorf',
+      'msgL': [
+        {'type': 'HIM', 'himX': 1},
+        {'type': 'HIM', 'himX': 0},
       ],
-    };
+      'stbStop': {
+        'dTimeS': '093900',
+        'dTimeR': '094300',
+        'dPlatfS': 'B1',
+        'dPlatfR': 'B2',
+      },
+    },
+    {
+      'prodX': 1,
+      'dirTxt': 'Suchsdorf',
+      'stbStop': {'dTimeS': '094300', 'dPlatfS': 'B1', 'dPlatfR': 'B2'},
+    },
+    {
+      'prodX': 2,
+      'dirTxt': 'Mettenhof',
+      'stbStop': {'dTimeS': '094900', 'dPlatfS': 'B2', 'dPlatfR': 'A1'},
+    },
+    {
+      'prodX': 3,
+      'dirTxt': 'Eckernförde',
+      'stbStop': {
+        'dTimeS': '094300',
+        'dPltfS': {'txt': '6a'},
+        'dPltfR': {'txt': '6a'},
+      },
+    },
+  ],
+};
 
-List<RegionalDeparture> _parsed() => RegionalTransitService.parseBoard(_board());
+List<RegionalDeparture> _parsed() =>
+    RegionalTransitService.parseBoard(_board());
 
 DateTime _at(int h, int m) => DateTime(2026, 7, 27, h, m);
 
@@ -100,7 +89,8 @@ DateTime _at(int h, int m) => DateTime(2026, 7, 27, h, m);
 ) {
   final methods = <String>[];
   final client = MockClient((req) async {
-    final body = json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
+    final body =
+        json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
     final svc = (body['svcReqL'] as List).first as Map<String, dynamic>;
     final method = svc['meth'] as String;
     methods.add(method);
@@ -112,29 +102,28 @@ DateTime _at(int h, int m) => DateTime(2026, 7, 27, h, m);
   return (service: RegionalTransitService(client: client), methods: methods);
 }
 
-String _ok(Map<String, dynamic> res) =>
-    json.encode({
-      'svcResL': [
-        {'meth': 'x', 'err': 'OK', 'res': res},
-      ],
-    });
+String _ok(Map<String, dynamic> res) => json.encode({
+  'svcResL': [
+    {'meth': 'x', 'err': 'OK', 'res': res},
+  ],
+});
 
 String _locMatch() => _ok({
-      'match': {
-        'locL': [
-          {
-            'extId': '9049076',
-            'name': 'Kiel Hauptbahnhof',
-            'crd': {'y': 54315502, 'x': 10130690},
-          },
-          {
-            'extId': '9049113',
-            'name': 'Kiel Hbf/Kaistraße',
-            'crd': {'y': 54318000, 'x': 10135000},
-          },
-        ],
+  'match': {
+    'locL': [
+      {
+        'extId': '9049076',
+        'name': 'Kiel Hauptbahnhof',
+        'crd': {'y': 54315502, 'x': 10130690},
       },
-    });
+      {
+        'extId': '9049113',
+        'name': 'Kiel Hbf/Kaistraße',
+        'crd': {'y': 54318000, 'x': 10135000},
+      },
+    ],
+  },
+});
 
 void main() {
   // The breaker is static — a backend marked dead in one test would silently
@@ -179,20 +168,19 @@ void main() {
           final name = ((input['loc'] as Map)['name'] as String);
           final sued = name.contains('Süd');
           return http.Response.bytes(
-            utf8.encode(_ok({
-              'match': {
-                'locL': [
-                  {
-                    'extId': sued ? '9049080' : '9049076',
-                    'name': name.replaceAll('?', ''),
-                    'crd': {
-                      'y': sued ? 54314340 : 54315502,
-                      'x': 10130690,
+            utf8.encode(
+              _ok({
+                'match': {
+                  'locL': [
+                    {
+                      'extId': sued ? '9049080' : '9049076',
+                      'name': name.replaceAll('?', ''),
+                      'crd': {'y': sued ? 54314340 : 54315502, 'x': 10130690},
                     },
-                  },
-                ],
-              },
-            })),
+                  ],
+                },
+              }),
+            ),
             200,
           );
         }
@@ -214,29 +202,38 @@ void main() {
           product: 'bus',
         );
 
-    test('a 5xx takes the backend out of rotation — the next leg is instant',
-        () async {
-      final h = failingBoard(() async => http.Response('boom', 502));
+    test(
+      'a 5xx takes the backend out of rotation — the next leg is instant',
+      () async {
+        final h = failingBoard(() async => http.Response('boom', 502));
 
-      expect(await ask(h.service, kielHbf), isNull);
-      expect(h.boardCalls(), 1);
+        expect(await ask(h.service, kielHbf), isNull);
+        expect(h.boardCalls(), 1);
 
-      // A different stop, same authority: the dead backend is skipped before
-      // any request goes out.
-      expect(await ask(h.service, kielSued), isNull);
-      expect(h.boardCalls(), 1, reason: 'breaker skipped the dead backend');
-    });
+        // A different stop, same authority: the dead backend is skipped before
+        // any request goes out.
+        expect(await ask(h.service, kielSued), isNull);
+        expect(h.boardCalls(), 1, reason: 'breaker skipped the dead backend');
+      },
+    );
 
-    test('a timeout also trips the breaker, not just an error status', () async {
-      final h = failingBoard(
-          () async => throw Exception('SocketException: timeout'));
+    test(
+      'a timeout also trips the breaker, not just an error status',
+      () async {
+        final h = failingBoard(
+          () async => throw Exception('SocketException: timeout'),
+        );
 
-      expect(await ask(h.service, kielHbf), isNull);
-      expect(h.boardCalls(), 1);
-      expect(await ask(h.service, kielSued), isNull);
-      expect(h.boardCalls(), 1,
-          reason: 'an unreachable endpoint is skipped after the first failure');
-    });
+        expect(await ask(h.service, kielHbf), isNull);
+        expect(h.boardCalls(), 1);
+        expect(await ask(h.service, kielSued), isNull);
+        expect(
+          h.boardCalls(),
+          1,
+          reason: 'an unreachable endpoint is skipped after the first failure',
+        );
+      },
+    );
 
     test('a 4xx does NOT trip the breaker — it is this call being wrong, not '
         'the endpoint being down', () async {
@@ -245,8 +242,11 @@ void main() {
       await ask(h.service, kielHbf);
       expect(h.boardCalls(), 1);
       await ask(h.service, kielSued);
-      expect(h.boardCalls(), 2,
-          reason: 'the backend is alive, so the next stop still asks it');
+      expect(
+        h.boardCalls(),
+        2,
+        reason: 'the backend is alive, so the next stop still asks it',
+      );
     });
 
     test('resetCircuitBreaker lets a recovered backend back in', () async {
@@ -266,8 +266,10 @@ void main() {
     test('a moved bay comes through as planned → live', () {
       final moved = _parsed().where((d) => d.moved).toList();
 
-      expect(moved.map((d) => '${d.line} ${d.plannedPlatform}→${d.livePlatform}'),
-          ['Bus 22 B1→B2', 'Bus 81 B1→B2', 'Bus 31 B2→A1']);
+      expect(
+        moved.map((d) => '${d.line} ${d.plannedPlatform}→${d.livePlatform}'),
+        ['Bus 22 B1→B2', 'Bus 81 B1→B2', 'Bus 31 B2→A1'],
+      );
     });
 
     test('an unchanged bay is not a correction', () {
@@ -288,23 +290,26 @@ void main() {
       // departure that really moved.
       const noise = [
         RegionalDeparture(
-            line: 'RE12',
-            direction: 'Köln Messe/Deutz',
-            plannedTime: 540,
-            plannedPlatform: '7',
-            livePlatform: '7 D-G'),
+          line: 'RE12',
+          direction: 'Köln Messe/Deutz',
+          plannedTime: 540,
+          plannedPlatform: '7',
+          livePlatform: '7 D-G',
+        ),
         RegionalDeparture(
-            line: 'S11',
-            direction: 'Bergisch Gladbach',
-            plannedTime: 540,
-            plannedPlatform: '11',
-            livePlatform: '11 B-C'),
+          line: 'S11',
+          direction: 'Bergisch Gladbach',
+          plannedTime: 540,
+          plannedPlatform: '11',
+          livePlatform: '11 B-C',
+        ),
         RegionalDeparture(
-            line: 'RB27',
-            direction: 'Koblenz',
-            plannedTime: 540,
-            plannedPlatform: '6a',
-            livePlatform: '6a C'),
+          line: 'RB27',
+          direction: 'Koblenz',
+          plannedTime: 540,
+          plannedPlatform: '6a',
+          livePlatform: '6a C',
+        ),
       ];
       expect(noise.every((d) => d.moved), isFalse);
       expect(noise.any((d) => d.moved), isFalse);
@@ -313,24 +318,27 @@ void main() {
     test('a real move is still a move, sectors or not', () {
       const real = [
         RegionalDeparture(
-            line: 'Bus 22',
-            direction: 'Suchsdorf',
-            plannedTime: 579,
-            plannedPlatform: 'B1',
-            livePlatform: 'B2'),
+          line: 'Bus 22',
+          direction: 'Suchsdorf',
+          plannedTime: 579,
+          plannedPlatform: 'B1',
+          livePlatform: 'B2',
+        ),
         RegionalDeparture(
-            line: 'RB75',
-            direction: 'Bad Bentheim',
-            plannedTime: 540,
-            // "5 Süd" is a different platform, not a sector of 5.
-            plannedPlatform: '5 Süd',
-            livePlatform: '5'),
+          line: 'RB75',
+          direction: 'Bad Bentheim',
+          plannedTime: 540,
+          // "5 Süd" is a different platform, not a sector of 5.
+          plannedPlatform: '5 Süd',
+          livePlatform: '5',
+        ),
         RegionalDeparture(
-            line: 'RE1',
-            direction: 'Magdeburg',
-            plannedTime: 540,
-            plannedPlatform: '6',
-            livePlatform: '9'),
+          line: 'RE1',
+          direction: 'Magdeburg',
+          plannedTime: 540,
+          plannedPlatform: '6',
+          livePlatform: '9',
+        ),
       ];
       expect(real.every((d) => d.moved), isTrue);
     });
@@ -343,12 +351,14 @@ void main() {
 
   group('matching the rider\'s own departure', () {
     test('the 09:39 to Suchsdorf really goes from B2', () {
-      final hit = RegionalTransitService.matchDeparture(_parsed(),
-          line: 'Bus 22',
-          towards: 'Suchsdorf',
-          plannedDeparture: _at(9, 39),
-          source: 'NAH.SH',
-          dbPlatform: 'B1');
+      final hit = RegionalTransitService.matchDeparture(
+        _parsed(),
+        line: 'Bus 22',
+        towards: 'Suchsdorf',
+        plannedDeparture: _at(9, 39),
+        source: 'NAH.SH',
+        dbPlatform: 'B1',
+      );
 
       expect(hit, isNotNull);
       expect(hit!.planned, 'B1');
@@ -358,35 +368,47 @@ void main() {
 
     test('the operator\'s own reason comes along — and the message that names '
         'the closed bay wins over the other one hung on the same ride', () {
-      final hit = RegionalTransitService.matchDeparture(_parsed(),
-          line: 'Bus 22', towards: 'Suchsdorf', plannedDeparture: _at(9, 39));
+      final hit = RegionalTransitService.matchDeparture(
+        _parsed(),
+        line: 'Bus 22',
+        towards: 'Suchsdorf',
+        plannedDeparture: _at(9, 39),
+      );
 
       expect(hit!.note, 'Sperrung Bussteig B1 am Hauptbahnhof');
     });
 
     test('no message, no invented explanation', () {
-      final hit = RegionalTransitService.matchDeparture(_parsed(),
-          line: 'Bus 81', towards: 'Suchsdorf', plannedDeparture: _at(9, 43));
+      final hit = RegionalTransitService.matchDeparture(
+        _parsed(),
+        line: 'Bus 81',
+        towards: 'Suchsdorf',
+        plannedDeparture: _at(9, 43),
+      );
 
       expect(hit!.live, 'B2');
       expect(hit.note, isNull);
       expect(hit.closed, isFalse);
     });
 
-    test('the destination label does not have to agree between the two backends',
-        () {
-      // DB calls this ride "Rungholtplatz", NAH.SH calls the line "Suchsdorf".
-      // The exact 09:39 minute picks it out; the differing label must not throw
-      // the (moved) departure away.
-      final hit = RegionalTransitService.matchDeparture(_parsed(),
+    test(
+      'the destination label does not have to agree between the two backends',
+      () {
+        // DB calls this ride "Rungholtplatz", NAH.SH calls the line "Suchsdorf".
+        // The exact 09:39 minute picks it out; the differing label must not throw
+        // the (moved) departure away.
+        final hit = RegionalTransitService.matchDeparture(
+          _parsed(),
           line: 'Bus 22',
           towards: 'Rungholtplatz, Kiel',
           plannedDeparture: _at(9, 39),
-          dbPlatform: 'B1');
+          dbPlatform: 'B1',
+        );
 
-      expect(hit, isNotNull, reason: 'time disambiguates without the label');
-      expect(hit!.live, 'B2');
-    });
+        expect(hit, isNotNull, reason: 'time disambiguates without the label');
+        expect(hit!.live, 'B2');
+      },
+    );
 
     test('a closed planned bay warns even with no live replacement yet — the '
         'realtime bay only appears near departure, the notice days ahead', () {
@@ -402,11 +424,13 @@ void main() {
           notes: ['Sperrung Bussteig B1 am Hauptbahnhof'],
         ),
       ];
-      final hit = RegionalTransitService.matchDeparture(board,
-          line: 'Bus 22',
-          towards: 'Rungholtplatz',
-          plannedDeparture: _at(9, 39),
-          dbPlatform: 'B1');
+      final hit = RegionalTransitService.matchDeparture(
+        board,
+        line: 'Bus 22',
+        towards: 'Rungholtplatz',
+        plannedDeparture: _at(9, 39),
+        dbPlatform: 'B1',
+      );
 
       expect(hit, isNotNull);
       expect(hit!.closed, isTrue);
@@ -414,22 +438,29 @@ void main() {
       expect(hit.note, 'Sperrung Bussteig B1 am Hauptbahnhof');
     });
 
-    test('a closure notice for a DIFFERENT bay does not warn this departure', () {
-      final board = [
-        const RegionalDeparture(
+    test(
+      'a closure notice for a DIFFERENT bay does not warn this departure',
+      () {
+        final board = [
+          const RegionalDeparture(
+            line: 'Bus 5',
+            direction: 'Wik',
+            plannedTime: 9 * 60 + 39,
+            plannedPlatform: 'C2',
+            livePlatform: 'C2',
+            notes: ['Sperrung Bussteig B1 am Hauptbahnhof'], // about B1, not C2
+          ),
+        ];
+        final hit = RegionalTransitService.matchDeparture(
+          board,
           line: 'Bus 5',
-          direction: 'Wik',
-          plannedTime: 9 * 60 + 39,
-          plannedPlatform: 'C2',
-          livePlatform: 'C2',
-          notes: ['Sperrung Bussteig B1 am Hauptbahnhof'], // about B1, not C2
-        ),
-      ];
-      final hit = RegionalTransitService.matchDeparture(board,
-          line: 'Bus 5', towards: 'Wik', plannedDeparture: _at(9, 39));
+          towards: 'Wik',
+          plannedDeparture: _at(9, 39),
+        );
 
-      expect(hit, isNull, reason: 'C2 is not the closed bay');
-    });
+        expect(hit, isNull, reason: 'C2 is not the closed bay');
+      },
+    );
 
     test('an ordinary unmoved departure yields nothing', () {
       final board = [
@@ -442,28 +473,40 @@ void main() {
         ),
       ];
       expect(
-        RegionalTransitService.matchDeparture(board,
-            line: 'Bus 5', towards: 'Wik', plannedDeparture: _at(9, 39)),
+        RegionalTransitService.matchDeparture(
+          board,
+          line: 'Bus 5',
+          towards: 'Wik',
+          plannedDeparture: _at(9, 39),
+        ),
         isNull,
       );
     });
 
-    test('matched on the SCHEDULED time — a late bus is still this departure',
-        () {
-      // The board says dTimeR 09:43 for this ride; both sides only ever agree
-      // on the scheduled 09:39.
-      final hit = RegionalTransitService.matchDeparture(_parsed(),
-          line: '22', towards: 'Suchsdorf', plannedDeparture: _at(9, 39));
-      expect(hit?.live, 'B2');
-    });
+    test(
+      'matched on the SCHEDULED time — a late bus is still this departure',
+      () {
+        // The board says dTimeR 09:43 for this ride; both sides only ever agree
+        // on the scheduled 09:39.
+        final hit = RegionalTransitService.matchDeparture(
+          _parsed(),
+          line: '22',
+          towards: 'Suchsdorf',
+          plannedDeparture: _at(9, 39),
+        );
+        expect(hit?.live, 'B2');
+      },
+    );
 
     test('"Bus 22" and "22" are the same line', () {
       for (final spelling in ['Bus 22', '22', 'bus 22']) {
         expect(
-          RegionalTransitService.matchDeparture(_parsed(),
-              line: spelling,
-              towards: 'Suchsdorf',
-              plannedDeparture: _at(9, 39))?.live,
+          RegionalTransitService.matchDeparture(
+            _parsed(),
+            line: spelling,
+            towards: 'Suchsdorf',
+            plannedDeparture: _at(9, 39),
+          )?.live,
           'B2',
           reason: spelling,
         );
@@ -475,10 +518,12 @@ void main() {
       // towards Suchsdorf at 09:39 from B2. Asking about the wrong one must not
       // hand back the other one's bay.
       expect(
-        RegionalTransitService.matchDeparture(_parsed(),
-            line: 'Bus 22',
-            towards: 'Schwentinental',
-            plannedDeparture: _at(9, 38)),
+        RegionalTransitService.matchDeparture(
+          _parsed(),
+          line: 'Bus 22',
+          towards: 'Schwentinental',
+          plannedDeparture: _at(9, 38),
+        ),
         isNull,
         reason: 'that bay did not move',
       );
@@ -486,16 +531,24 @@ void main() {
 
     test('a different line at the same minute is not our ride', () {
       expect(
-        RegionalTransitService.matchDeparture(_parsed(),
-            line: 'Bus 42', towards: 'Suchsdorf', plannedDeparture: _at(9, 43)),
+        RegionalTransitService.matchDeparture(
+          _parsed(),
+          line: 'Bus 42',
+          towards: 'Suchsdorf',
+          plannedDeparture: _at(9, 43),
+        ),
         isNull,
       );
     });
 
     test('a departure the board does not have is no answer', () {
       expect(
-        RegionalTransitService.matchDeparture(_parsed(),
-            line: 'Bus 22', towards: 'Suchsdorf', plannedDeparture: _at(11, 39)),
+        RegionalTransitService.matchDeparture(
+          _parsed(),
+          line: 'Bus 22',
+          towards: 'Suchsdorf',
+          plannedDeparture: _at(11, 39),
+        ),
         isNull,
       );
     });
@@ -504,83 +557,92 @@ void main() {
         'them, nothing is claimed', () {
       final twins = [
         const RegionalDeparture(
-            line: 'Bus 22',
-            direction: 'Suchsdorf',
-            plannedTime: 9 * 60 + 39,
-            plannedPlatform: 'B1',
-            livePlatform: 'B2'),
+          line: 'Bus 22',
+          direction: 'Suchsdorf',
+          plannedTime: 9 * 60 + 39,
+          plannedPlatform: 'B1',
+          livePlatform: 'B2',
+        ),
         const RegionalDeparture(
-            line: 'Bus 22',
-            direction: 'Suchsdorf',
-            plannedTime: 9 * 60 + 39,
-            plannedPlatform: 'B1',
-            livePlatform: 'A1'),
+          line: 'Bus 22',
+          direction: 'Suchsdorf',
+          plannedTime: 9 * 60 + 39,
+          plannedPlatform: 'B1',
+          livePlatform: 'A1',
+        ),
       ];
       expect(
-        RegionalTransitService.matchDeparture(twins,
-            line: 'Bus 22', towards: 'Suchsdorf', plannedDeparture: _at(9, 39)),
+        RegionalTransitService.matchDeparture(
+          twins,
+          line: 'Bus 22',
+          towards: 'Suchsdorf',
+          plannedDeparture: _at(9, 39),
+        ),
         isNull,
       );
     });
 
     test('a minute either way still matches, five minutes do not', () {
       expect(
-          RegionalTransitService.matchDeparture(_parsed(),
-              line: 'Bus 22',
-              towards: 'Suchsdorf',
-              plannedDeparture: _at(9, 40))?.live,
-          'B2');
+        RegionalTransitService.matchDeparture(
+          _parsed(),
+          line: 'Bus 22',
+          towards: 'Suchsdorf',
+          plannedDeparture: _at(9, 40),
+        )?.live,
+        'B2',
+      );
       expect(
-          RegionalTransitService.matchDeparture(_parsed(),
-              line: 'Bus 22',
-              towards: 'Suchsdorf',
-              plannedDeparture: _at(9, 45)),
-          isNull);
+        RegionalTransitService.matchDeparture(
+          _parsed(),
+          line: 'Bus 22',
+          towards: 'Suchsdorf',
+          plannedDeparture: _at(9, 45),
+        ),
+        isNull,
+      );
     });
   });
 
   group('EFA / Mentz — the states HAFAS never covered', () {
     /// Essen Hbf as VRR really returns it (fields verbatim, 27.07.2026).
     Map<String, dynamic> efaBoard() => {
-          'stopEvents': [
-            {
-              'departureTimePlanned': '2026-07-27T08:44:00Z',
-              'departureTimeEstimated': '2026-07-27T09:08:00Z',
-              'isRealtimeControlled': true,
-              'transportation': {
-                'name': 'Regionalzug RB 33',
-                'number': 'RB 33',
-                'destination': {'name': 'Essen Steele S'},
-              },
-              'location': {
-                'properties': {
-                  'platform': '11',
-                  'platformName': '11',
-                  'plannedPlatformName': '11',
-                },
-              },
+      'stopEvents': [
+        {
+          'departureTimePlanned': '2026-07-27T08:44:00Z',
+          'departureTimeEstimated': '2026-07-27T09:08:00Z',
+          'isRealtimeControlled': true,
+          'transportation': {
+            'name': 'Regionalzug RB 33',
+            'number': 'RB 33',
+            'destination': {'name': 'Essen Steele S'},
+          },
+          'location': {
+            'properties': {
+              'platform': '11',
+              'platformName': '11',
+              'plannedPlatformName': '11',
             },
+          },
+        },
+        {
+          'departureTimePlanned': '2026-07-27T09:00:00Z',
+          'transportation': {
+            'number': 'S 9',
+            'destination': {'name': 'Wuppertal Hbf'},
+          },
+          'infos': [
             {
-              'departureTimePlanned': '2026-07-27T09:00:00Z',
-              'transportation': {
-                'number': 'S 9',
-                'destination': {'name': 'Wuppertal Hbf'},
-              },
-              'infos': [
-                {
-                  'subtitle': 'Gleiswechsel wegen Bauarbeiten',
-                  'content': 'lange Fassung',
-                },
-              ],
-              'location': {
-                'properties': {
-                  'platformName': '5',
-                  'plannedPlatformName': '2',
-                },
-              },
+              'subtitle': 'Gleiswechsel wegen Bauarbeiten',
+              'content': 'lange Fassung',
             },
           ],
-        };
+          'location': {
+            'properties': {'platformName': '5', 'plannedPlatformName': '2'},
+          },
+        },
+      ],
+    };
 
     test('planned and live platform come through under EFA\'s own names', () {
       final board = RegionalTransitService.parseEfaBoard(efaBoard());
@@ -625,8 +687,10 @@ void main() {
 
     test('junk in, empty list out', () {
       expect(RegionalTransitService.parseEfaBoard(null), isEmpty);
-      expect(RegionalTransitService.parseEfaBoard({'stopEvents': 'nope'}),
-          isEmpty);
+      expect(
+        RegionalTransitService.parseEfaBoard({'stopEvents': 'nope'}),
+        isEmpty,
+      );
     });
 
     test('the states that had nothing now have someone', () {
@@ -652,19 +716,21 @@ void main() {
       // saarVV stops short of it, VRN and RMV start east of it. An area with
       // none must cost no request.
       const trier = Station(
-          id: '8000129',
-          name: 'Trier Hbf',
-          latitude: 49.7556,
-          longitude: 6.6892);
+        id: '8000129',
+        name: 'Trier Hbf',
+        latitude: 49.7556,
+        longitude: 6.6892,
+      );
       expect(RegionalTransitService.servesStop(trier), isFalse);
     });
 
     test('inside one, it is asked — Kiel and München alike', () {
       const muenchen = Station(
-          id: '8000261',
-          name: 'München Hbf',
-          latitude: 48.140229,
-          longitude: 11.558339);
+        id: '8000261',
+        name: 'München Hbf',
+        latitude: 48.140229,
+        longitude: 11.558339,
+      );
       expect(RegionalTransitService.servesStop(_kielHbf), isTrue);
       expect(RegionalTransitService.servesStop(muenchen), isTrue);
     });
@@ -674,8 +740,10 @@ void main() {
       expect(regionalProfilesFor(50.9413, 6.9583).first.id, 'kvb');
       expect(regionalProfilesFor(54.3155, 10.1307).first.id, 'nahsh');
       // Berlin: the city operator before the state-wide association.
-      expect(regionalProfilesFor(52.5250, 13.3694).map((p) => p.id).toList(),
-          ['bvg', 'vbb']);
+      expect(regionalProfilesFor(52.5250, 13.3694).map((p) => p.id).toList(), [
+        'bvg',
+        'vbb',
+      ]);
       expect(regionalProfilesFor(49.7556, 6.6892), isEmpty);
     });
 
@@ -697,7 +765,9 @@ void main() {
 
     test('a stop without coordinates is not guessed at', () {
       expect(
-        RegionalTransitService.servesStop(const Station(id: '1', name: 'Irgendwo')),
+        RegionalTransitService.servesStop(
+          const Station(id: '1', name: 'Irgendwo'),
+        ),
         isFalse,
       );
     });
@@ -713,10 +783,11 @@ void main() {
     test('an out-of-area stop fires no request at all', () async {
       final h = _service((m, r) => _ok(const {}));
       const trier = Station(
-          id: '8000129',
-          name: 'Trier Hbf',
-          latitude: 49.7556,
-          longitude: 6.6892);
+        id: '8000129',
+        name: 'Trier Hbf',
+        latitude: 49.7556,
+        longitude: 6.6892,
+      );
 
       final hit = await h.service.platformCorrection(
         stop: trier,
@@ -727,7 +798,11 @@ void main() {
       );
 
       expect(hit, isNull);
-      expect(h.methods, isEmpty, reason: 'the gate is free, the request is not');
+      expect(
+        h.methods,
+        isEmpty,
+        reason: 'the gate is free, the request is not',
+      );
     });
 
     test('a train fires no request either', () async {
@@ -747,8 +822,9 @@ void main() {
 
   group('end to end, against the shapes the backend really returns', () {
     test('a bus in Kiel gets its moved bay', () async {
-      final h = _service((method, req) =>
-          method == 'LocMatch' ? _locMatch() : _ok(_board()));
+      final h = _service(
+        (method, req) => method == 'LocMatch' ? _locMatch() : _ok(_board()),
+      );
 
       final hit = await h.service.platformCorrection(
         stop: _kielHbf,
@@ -764,8 +840,9 @@ void main() {
     });
 
     test('a second leg at the same stop reuses both lookups', () async {
-      final h = _service((method, req) =>
-          method == 'LocMatch' ? _locMatch() : _ok(_board()));
+      final h = _service(
+        (method, req) => method == 'LocMatch' ? _locMatch() : _ok(_board()),
+      );
 
       for (final line in ['Bus 22', 'Bus 81']) {
         await h.service.platformCorrection(
@@ -777,8 +854,10 @@ void main() {
         );
       }
 
-      expect(h.methods, ['LocMatch', 'StationBoard'],
-          reason: 'one board answers every leg at that stop');
+      expect(h.methods, [
+        'LocMatch',
+        'StationBoard',
+      ], reason: 'one board answers every leg at that stop');
     });
 
     test('the stop is matched by coordinate, not just by name', () async {
@@ -803,19 +882,21 @@ void main() {
     });
 
     test('no stop within reach → no board request, no answer', () async {
-      final h = _service((method, req) => method == 'LocMatch'
-          ? _ok({
-              'match': {
-                'locL': [
-                  {
-                    'extId': '9999999',
-                    'name': 'Woanders',
-                    'crd': {'y': 54900000, 'x': 9000000},
-                  },
-                ],
-              },
-            })
-          : _ok(_board()));
+      final h = _service(
+        (method, req) => method == 'LocMatch'
+            ? _ok({
+                'match': {
+                  'locL': [
+                    {
+                      'extId': '9999999',
+                      'name': 'Woanders',
+                      'crd': {'y': 54900000, 'x': 9000000},
+                    },
+                  ],
+                },
+              })
+            : _ok(_board()),
+      );
 
       final hit = await h.service.platformCorrection(
         stop: _kielHbf,

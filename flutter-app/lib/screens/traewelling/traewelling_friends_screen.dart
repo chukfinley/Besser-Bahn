@@ -30,14 +30,18 @@ class _TraewellingFriendsScreenState
               icon: const Icon(Icons.person_search),
               tooltip: 'Suchen',
               onPressed: () => showSearch(
-                  context: context, delegate: _UserSearchDelegate(ref)),
+                context: context,
+                delegate: _UserSearchDelegate(ref),
+              ),
             ),
           ],
-          bottom: const TabBar(tabs: [
-            Tab(text: 'Following'),
-            Tab(text: 'Follower'),
-            Tab(text: 'Anfragen'),
-          ]),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Following'),
+              Tab(text: 'Follower'),
+              Tab(text: 'Anfragen'),
+            ],
+          ),
         ),
         body: TabBarView(
           children: [
@@ -103,8 +107,10 @@ class _RequestsList extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.check_circle,
-                            color: AppColors.onTime),
+                        icon: const Icon(
+                          Icons.check_circle,
+                          color: AppColors.onTime,
+                        ),
                         tooltip: 'Annehmen',
                         onPressed: () async {
                           await service.approveFollowRequest(u.id);
@@ -113,8 +119,10 @@ class _RequestsList extends ConsumerWidget {
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.cancel,
-                            color: AppColors.cancelled),
+                        icon: const Icon(
+                          Icons.cancel,
+                          color: AppColors.cancelled,
+                        ),
                         tooltip: 'Ablehnen',
                         onPressed: () async {
                           await service.rejectFollowRequest(u.id);
@@ -157,8 +165,10 @@ class _UserTileState extends ConsumerState<_UserTile> {
       } else {
         await service.follow(widget.user.id);
         // Private profiles return a pending request rather than a follow.
-        setState(() =>
-            widget.user.privateProfile ? _pending = true : _following = true);
+        setState(
+          () =>
+              widget.user.privateProfile ? _pending = true : _following = true,
+        );
       }
     } catch (_) {
     } finally {
@@ -171,15 +181,18 @@ class _UserTileState extends ConsumerState<_UserTile> {
     final label = _pending
         ? 'Angefragt'
         : _following
-            ? 'Entfolgen'
-            : 'Folgen';
+        ? 'Entfolgen'
+        : 'Folgen';
     return ListTile(
       leading: _avatar(context, widget.user),
       title: Text(widget.user.displayName),
       subtitle: Text('@${widget.user.username}'),
       trailing: _busy
           ? const SizedBox(
-              width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           : OutlinedButton(onPressed: _toggle, child: Text(label)),
     );
   }
@@ -190,19 +203,20 @@ class _UserSearchDelegate extends SearchDelegate<void> {
   _UserSearchDelegate(this.ref) : super(searchFieldLabel: 'Nutzer:in suchen');
 
   @override
-  List<Widget> buildActions(BuildContext context) =>
-      [
-        IconButton(
-            tooltip: 'Suche leeren',
-            icon: const Icon(Icons.clear),
-            onPressed: () => query = '')
-      ];
+  List<Widget> buildActions(BuildContext context) => [
+    IconButton(
+      tooltip: 'Suche leeren',
+      icon: const Icon(Icons.clear),
+      onPressed: () => query = '',
+    ),
+  ];
 
   @override
   Widget buildLeading(BuildContext context) => IconButton(
-      tooltip: 'Zurück',
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () => close(context, null));
+    tooltip: 'Zurück',
+    icon: const Icon(Icons.arrow_back),
+    onPressed: () => close(context, null),
+  );
 
   @override
   Widget buildSuggestions(BuildContext context) => _results(context);
@@ -232,21 +246,23 @@ class _UserSearchDelegate extends SearchDelegate<void> {
 }
 
 Widget _avatar(BuildContext context, TrwlUser u) => CircleAvatar(
-      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      backgroundImage: (u.profilePicture?.isNotEmpty ?? false)
-          ? NetworkImage(u.profilePicture!)
-          : null,
-      child: (u.profilePicture?.isNotEmpty ?? false)
-          ? null
-          : Text(u.displayName.isNotEmpty ? u.displayName[0].toUpperCase() : '?'),
-    );
+  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+  backgroundImage: (u.profilePicture?.isNotEmpty ?? false)
+      ? NetworkImage(u.profilePicture!)
+      : null,
+  child: (u.profilePicture?.isNotEmpty ?? false)
+      ? null
+      : Text(u.displayName.isNotEmpty ? u.displayName[0].toUpperCase() : '?'),
+);
 
 Widget _empty(BuildContext context, String text) => ListView(
-      children: [
-        const SizedBox(height: 120),
-        Center(
-          child: Text(text,
-              style: TextStyle(color: Theme.of(context).colorScheme.outline)),
-        ),
-      ],
-    );
+  children: [
+    const SizedBox(height: 120),
+    Center(
+      child: Text(
+        text,
+        style: TextStyle(color: Theme.of(context).colorScheme.outline),
+      ),
+    ),
+  ],
+);

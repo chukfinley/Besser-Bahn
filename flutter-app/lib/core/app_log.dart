@@ -24,8 +24,9 @@ class AppLog {
     final line = tag.isEmpty ? '$ts  $message' : '$ts  [$tag] $message';
     debugPrint(line);
     final next = [...messages.value, line];
-    messages.value =
-        next.length > _max ? next.sublist(next.length - _max) : next;
+    messages.value = next.length > _max
+        ? next.sublist(next.length - _max)
+        : next;
   }
 
   /// Running count per distinct message, for [logCollapsed].
@@ -81,8 +82,13 @@ class AppLog {
     _tileWindow++;
     final h = _hostOf(raw);
     if (h.isNotEmpty) _tileHost = h;
-    if (_tileBurstStartMs == 0) _tileBurstStartMs = _tileClock.elapsedMilliseconds;
-    _tileTimer ??= Timer.periodic(const Duration(seconds: 2), (_) => _tileTick());
+    if (_tileBurstStartMs == 0) {
+      _tileBurstStartMs = _tileClock.elapsedMilliseconds;
+    }
+    _tileTimer ??= Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _tileTick(),
+    );
     // Pause ONLY on a true flood — the Linux socket-exhaustion storm was
     // 3000-4000 fails/2s; normal tile churn (zoom loads many tiles, a few blip)
     // must never trip it, or the map needlessly goes blank. High threshold,
@@ -100,13 +106,15 @@ class AppLog {
 
   static void _tileTick() {
     if (_tileWindow > 0) {
-      log('$_tileWindow failed in 2s '
-          '(${_tileHost.isEmpty ? "?" : _tileHost}) — $_tileTotal total',
-          tag: 'tiles');
+      log(
+        '$_tileWindow failed in 2s '
+        '(${_tileHost.isEmpty ? "?" : _tileHost}) — $_tileTotal total',
+        tag: 'tiles',
+      );
       _tileWindow = 0;
     } else {
-      final secs =
-          ((_tileClock.elapsedMilliseconds - _tileBurstStartMs) / 1000).round();
+      final secs = ((_tileClock.elapsedMilliseconds - _tileBurstStartMs) / 1000)
+          .round();
       log('recovered after $_tileTotal failures over ${secs}s', tag: 'tiles');
       _tileTimer?.cancel();
       _tileTimer = null;
@@ -126,7 +134,9 @@ class AppLog {
   /// throws when a tile host is unreachable). Kept narrow so real errors still
   /// surface.
   static bool _isTileNoise(String s) =>
-      s.contains('HTTP request failed, statusCode') || // NetworkImageLoadException
+      s.contains(
+        'HTTP request failed, statusCode',
+      ) || // NetworkImageLoadException
       s.contains('Failed to load the tile') ||
       s.contains('openfreemap') ||
       s.contains('cartocdn') ||
@@ -202,8 +212,10 @@ class AppLog {
         return;
       }
       if (count > 1) {
-        original('  ⤷ previous line repeated ×$count total',
-            wrapWidth: wrapWidth);
+        original(
+          '  ⤷ previous line repeated ×$count total',
+          wrapWidth: wrapWidth,
+        );
       }
       last = message;
       count = 1;
@@ -214,8 +226,11 @@ class AppLog {
   /// Run [action], logging how long it took (ms) with [label]. Logs failures
   /// with their elapsed time too, then rethrows — so the debug log shows
   /// exactly which network call is slow or hanging.
-  static Future<T> timed<T>(String label, Future<T> Function() action,
-      {String tag = ''}) async {
+  static Future<T> timed<T>(
+    String label,
+    Future<T> Function() action, {
+    String tag = '',
+  }) async {
     final sw = Stopwatch()..start();
     try {
       final result = await action();

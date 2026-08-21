@@ -41,15 +41,12 @@ class TravelStatsScreen extends ConsumerWidget {
               icon: const Icon(Icons.ios_share),
               onSelected: (v) => _export(context, ref, v),
               itemBuilder: (_) => const [
+                PopupMenuItem(value: 'csv', child: Text('Statistik als CSV')),
+                PopupMenuItem(value: 'gpx', child: Text('Strecken als GPX')),
                 PopupMenuItem(
-                    value: 'csv',
-                    child: Text('Statistik als CSV')),
-                PopupMenuItem(
-                    value: 'gpx',
-                    child: Text('Strecken als GPX')),
-                PopupMenuItem(
-                    value: 'geojson',
-                    child: Text('Strecken als GeoJSON')),
+                  value: 'geojson',
+                  child: Text('Strecken als GeoJSON'),
+                ),
               ],
             ),
           if (!stats.isEmpty)
@@ -131,17 +128,21 @@ class TravelStatsScreen extends ConsumerWidget {
                     ],
                     if (stats.topRoutes().isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      _rankCard(context,
-                          icon: Icons.route,
-                          title: 'Häufigste Strecken',
-                          entries: stats.topRoutes()),
+                      _rankCard(
+                        context,
+                        icon: Icons.route,
+                        title: 'Häufigste Strecken',
+                        entries: stats.topRoutes(),
+                      ),
                     ],
                     if (stats.topLines().isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      _rankCard(context,
-                          icon: Icons.directions_transit,
-                          title: 'Meistgenutzte Linien',
-                          entries: stats.topLines()),
+                      _rankCard(
+                        context,
+                        icon: Icons.directions_transit,
+                        title: 'Meistgenutzte Linien',
+                        entries: stats.topLines(),
+                      ),
                     ],
                   ],
                   if (splits.isNotEmpty) ...[
@@ -169,10 +170,12 @@ class TravelStatsScreen extends ConsumerWidget {
   }
 
   /// Top-N ranking card (häufigste Strecken / meistgenutzte Linien, #71).
-  Widget _rankCard(BuildContext context,
-      {required IconData icon,
-      required String title,
-      required List<MapEntry<String, int>> entries}) {
+  Widget _rankCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required List<MapEntry<String, int>> entries,
+  }) {
     final theme = Theme.of(context);
     return Card(
       child: Padding(
@@ -194,13 +197,19 @@ class TravelStatsScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(e.key,
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        e.key,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    Text('${e.value}× ',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      '${e.value}× ',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -213,10 +222,12 @@ class TravelStatsScreen extends ConsumerWidget {
   /// "Gespart"-Zähler (#70): the money the user actually pocketed via bought
   /// split-tickets. Only confirmed purchases land here.
   Widget _savedCard(
-      BuildContext context, WidgetRef ref, List<PurchasedSplit> splits) {
+    BuildContext context,
+    WidgetRef ref,
+    List<PurchasedSplit> splits,
+  ) {
     final theme = Theme.of(context);
-    final total =
-        splits.fold<double>(0, (sum, s) => sum + s.savings);
+    final total = splits.fold<double>(0, (sum, s) => sum + s.savings);
     return Card(
       color: theme.colorScheme.tertiaryContainer,
       child: Padding(
@@ -226,13 +237,17 @@ class TravelStatsScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.savings,
-                    color: theme.colorScheme.onTertiaryContainer, size: 20),
+                Icon(
+                  Icons.savings,
+                  color: theme.colorScheme.onTertiaryContainer,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Mit Split-Tickets gespart',
                   style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onTertiaryContainer),
+                    color: theme.colorScheme.onTertiaryContainer,
+                  ),
                 ),
               ],
             ),
@@ -248,7 +263,8 @@ class TravelStatsScreen extends ConsumerWidget {
             Text(
               'aus ${splits.length} ${splits.length == 1 ? 'gekauften Split-Ticket' : 'gekauften Split-Tickets'}',
               style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onTertiaryContainer),
+                color: theme.colorScheme.onTertiaryContainer,
+              ),
             ),
             const Divider(height: 24),
             for (int i = 0; i < splits.length && i < 5; i++)
@@ -257,25 +273,32 @@ class TravelStatsScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(splits[i].routeLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                              color:
-                                  theme.colorScheme.onTertiaryContainer)),
-                    ),
-                    Text('+${splits[i].savings.toStringAsFixed(2)} €',
+                      child: Text(
+                        splits[i].routeLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color:
-                                theme.colorScheme.onTertiaryContainer)),
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '+${splits[i].savings.toStringAsFixed(2)} €',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
                   ],
                 ),
               ),
             if (splits.length > 5)
-              Text('… und ${splits.length - 5} weitere',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onTertiaryContainer)),
+              Text(
+                '… und ${splits.length - 5} weitere',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onTertiaryContainer,
+                ),
+              ),
           ],
         ),
       ),
@@ -466,7 +489,7 @@ class TravelStatsScreen extends ConsumerWidget {
     if (balance != null) return _officialCo2Card(context, balance);
     final needsAuthorization =
         ref.read(bahnbonusCo2Provider.notifier).needsAuthorization ||
-            (co2.hasError && co2.error is DbBahnBonusAuthorizationRequired);
+        (co2.hasError && co2.error is DbBahnBonusAuthorizationRequired);
     if (co2.isLoading) {
       return const Card(
         child: ListTile(
@@ -501,9 +524,7 @@ class TravelStatsScreen extends ConsumerWidget {
         child: ListTile(
           leading: Icon(Icons.eco_outlined, color: theme.colorScheme.error),
           title: const Text('CO₂-Bilanz nicht verfügbar'),
-          subtitle: const Text(
-            'BahnBonus konnte gerade nicht geladen werden.',
-          ),
+          subtitle: const Text('BahnBonus konnte gerade nicht geladen werden.'),
           trailing: IconButton(
             tooltip: 'Erneut versuchen',
             icon: const Icon(Icons.refresh),
@@ -698,8 +719,7 @@ class TravelStatsScreen extends ConsumerWidget {
 
   /// Write the chosen export to a temp file and hand it to the system share
   /// sheet (#72). Purely local data — CSV of the stats or GeoJSON of the routes.
-  Future<void> _export(
-      BuildContext context, WidgetRef ref, String kind) async {
+  Future<void> _export(BuildContext context, WidgetRef ref, String kind) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final stats = ref.read(travelStatsProvider);
@@ -711,8 +731,7 @@ class TravelStatsScreen extends ConsumerWidget {
           ...ref.read(libraryProvider).upcomingJourneys,
         ].map((s) => s.journey).toList();
         final gpx = kind == 'gpx';
-        content =
-            gpx ? journeysToGpx(journeys) : journeysToGeoJson(journeys);
+        content = gpx ? journeysToGpx(journeys) : journeysToGeoJson(journeys);
         name = 'besser-bahn-strecken.${gpx ? 'gpx' : 'geojson'}';
         subject = 'Gefahrene Strecken (${gpx ? 'GPX' : 'GeoJSON'})';
       } else {
@@ -728,7 +747,8 @@ class TravelStatsScreen extends ConsumerWidget {
       );
     } catch (e) {
       messenger.showSnackBar(
-          SnackBar(content: Text('Export fehlgeschlagen: $e')));
+        SnackBar(content: Text('Export fehlgeschlagen: $e')),
+      );
     }
   }
 

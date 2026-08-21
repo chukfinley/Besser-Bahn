@@ -594,10 +594,9 @@ Future<void> _pullToRefresh(BuildContext context, WidgetRef ref) async {
   if (error == null) return;
   messenger
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      duration: const Duration(seconds: 5),
-      content: Text(error),
-    ));
+    ..showSnackBar(
+      SnackBar(duration: const Duration(seconds: 5), content: Text(error)),
+    );
 }
 
 class _BahnCardTile extends StatelessWidget {
@@ -624,14 +623,19 @@ class _BahnCardTile extends StatelessWidget {
       children: [
         Stack(
           children: [
-            Opacity(opacity: expired ? 0.45 : 1, child: BahnCardView(card: card)),
+            Opacity(
+              opacity: expired ? 0.45 : 1,
+              child: BahnCardView(card: card),
+            ),
             if (expired)
               Positioned(
                 top: 8,
                 right: 8,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(999),

@@ -44,8 +44,7 @@ class _EmptyBoards extends HafasService {
     DateTime? when,
     int duration = 60,
     int results = 40,
-  }) async =>
-      [];
+  }) async => [];
 
   @override
   Future<List<Departure>> getArrivals(
@@ -53,11 +52,13 @@ class _EmptyBoards extends HafasService {
     DateTime? when,
     int duration = 60,
     int results = 40,
-  }) async =>
-      [];
+  }) async => [];
 
   @override
-  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) async => const [_kiel];
+  Future<List<Station>> searchStations(
+    String query, {
+    bool stopsOnly = false,
+  }) async => const [_kiel];
 }
 
 /// bahnhof.de, canned as "this stop has no indoor plan" — the Karte tab then
@@ -65,8 +66,10 @@ class _EmptyBoards extends HafasService {
 /// need and keeps them off the network and off the tile cache.
 class _NoStationMap implements StationMapService {
   @override
-  Future<StationMap> fetchByStationName(String name, {bool background = false}) =>
-      Future.error(StationMapException('kein Plan', transient: false));
+  Future<StationMap> fetchByStationName(
+    String name, {
+    bool background = false,
+  }) => Future.error(StationMapException('kein Plan', transient: false));
 
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -145,8 +148,9 @@ void main() {
       expect(field.top - switcher.bottom, lessThan(16));
     });
 
-    testWidgets('no view opens with an action strip of its own',
-        (tester) async {
+    testWidgets('no view opens with an action strip of its own', (
+      tester,
+    ) async {
       // The actions used to be a 44 px row under the TabBar. They ride in the
       // search row now — same row, no extra height.
       final container = await _pump(tester, station: _kiel);
@@ -162,8 +166,9 @@ void main() {
       expect(container.read(departureBoardProvider).station, _kiel);
     });
 
-    testWidgets('renders on a narrow screen without an overflow',
-        (tester) async {
+    testWidgets('renders on a narrow screen without an overflow', (
+      tester,
+    ) async {
       await _pump(tester, size: const Size(320, 640), station: _kiel);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -176,8 +181,9 @@ void main() {
   });
 
   group('the switcher switches', () {
-    testWidgets('tapping a segment changes the view and the provider',
-        (tester) async {
+    testWidgets('tapping a segment changes the view and the provider', (
+      tester,
+    ) async {
       final container = await _pump(tester);
       expect(container.read(nearbyTabProvider), nearbyTabDepartures);
 
@@ -237,17 +243,20 @@ void main() {
     });
   });
 
-  testWidgets('the inner TabBarView is still there — swipeBlocked depends on it',
-      (tester) async {
-    // `TabPager.swipeBlocked = {2}` refuses the shell's sideways drag on this
-    // tab because a TabBarView (and the map in it) owns that axis here. The day
-    // this screen stops having one, that refusal has to go with it.
-    await _pump(tester);
-    expect(find.byType(TabBarView), findsOneWidget);
-  });
+  testWidgets(
+    'the inner TabBarView is still there — swipeBlocked depends on it',
+    (tester) async {
+      // `TabPager.swipeBlocked = {2}` refuses the shell's sideways drag on this
+      // tab because a TabBarView (and the map in it) owns that axis here. The day
+      // this screen stops having one, that refusal has to go with it.
+      await _pump(tester);
+      expect(find.byType(TabBarView), findsOneWidget);
+    },
+  );
 
-  testWidgets('a view keeps its state while the other is shown',
-      (tester) async {
+  testWidgets('a view keeps its state while the other is shown', (
+    tester,
+  ) async {
     // The views are a TabBarView's children and the tab shell keeps the whole
     // screen alive; typing into one and coming back must find the text.
     await _pump(tester);

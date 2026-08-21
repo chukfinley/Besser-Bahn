@@ -85,8 +85,10 @@ class _TraewellingCheckinScreenState
       _destination = null;
     });
     try {
-      final trip =
-          await _service.trip(hafasTripId: d.tripId, lineName: d.lineName);
+      final trip = await _service.trip(
+        hafasTripId: d.tripId,
+        lineName: d.lineName,
+      );
       setState(() => _trip = trip);
     } catch (e) {
       setState(() => _error = _msg(e));
@@ -132,9 +134,9 @@ class _TraewellingCheckinScreenState
       ref.invalidate(trwlDashboardProvider);
       await ref.read(traewellingAuthProvider.notifier).refreshUser();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Eingecheckt! 🎉')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Eingecheckt! 🎉')));
       Navigator.of(context).pop();
     } on CheckinCollisionException {
       if (mounted) _confirmForce();
@@ -151,12 +153,14 @@ class _TraewellingCheckinScreenState
       builder: (c) => AlertDialog(
         title: const Text('Überschneidung'),
         content: const Text(
-            'Du bist bereits für eine überlappende Fahrt eingecheckt. '
-            'Trotzdem einchecken?'),
+          'Du bist bereits für eine überlappende Fahrt eingecheckt. '
+          'Trotzdem einchecken?',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c),
-              child: const Text('Abbrechen')),
+            onPressed: () => Navigator.pop(c),
+            child: const Text('Abbrechen'),
+          ),
           FilledButton(
             onPressed: () {
               Navigator.pop(c);
@@ -204,12 +208,14 @@ class _TraewellingCheckinScreenState
             ),
             onChanged: _runStationSearch,
           ),
-          ..._stationResults.map((s) => ListTile(
-                dense: true,
-                leading: const Icon(Icons.train),
-                title: Text(s.name),
-                onTap: () => _selectStation(s),
-              )),
+          ..._stationResults.map(
+            (s) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.train),
+              title: Text(s.name),
+              onTap: () => _selectStation(s),
+            ),
+          ),
 
           if (_loading) ...[
             const SizedBox(height: 24),
@@ -225,23 +231,28 @@ class _TraewellingCheckinScreenState
             const SizedBox(height: 16),
             Text('Abfahrten', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            ..._departures.map((d) => Card(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  child: ListTile(
-                    leading: _lineBadge(d.lineName, d.routeColor),
-                    title: Text(d.direction ?? d.lineName),
-                    subtitle: d.platform != null ? Text('Gleis ${d.platform}') : null,
-                    trailing: Text(
-                      d.departure != null
-                          ? _timeFmt.format(d.departure!.toLocal())
-                          : '',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: d.isDelayed ? AppColors.delay : null),
+            ..._departures.map(
+              (d) => Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListTile(
+                  leading: _lineBadge(d.lineName, d.routeColor),
+                  title: Text(d.direction ?? d.lineName),
+                  subtitle: d.platform != null
+                      ? Text('Gleis ${d.platform}')
+                      : null,
+                  trailing: Text(
+                    d.departure != null
+                        ? _timeFmt.format(d.departure!.toLocal())
+                        : '',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: d.isDelayed ? AppColors.delay : null,
                     ),
-                    onTap: () => _selectDeparture(d),
                   ),
-                )),
+                  onTap: () => _selectDeparture(d),
+                ),
+              ),
+            ),
           ],
 
           // Step 3: destination + submit
@@ -252,8 +263,11 @@ class _TraewellingCheckinScreenState
                 _lineBadge(_departure!.lineName, _departure!.routeColor),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: Text(_trip!.direction ?? '',
-                        style: theme.textTheme.titleMedium)),
+                  child: Text(
+                    _trip!.direction ?? '',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -264,14 +278,18 @@ class _TraewellingCheckinScreenState
               onChanged: (v) => setState(() => _destination = v),
               child: Column(
                 children: _destinationOptions
-                    .map((s) => RadioListTile<TrwlStopover>(
-                          value: s,
-                          dense: true,
-                          title: Text(s.name),
-                          secondary: Text(s.arrival != null
+                    .map(
+                      (s) => RadioListTile<TrwlStopover>(
+                        value: s,
+                        dense: true,
+                        title: Text(s.name),
+                        secondary: Text(
+                          s.arrival != null
                               ? _timeFmt.format(s.arrival!.toLocal())
-                              : ''),
-                        ))
+                              : '',
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
             ),
@@ -291,8 +309,7 @@ class _TraewellingCheckinScreenState
                 border: OutlineInputBorder(),
               ),
               items: TrwlVisibility.values
-                  .map((v) =>
-                      DropdownMenuItem(value: v, child: Text(v.label)))
+                  .map((v) => DropdownMenuItem(value: v, child: Text(v.label)))
                   .toList(),
               onChanged: (v) => setState(() => _visibility = v ?? _visibility),
             ),
@@ -323,14 +340,19 @@ class _TraewellingCheckinScreenState
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration:
-          BoxDecoration(color: c, borderRadius: BorderRadius.circular(6)),
-      child: Text(line,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: c,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        line,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
-  String _msg(Object e) =>
-      e is TraewellingException ? e.message : e.toString();
+  String _msg(Object e) => e is TraewellingException ? e.message : e.toString();
 }

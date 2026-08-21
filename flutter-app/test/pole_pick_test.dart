@@ -13,52 +13,59 @@ const _kiel = LatLng(54.3149, 10.1318); // roughly west
 const _oldenburg = LatLng(54.2949, 10.8879); // roughly east
 
 List<StopPole> _passau() => const [
-      StopPole(
-        latLng: _north,
-        name: 'Wittenberger Passau, B202',
-        directions: ['310 → Kiel ZOB', '315 → Kiel ZOB'],
-      ),
-      StopPole(
-        latLng: _south,
-        name: 'Wittenberger Passau, B202',
-        directions: [
-          '310 → Oldenburg (Holstein), Markt',
-          '315 → Lütjenburg ZOB',
-        ],
-      ),
-    ];
+  StopPole(
+    latLng: _north,
+    name: 'Wittenberger Passau, B202',
+    directions: ['310 → Kiel ZOB', '315 → Kiel ZOB'],
+  ),
+  StopPole(
+    latLng: _south,
+    name: 'Wittenberger Passau, B202',
+    directions: ['310 → Oldenburg (Holstein), Markt', '315 → Lütjenburg ZOB'],
+  ),
+];
 
 /// ZOB Kiel: signed bays, so the code decides and nothing else has to.
 List<StopPole> _zob() => const [
-      StopPole(
-        latLng: LatLng(54.31731, 10.13369),
-        name: 'Kiel ZOB',
-        bay: 'A4',
-        directions: ['300 → Raisdorf, Bahnhof'],
-      ),
-      StopPole(
-        latLng: LatLng(54.31748, 10.13383),
-        name: 'Kiel ZOB',
-        bay: 'A5',
-        directions: ['210 → Schönberg'],
-      ),
-    ];
+  StopPole(
+    latLng: LatLng(54.31731, 10.13369),
+    name: 'Kiel ZOB',
+    bay: 'A4',
+    directions: ['300 → Raisdorf, Bahnhof'],
+  ),
+  StopPole(
+    latLng: LatLng(54.31748, 10.13383),
+    name: 'Kiel ZOB',
+    bay: 'A5',
+    directions: ['210 → Schönberg'],
+  ),
+];
 
 void main() {
   group('#55 — picking the rider\'s pole when nothing is signed', () {
     test('the bay code wins whenever there is one', () {
-      final picked = pickPole(_zob(), gleis: 'A4', line: '210',
-          towardsName: 'Schönberg');
+      final picked = pickPole(
+        _zob(),
+        gleis: 'A4',
+        line: '210',
+        towardsName: 'Schönberg',
+      );
       expect(picked?.pole.bay, 'A4');
-      expect(picked?.how, PoleMatch.bay,
-          reason: 'the ticket says A4 — nothing else needs asking');
+      expect(
+        picked?.how,
+        PoleMatch.bay,
+        reason: 'the ticket says A4 — nothing else needs asking',
+      );
     });
 
     test('line + destination pick the pole where that ride departs', () {
       // Riding towards Oldenburg → the south pole, even though neither is
       // signed.
-      final picked = pickPole(_passau(),
-          line: '310', towardsName: 'Oldenburg (Holstein), Markt');
+      final picked = pickPole(
+        _passau(),
+        line: '310',
+        towardsName: 'Oldenburg (Holstein), Markt',
+      );
       expect(picked?.pole.latLng, _south);
       expect(picked?.how, PoleMatch.route);
 
@@ -88,15 +95,16 @@ void main() {
     });
 
     test('with no line at all, the destination alone still decides', () {
-      expect(poleForRoute(_passau(), towardsName: 'Lütjenburg ZOB')?.latLng,
-          _south);
+      expect(
+        poleForRoute(_passau(), towardsName: 'Lütjenburg ZOB')?.latLng,
+        _south,
+      );
     });
 
     test('the side of the road answers it when the timetable does not', () {
       // No bay code, no usable direction — but we know the bus continues east
       // towards Oldenburg, and buses stop on the right.
-      final picked =
-          pickPole(_bare(), stop: _stop, nextStop: _oldenburg);
+      final picked = pickPole(_bare(), stop: _stop, nextStop: _oldenburg);
       expect(picked?.pole.latLng, _south);
       expect(picked?.how, PoleMatch.side);
 
@@ -119,8 +127,11 @@ void main() {
       );
       // Next stop practically on top of this one → no direction to speak of.
       expect(
-        poleOnTravelSide(_bare(),
-            stop: _stop, nextStop: const LatLng(54.29055, 10.38335)),
+        poleOnTravelSide(
+          _bare(),
+          stop: _stop,
+          nextStop: const LatLng(54.29055, 10.38335),
+        ),
         isNull,
       );
     });
@@ -135,6 +146,6 @@ void main() {
 
 /// The same two poles, stripped of everything but their position.
 List<StopPole> _bare() => const [
-      StopPole(latLng: _north, name: 'Wittenberger Passau, B202'),
-      StopPole(latLng: _south, name: 'Wittenberger Passau, B202'),
-    ];
+  StopPole(latLng: _north, name: 'Wittenberger Passau, B202'),
+  StopPole(latLng: _south, name: 'Wittenberger Passau, B202'),
+];

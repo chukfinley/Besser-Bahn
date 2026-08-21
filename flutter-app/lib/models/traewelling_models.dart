@@ -6,7 +6,8 @@
 // tolerant — every field is nullable-safe — because the API marks several
 // fields deprecated/changing and rolls them over on fixed dates.
 
-int? _int(dynamic v) => v is num ? v.toInt() : (v is String ? int.tryParse(v) : null);
+int? _int(dynamic v) =>
+    v is num ? v.toInt() : (v is String ? int.tryParse(v) : null);
 double? _dbl(dynamic v) =>
     v is num ? v.toDouble() : (v is String ? double.tryParse(v) : null);
 DateTime? _dt(dynamic v) => v is String ? DateTime.tryParse(v) : null;
@@ -49,42 +50,42 @@ class TrwlUser {
   });
 
   factory TrwlUser.fromJson(Map<String, dynamic> j) => TrwlUser(
-        id: _int(j['id']) ?? 0,
-        displayName: (j['displayName'] ?? j['username'] ?? '').toString(),
-        username: (j['username'] ?? '').toString(),
-        profilePicture: j['profilePicture'] as String?,
-        bio: j['bio'] as String?,
-        totalDistance: _dbl(j['totalDistance']) ?? 0,
-        totalDuration: _int(j['totalDuration']) ?? 0,
-        points: _int(j['points']) ?? 0,
-        mastodonUrl: j['mastodonUrl'] as String?,
-        privateProfile: j['privateProfile'] == true,
-        following: j['following'] == true,
-        followPending: j['followPending'] == true,
-        followedBy: j['followedBy'] == true,
-        muted: j['muted'] == true,
-        blocked: j['blocked'] == true,
-      );
+    id: _int(j['id']) ?? 0,
+    displayName: (j['displayName'] ?? j['username'] ?? '').toString(),
+    username: (j['username'] ?? '').toString(),
+    profilePicture: j['profilePicture'] as String?,
+    bio: j['bio'] as String?,
+    totalDistance: _dbl(j['totalDistance']) ?? 0,
+    totalDuration: _int(j['totalDuration']) ?? 0,
+    points: _int(j['points']) ?? 0,
+    mastodonUrl: j['mastodonUrl'] as String?,
+    privateProfile: j['privateProfile'] == true,
+    following: j['following'] == true,
+    followPending: j['followPending'] == true,
+    followedBy: j['followedBy'] == true,
+    muted: j['muted'] == true,
+    blocked: j['blocked'] == true,
+  );
 
   /// Serialize for local caching, so a valid session can still show the
   /// profile when `/auth/user` is briefly unreachable on startup.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'displayName': displayName,
-        'username': username,
-        'profilePicture': profilePicture,
-        'bio': bio,
-        'totalDistance': totalDistance,
-        'totalDuration': totalDuration,
-        'points': points,
-        'mastodonUrl': mastodonUrl,
-        'privateProfile': privateProfile,
-        'following': following,
-        'followPending': followPending,
-        'followedBy': followedBy,
-        'muted': muted,
-        'blocked': blocked,
-      };
+    'id': id,
+    'displayName': displayName,
+    'username': username,
+    'profilePicture': profilePicture,
+    'bio': bio,
+    'totalDistance': totalDistance,
+    'totalDuration': totalDuration,
+    'points': points,
+    'mastodonUrl': mastodonUrl,
+    'privateProfile': privateProfile,
+    'following': following,
+    'followPending': followPending,
+    'followedBy': followedBy,
+    'muted': muted,
+    'blocked': blocked,
+  };
 
   /// Distance in km, one decimal.
   double get distanceKm => totalDistance / 1000;
@@ -117,19 +118,21 @@ class TrwlStopover {
   });
 
   factory TrwlStopover.fromJson(Map<String, dynamic> j) => TrwlStopover(
-        stationId: _int(j['id']) ?? 0,
-        name: (j['name'] ?? '').toString(),
-        arrivalPlanned: _dt(j['arrivalPlanned']),
-        arrivalReal: _dt(j['arrivalReal']),
-        departurePlanned: _dt(j['departurePlanned']),
-        departureReal: _dt(j['departureReal']),
-        platform: (j['departurePlatformReal'] ??
+    stationId: _int(j['id']) ?? 0,
+    name: (j['name'] ?? '').toString(),
+    arrivalPlanned: _dt(j['arrivalPlanned']),
+    arrivalReal: _dt(j['arrivalReal']),
+    departurePlanned: _dt(j['departurePlanned']),
+    departureReal: _dt(j['departureReal']),
+    platform:
+        (j['departurePlatformReal'] ??
                 j['departurePlatformPlanned'] ??
-                j['platform']) as String?,
-        isArrivalDelayed: j['isArrivalDelayed'] == true,
-        isDepartureDelayed: j['isDepartureDelayed'] == true,
-        cancelled: j['cancelled'] == true,
-      );
+                j['platform'])
+            as String?,
+    isArrivalDelayed: j['isArrivalDelayed'] == true,
+    isDepartureDelayed: j['isDepartureDelayed'] == true,
+    cancelled: j['cancelled'] == true,
+  );
 
   DateTime? get departure => departureReal ?? departurePlanned;
   DateTime? get arrival => arrivalReal ?? arrivalPlanned;
@@ -162,22 +165,21 @@ class TrwlTransport {
   });
 
   factory TrwlTransport.fromJson(Map<String, dynamic> j) => TrwlTransport(
-        trip: _int(j['trip']) ?? 0,
-        hafasId: (j['hafasId'] ?? '').toString(),
-        lineName: (j['lineName'] ?? '').toString(),
-        journeyNumber:
-            (j['manualJourneyNumber'] ?? j['journeyNumber'])?.toString(),
-        distance: _int(j['distance']) ?? 0,
-        points: _int(j['points']) ?? 0,
-        duration: _int(j['duration']) ?? 0,
-        routeColor: j['routeColor'] as String?,
-        origin: j['origin'] is Map<String, dynamic>
-            ? TrwlStopover.fromJson(j['origin'])
-            : null,
-        destination: j['destination'] is Map<String, dynamic>
-            ? TrwlStopover.fromJson(j['destination'])
-            : null,
-      );
+    trip: _int(j['trip']) ?? 0,
+    hafasId: (j['hafasId'] ?? '').toString(),
+    lineName: (j['lineName'] ?? '').toString(),
+    journeyNumber: (j['manualJourneyNumber'] ?? j['journeyNumber'])?.toString(),
+    distance: _int(j['distance']) ?? 0,
+    points: _int(j['points']) ?? 0,
+    duration: _int(j['duration']) ?? 0,
+    routeColor: j['routeColor'] as String?,
+    origin: j['origin'] is Map<String, dynamic>
+        ? TrwlStopover.fromJson(j['origin'])
+        : null,
+    destination: j['destination'] is Map<String, dynamic>
+        ? TrwlStopover.fromJson(j['destination'])
+        : null,
+  );
 
   double get distanceKm => distance / 1000;
 }
@@ -218,8 +220,7 @@ class TrwlStatus {
       visibility: _int(j['visibility']) ?? 0,
       createdAt: _dt(j['createdAt']),
       user: u is Map<String, dynamic> ? TrwlUser.fromJson(u) : null,
-      transport:
-          t is Map<String, dynamic> ? TrwlTransport.fromJson(t) : null,
+      transport: t is Map<String, dynamic> ? TrwlTransport.fromJson(t) : null,
     );
   }
 }
@@ -239,11 +240,11 @@ class TrwlStation {
   });
 
   factory TrwlStation.fromJson(Map<String, dynamic> j) => TrwlStation(
-        id: _int(j['id']) ?? 0,
-        name: (j['name'] ?? '').toString(),
-        latitude: _dbl(j['latitude']),
-        longitude: _dbl(j['longitude']),
-      );
+    id: _int(j['id']) ?? 0,
+    name: (j['name'] ?? '').toString(),
+    latitude: _dbl(j['latitude']),
+    longitude: _dbl(j['longitude']),
+  );
 }
 
 /// A departure from a station's board — the entry point for a check-in.

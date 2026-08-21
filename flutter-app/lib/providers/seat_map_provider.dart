@@ -61,13 +61,21 @@ class SeatMapRequest {
 
   @override
   int get hashCode => Object.hash(
-      fahrtNr, abfahrtEva, abfahrtZeit, ankunftEva, ankunftZeit, firstClass);
+    fahrtNr,
+    abfahrtEva,
+    abfahrtZeit,
+    ankunftEva,
+    ankunftZeit,
+    firstClass,
+  );
 }
 
 /// Fetches the seat map for a segment and attaches every coach's layout.
 /// Resolves to null when the train has no reservable seat plan.
-final seatMapProvider =
-    FutureProvider.family<SeatMap?, SeatMapRequest>((ref, req) async {
+final seatMapProvider = FutureProvider.family<SeatMap?, SeatMapRequest>((
+  ref,
+  req,
+) async {
   final service = ref.watch(seatMapServiceProvider);
   final map = await service.fetchSeatMap(
     fahrtNr: req.fahrtNr,

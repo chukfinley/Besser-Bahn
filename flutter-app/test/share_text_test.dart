@@ -24,7 +24,11 @@ void main() {
     arrivalPlatform: '1',
     plannedArrivalPlatform: '1',
     line: const TransitLine(
-        name: 'RE4', fahrtNr: '3149', productName: 'RE', product: 'regional'),
+      name: 'RE4',
+      fahrtNr: '3149',
+      productName: 'RE',
+      product: 'regional',
+    ),
     direction: 'Rathenow',
   );
   final journey = Journey(legs: [leg]);
@@ -39,7 +43,11 @@ void main() {
       'trip-3149': Trip(
         id: 'trip-3149',
         line: const TransitLine(
-            name: 'RE4', fahrtNr: '3149', productName: 'RE', product: 'regional'),
+          name: 'RE4',
+          fahrtNr: '3149',
+          productName: 'RE',
+          product: 'regional',
+        ),
         direction: 'Rathenow',
         origin: berlinSued,
         destination: elstal,

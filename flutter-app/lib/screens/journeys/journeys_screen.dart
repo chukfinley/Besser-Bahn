@@ -31,11 +31,10 @@ import '../connection_search/widgets/journey_card.dart';
 Set<String> boughtSavedReiseIds({
   required Map<String, String> savedReiseIds,
   required Set<String> ticketKeys,
-}) =>
-    {
-      for (final e in savedReiseIds.entries)
-        if (ticketKeys.contains(e.key)) e.value,
-    };
+}) => {
+  for (final e in savedReiseIds.entries)
+    if (ticketKeys.contains(e.key)) e.value,
+};
 
 /// "Reisen" — the user's saved connections, like the DB Navigator. Upcoming
 /// trips on top, completed ones under "Vergangene Reisen". Trips bookmark from
@@ -64,20 +63,20 @@ class JourneysScreen extends ConsumerWidget {
     // "Gemerkte Reisen" twins already follow (#15).
     final ticketKeys = {
       for (final t in ticketTrips)
-        if (t.journeyKey != null) t.journeyKey!
+        if (t.journeyKey != null) t.journeyKey!,
     };
     bool shownAsDbTrip(SavedJourney j) =>
         dbKeys.contains(j.key) || ticketKeys.contains(j.key);
-    final upcoming =
-        lib.upcomingJourneys.where((j) => !shownAsDbTrip(j)).toList();
+    final upcoming = lib.upcomingJourneys
+        .where((j) => !shownAsDbTrip(j))
+        .toList();
     final past = lib.pastJourneys.where((j) => !shownAsDbTrip(j)).toList();
     final stats = ref.watch(travelStatsProvider);
     // A ticket for a trip that's over belongs under "Vergangene Reisen", not on
     // top as if it were today's (#23).
     final upcomingTickets = ticketTrips.where((t) => !t.isPast).toList();
     final pastTickets = ticketTrips.where((t) => t.isPast).toList();
-    final savedReisen =
-        loggedIn ? ref.watch(savedReisenProvider) : null;
+    final savedReisen = loggedIn ? ref.watch(savedReisenProvider) : null;
     // A gemerkte Reise the user has since BOUGHT comes back from the account as
     // BOTH an order and a tracked trip, so the same journey was listed twice:
     // once as a ticket on top, once under "Gemerkte Reisen" (#80).
@@ -87,17 +86,21 @@ class JourneysScreen extends ConsumerWidget {
     );
     // A gemerkte Reise whose start day is already behind us belongs under
     // "Vergangene Reisen", not on top as if it still lay ahead (#46).
-    final savedList = (savedReisen?.asData?.value ?? const <DbSavedReiseIndex>[])
-        .where((s) => !boughtIds.contains(s.rkUuid))
-        .toList();
+    final savedList =
+        (savedReisen?.asData?.value ?? const <DbSavedReiseIndex>[])
+            .where((s) => !boughtIds.contains(s.rkUuid))
+            .toList();
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     bool reiseIsPast(DbSavedReiseIndex s) =>
         s.startDatum != null && s.startDatum!.isBefore(todayStart);
     final savedUpcoming = savedList.where((s) => !reiseIsPast(s)).toList();
     final savedPast = savedList.where(reiseIsPast).toList()
-      ..sort((a, b) => (b.startDatum ?? DateTime(0))
-          .compareTo(a.startDatum ?? DateTime(0)));
+      ..sort(
+        (a, b) => (b.startDatum ?? DateTime(0)).compareTo(
+          a.startDatum ?? DateTime(0),
+        ),
+      );
     final hasLocal = upcoming.isNotEmpty || past.isNotEmpty;
 
     return Scaffold(
@@ -125,14 +128,18 @@ class JourneysScreen extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 // Clear the floating nav bar — it hovers over this list.
                 padding: EdgeInsets.only(
-                    top: 8, bottom: 32 + AppNavBar.insetOf(context)),
+                  top: 8,
+                  bottom: 32 + AppNavBar.insetOf(context),
+                ),
                 children: [
                   // Always-visible live Reisefortschritt for the soonest active
                   // trip (self-hides unless in progress or departing soon) — the
                   // in-app stand-in for a Live Activity / home widget.
                   if (upcoming.isNotEmpty)
                     TripProgressCard(
-                        journey: upcoming.first.journey, activeOnly: true),
+                      journey: upcoming.first.journey,
+                      activeOnly: true,
+                    ),
                   _constructionRadar(context, ref),
                   if (!stats.isEmpty) _statsTeaser(context, stats),
                   // Official DB tickets (bought on the account) whose trip is
@@ -155,9 +162,11 @@ class JourneysScreen extends ConsumerWidget {
                       error: (e, _) => Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                         child: Text(
-                            'Tickets konnten nicht geladen werden.',
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.error)),
+                          'Tickets konnten nicht geladen werden.',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
                       ),
                     ),
                   // Gemerkte Reisen — official "Meine Reisen" the user marked
@@ -165,12 +174,18 @@ class JourneysScreen extends ConsumerWidget {
                   // "Vergangene Reisen" below, #46).
                   if (savedUpcoming.isNotEmpty) ...[
                     _sectionHeader(
-                        context, 'Gemerkte Reisen', savedUpcoming.length),
+                      context,
+                      'Gemerkte Reisen',
+                      savedUpcoming.length,
+                    ),
                     for (final s in savedUpcoming) _SavedReiseTile(index: s),
                   ],
                   if (upcoming.isNotEmpty) ...[
                     _sectionHeader(
-                        context, 'Anstehende Reisen', upcoming.length),
+                      context,
+                      'Anstehende Reisen',
+                      upcoming.length,
+                    ),
                     for (final j in upcoming) _entry(context, ref, j),
                   ],
                   // (past trips below — a DB trip that already rendered above
@@ -178,8 +193,11 @@ class JourneysScreen extends ConsumerWidget {
                   if (past.isNotEmpty ||
                       pastTickets.isNotEmpty ||
                       savedPast.isNotEmpty) ...[
-                    _sectionHeader(context, 'Vergangene Reisen',
-                        past.length + pastTickets.length + savedPast.length),
+                    _sectionHeader(
+                      context,
+                      'Vergangene Reisen',
+                      past.length + pastTickets.length + savedPast.length,
+                    ),
                     ..._pastRows(context, ref, past, pastTickets),
                     for (final s in savedPast)
                       _SavedReiseTile(index: s, past: true),
@@ -193,15 +211,18 @@ class JourneysScreen extends ConsumerWidget {
   /// "Vergangene Reisen": bought tickets and local bookmarks in ONE list, most
   /// recent first — a trip that's over is a trip that's over, whichever side it
   /// came from (#23).
-  List<Widget> _pastRows(BuildContext context, WidgetRef ref,
-      List<SavedJourney> past, List<DbTicketTrip> tickets) {
+  List<Widget> _pastRows(
+    BuildContext context,
+    WidgetRef ref,
+    List<SavedJourney> past,
+    List<DbTicketTrip> tickets,
+  ) {
     final rows = <({DateTime? end, Widget child})>[
       for (final t in tickets)
         (end: t.endTime, child: _OfficialTicketTile(trip: t, past: true)),
       for (final j in past)
         (end: j.endTime, child: _entry(context, ref, j, past: true)),
-    ]..sort((a, b) =>
-        (b.end ?? DateTime(0)).compareTo(a.end ?? DateTime(0)));
+    ]..sort((a, b) => (b.end ?? DateTime(0)).compareTo(a.end ?? DateTime(0)));
     return [for (final r in rows) r.child];
   }
 
@@ -224,29 +245,41 @@ class JourneysScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.construction,
-                      color: theme.colorScheme.onTertiaryContainer, size: 20),
+                  Icon(
+                    Icons.construction,
+                    color: theme.colorScheme.onTertiaryContainer,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text('Bauarbeiten auf deinen Strecken',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.onTertiaryContainer,
-                            fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'Bauarbeiten auf deinen Strecken',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               for (final a in list) ...[
-                Text(a.routeLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onTertiaryContainer,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  a.routeLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onTertiaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 for (final note in a.notes.take(2))
                   Padding(
                     padding: const EdgeInsets.only(top: 2, bottom: 6),
-                    child: Text('• $note',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onTertiaryContainer)),
+                    child: Text(
+                      '• $note',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
                   ),
               ],
             ],
@@ -274,29 +307,37 @@ class JourneysScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.insights,
-                    color: theme.colorScheme.onPrimaryContainer),
+                Icon(
+                  Icons.insights,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('$km km · ${stats.tripCount} '
-                          '${stats.tripCount == 1 ? 'Fahrt' : 'Fahrten'}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                          )),
-                      Text('$pct % pünktlich · deine Reisestatistik',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer
-                                .withValues(alpha: 0.8),
-                          )),
+                      Text(
+                        '$km km · ${stats.tripCount} '
+                        '${stats.tripCount == 1 ? 'Fahrt' : 'Fahrten'}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '$pct % pünktlich · deine Reisestatistik',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer
+                              .withValues(alpha: 0.8),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right,
-                    color: theme.colorScheme.onPrimaryContainer),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
               ],
             ),
           ),
@@ -305,8 +346,12 @@ class JourneysScreen extends ConsumerWidget {
     );
   }
 
-  Widget _entry(BuildContext context, WidgetRef ref, SavedJourney saved,
-      {bool past = false}) {
+  Widget _entry(
+    BuildContext context,
+    WidgetRef ref,
+    SavedJourney saved, {
+    bool past = false,
+  }) {
     return Dismissible(
       key: ValueKey(saved.key),
       direction: DismissDirection.endToStart,
@@ -323,10 +368,7 @@ class JourneysScreen extends ConsumerWidget {
             // Only for trips still ahead: packing a trip you've already taken
             // is pure noise (and would auto-refresh nothing).
             if (!past)
-              OfflinePackageBar(
-                journey: saved.journey,
-                journeyKey: saved.key,
-              ),
+              OfflinePackageBar(journey: saved.journey, journeyKey: saved.key),
           ],
         ),
       ),
@@ -341,9 +383,9 @@ class JourneysScreen extends ConsumerWidget {
       child: Text(
         _relativeDate(dep),
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -365,10 +407,9 @@ class JourneysScreen extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         '$title ($count)',
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -381,13 +422,18 @@ class JourneysScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.bookmark_border,
-                size: 64,
-                color: theme.colorScheme.onSurfaceVariant.withAlpha(80)),
+            Icon(
+              Icons.bookmark_border,
+              size: 64,
+              color: theme.colorScheme.onSurfaceVariant.withAlpha(80),
+            ),
             const SizedBox(height: 16),
-            Text('Noch keine Reisen gespeichert',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Text(
+              'Noch keine Reisen gespeichert',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               'Suche eine Verbindung und tippe in der Detailansicht\n'
@@ -395,8 +441,9 @@ class JourneysScreen extends ConsumerWidget {
               'Mit DB-Konto-Login (Profil) erscheinen hier deine\n'
               'echten gekauften Tickets.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -416,16 +463,18 @@ const Map<DismissDirection, double> _dismissThresholds = {
 };
 
 Widget _deleteBackground(BuildContext context) => Container(
-      alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: 28),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Icon(Icons.delete_outline,
-          color: Theme.of(context).colorScheme.onErrorContainer),
-    );
+  alignment: Alignment.centerRight,
+  padding: const EdgeInsets.only(right: 28),
+  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+  decoration: BoxDecoration(
+    color: Theme.of(context).colorScheme.errorContainer,
+    borderRadius: BorderRadius.circular(16),
+  ),
+  child: Icon(
+    Icons.delete_outline,
+    color: Theme.of(context).colorScheme.onErrorContainer,
+  ),
+);
 
 /// Swipe-delete a saved trip with an undo window (#51).
 ///
@@ -434,8 +483,7 @@ Widget _deleteBackground(BuildContext context) => Container(
 /// downloaded offline package) wait until the snackbar closes unclaimed, so
 /// "Rückgängig" is a pure local restore instead of re-creating a server trip
 /// and re-downloading megabytes.
-void _dismissJourney(
-    BuildContext context, WidgetRef ref, SavedJourney saved) {
+void _dismissJourney(BuildContext context, WidgetRef ref, SavedJourney saved) {
   final key = saved.key;
   // Read every dependency up front: the row is being removed, so this widget's
   // `ref` must not be touched once the snackbar callback runs.
@@ -446,8 +494,11 @@ void _dismissJourney(
   final account = ref.read(dbAccountServiceProvider);
   final reisen = ref.read(reisenuebersichtProvider.notifier);
 
-  final existing =
-      ref.read(libraryProvider).journeys.where((j) => j.key == key).firstOrNull;
+  final existing = ref
+      .read(libraryProvider)
+      .journeys
+      .where((j) => j.key == key)
+      .firstOrNull;
   library.removeJourney(key);
 
   var undone = false;
@@ -478,7 +529,9 @@ void _dismissJourney(
           try {
             await account.deleteReise(rkUuid);
             await reisen.refresh();
-          } catch (_) {/* best-effort — the local entry is already gone */}
+          } catch (_) {
+            /* best-effort — the local entry is already gone */
+          }
         });
       }
       // The trip is gone, so its offline package is just orphaned bytes.
@@ -512,7 +565,10 @@ class _SavedReiseTile extends ConsumerWidget {
           ref,
           // No local entry to carry over here — the trip lives in the DB
           // account. Undo re-saves it locally and keeps the server copy.
-          SavedJourney(journey: j, savedAtMs: DateTime.now().millisecondsSinceEpoch),
+          SavedJourney(
+            journey: j,
+            savedAtMs: DateTime.now().millisecondsSinceEpoch,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,12 +592,17 @@ class _SavedReiseTile extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: ListTile(
           leading: Icon(Icons.bookmark, color: theme.colorScheme.primary),
-          title: Text(index.startDatum != null
-              ? DateFormat('EEE, dd.MM.yyyy · HH:mm', 'de')
-                  .format(index.startDatum!)
-              : 'Gemerkte Reise'),
-          subtitle:
-              Text(journey is AsyncLoading ? 'lädt…' : 'Konnte nicht laden'),
+          title: Text(
+            index.startDatum != null
+                ? DateFormat(
+                    'EEE, dd.MM.yyyy · HH:mm',
+                    'de',
+                  ).format(index.startDatum!)
+                : 'Gemerkte Reise',
+          ),
+          subtitle: Text(
+            journey is AsyncLoading ? 'lädt…' : 'Konnte nicht laden',
+          ),
         ),
       );
     }
@@ -565,13 +626,14 @@ class _OfficialTicketTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final index = trip.index;
-    final kwId =
-        index.kundenwunschIds.isNotEmpty ? index.kundenwunschIds.first : '';
+    final kwId = index.kundenwunschIds.isNotEmpty
+        ? index.kundenwunschIds.first
+        : '';
     if (kwId.isEmpty) return const SizedBox.shrink();
-    void onTap() => context.push('/ticket', extra: {
-          'auftragsnummer': index.auftragsnummer,
-          'kundenwunschId': kwId,
-        });
+    void onTap() => context.push(
+      '/ticket',
+      extra: {'auftragsnummer': index.auftragsnummer, 'kundenwunschId': kwId},
+    );
 
     final t = trip.ticket;
     final theme = Theme.of(context);
@@ -583,8 +645,10 @@ class _OfficialTicketTile extends ConsumerWidget {
       tile = Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: ListTile(
-          leading: Icon(Icons.confirmation_number_outlined,
-              color: theme.colorScheme.primary),
+          leading: Icon(
+            Icons.confirmation_number_outlined,
+            color: theme.colorScheme.primary,
+          ),
           title: Text(
             t != null && (t.vonName != null || t.nachName != null)
                 ? '${t.vonName ?? '—'} → ${t.nachName ?? '—'}'
@@ -595,8 +659,9 @@ class _OfficialTicketTile extends ConsumerWidget {
           subtitle: Text(
             [
               if ((t?.gueltigAb ?? index.aenderungsDatum) != null)
-                DateFormat('dd.MM.yyyy')
-                    .format(t?.gueltigAb ?? index.aenderungsDatum!),
+                DateFormat(
+                  'dd.MM.yyyy',
+                ).format(t?.gueltigAb ?? index.aenderungsDatum!),
               if (t != null) t.firstClass ? '1. Kl.' : '2. Kl.',
               if (t?.angebotsname != null) t!.angebotsname!,
             ].where((s) => s.isNotEmpty).join(' · '),
@@ -622,7 +687,8 @@ class _OfficialTicketTile extends ConsumerWidget {
         ],
       );
     }
-    final dep = trip.journey?.plannedDeparture ??
+    final dep =
+        trip.journey?.plannedDeparture ??
         trip.journey?.departure ??
         t?.gueltigAb;
     return Opacity(

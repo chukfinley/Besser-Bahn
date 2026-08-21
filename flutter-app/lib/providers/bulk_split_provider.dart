@@ -59,18 +59,17 @@ class BulkSplitRow {
     double? splitPrice,
     BulkRowStatus? status,
     TicketAnalysisResult? result,
-  }) =>
-      BulkSplitRow(
-        journey: journey,
-        label: label,
-        duration: duration,
-        transfers: transfers,
-        trains: trains,
-        directPrice: directPrice ?? this.directPrice,
-        splitPrice: splitPrice ?? this.splitPrice,
-        status: status ?? this.status,
-        result: result ?? this.result,
-      );
+  }) => BulkSplitRow(
+    journey: journey,
+    label: label,
+    duration: duration,
+    transfers: transfers,
+    trains: trains,
+    directPrice: directPrice ?? this.directPrice,
+    splitPrice: splitPrice ?? this.splitPrice,
+    status: status ?? this.status,
+    result: result ?? this.result,
+  );
 }
 
 class BulkSplitState {
@@ -102,15 +101,14 @@ class BulkSplitState {
     int? total,
     List<BulkSplitRow>? rows,
     bool? deutschlandTicket,
-  }) =>
-      BulkSplitState(
-        running: running ?? this.running,
-        cancelled: cancelled ?? this.cancelled,
-        doneCount: doneCount ?? this.doneCount,
-        total: total ?? this.total,
-        rows: rows ?? this.rows,
-        deutschlandTicket: deutschlandTicket ?? this.deutschlandTicket,
-      );
+  }) => BulkSplitState(
+    running: running ?? this.running,
+    cancelled: cancelled ?? this.cancelled,
+    doneCount: doneCount ?? this.doneCount,
+    total: total ?? this.total,
+    rows: rows ?? this.rows,
+    deutschlandTicket: deutschlandTicket ?? this.deutschlandTicket,
+  );
 }
 
 /// Prices every shown connection — direct vs cheapest split — so the rider can
@@ -141,11 +139,14 @@ class BulkSplitNotifier extends Notifier<BulkSplitState> {
     final myGen = ++_gen;
     final settings = ref.read(settingsProvider);
     final engine = SplitEngine(
-        ref.read(vendoServiceProvider), ref.read(dbApiServiceProvider));
+      ref.read(vendoServiceProvider),
+      ref.read(dbApiServiceProvider),
+    );
     final reisende = settings.searchParty.toReisendeJson();
-    final primaryTraveler = settings.searchParty.travelers
-        .firstWhere((t) => t.typ.isPerson,
-            orElse: () => const Traveler(typ: TravelerType.erwachsener));
+    final primaryTraveler = settings.searchParty.travelers.firstWhere(
+      (t) => t.typ.isPerson,
+      orElse: () => const Traveler(typ: TravelerType.erwachsener),
+    );
     final travellers = DbApiService.createTravellerPayload(
       bahnCard: primaryTraveler.bahnCard,
       weitere: primaryTraveler.weitere,
@@ -164,17 +165,19 @@ class BulkSplitNotifier extends Notifier<BulkSplitState> {
           .map((l) => l.line?.name.trim() ?? l.line?.productName ?? '?')
           .where((s) => s.isNotEmpty)
           .join(' + ');
-      rows.add(BulkSplitRow(
-        journey: j,
-        label: label,
-        duration: (dep != null && arr != null)
-            ? arr.difference(dep)
-            : Duration.zero,
-        transfers: j.transfers < 0 ? 0 : j.transfers,
-        trains: trains.isEmpty ? '?' : trains,
-        directPrice: j.price?.amount,
-        status: BulkRowStatus.pending,
-      ));
+      rows.add(
+        BulkSplitRow(
+          journey: j,
+          label: label,
+          duration: (dep != null && arr != null)
+              ? arr.difference(dep)
+              : Duration.zero,
+          transfers: j.transfers < 0 ? 0 : j.transfers,
+          trains: trains.isEmpty ? '?' : trains,
+          directPrice: j.price?.amount,
+          status: BulkRowStatus.pending,
+        ),
+      );
     }
 
     state = BulkSplitState(
@@ -227,11 +230,13 @@ class BulkSplitNotifier extends Notifier<BulkSplitState> {
     state = state.copyWith(running: false);
   }
 
-  void _patch(int index,
-      {double? directPrice,
-      double? splitPrice,
-      BulkRowStatus? status,
-      TicketAnalysisResult? result}) {
+  void _patch(
+    int index, {
+    double? directPrice,
+    double? splitPrice,
+    BulkRowStatus? status,
+    TicketAnalysisResult? result,
+  }) {
     final rows = [...state.rows];
     if (index < 0 || index >= rows.length) return;
     rows[index] = rows[index].copyWith(
@@ -244,5 +249,6 @@ class BulkSplitNotifier extends Notifier<BulkSplitState> {
   }
 }
 
-final bulkSplitProvider =
-    NotifierProvider<BulkSplitNotifier, BulkSplitState>(BulkSplitNotifier.new);
+final bulkSplitProvider = NotifierProvider<BulkSplitNotifier, BulkSplitState>(
+  BulkSplitNotifier.new,
+);

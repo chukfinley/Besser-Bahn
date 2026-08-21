@@ -19,10 +19,10 @@ class HafasService {
   static const _hafasBase = ApiConstants.hafasBaseUrl;
 
   Map<String, String> get _headers => {
-        'User-Agent': ApiConstants.userAgent,
-        'Accept': 'application/json',
-        'Accept-Language': 'de-DE,de;q=0.9',
-      };
+    'User-Agent': ApiConstants.userAgent,
+    'Accept': 'application/json',
+    'Accept-Language': 'de-DE,de;q=0.9',
+  };
 
   // ============================================================
   // STATION SEARCH (DB Vendo /mob backend — bahn.de web API is Akamai-blocked)
@@ -31,8 +31,10 @@ class HafasService {
   /// Locations matching [query] — stops, addresses and POIs. Pass
   /// [stopsOnly] where an EVA is required downstream (departure board,
   /// station map, train lookup).
-  Future<List<Station>> searchStations(String query, {bool stopsOnly = false}) =>
-      _vendo.searchLocations(query, stopsOnly: stopsOnly);
+  Future<List<Station>> searchStations(
+    String query, {
+    bool stopsOnly = false,
+  }) => _vendo.searchLocations(query, stopsOnly: stopsOnly);
 
   /// Stations near a coordinate — via the DB Vendo `location/nearby/bytypes`
   /// endpoint (request shape reverse-engineered from the DB Navigator APK).
@@ -41,13 +43,12 @@ class HafasService {
     required double longitude,
     int results = 8,
     int? distance,
-  }) =>
-      _vendo.nearbyStations(
-        latitude: latitude,
-        longitude: longitude,
-        radius: distance ?? 2000,
-        maxResults: results,
-      );
+  }) => _vendo.nearbyStations(
+    latitude: latitude,
+    longitude: longitude,
+    radius: distance ?? 2000,
+    maxResults: results,
+  );
 
   // ============================================================
   // DEPARTURES / ARRIVALS (DB Vendo Bahnhofstafel)
@@ -58,16 +59,14 @@ class HafasService {
     DateTime? when,
     int duration = 60,
     int results = 40,
-  }) =>
-      _vendo.getDepartures(stationId, when: when, results: results);
+  }) => _vendo.getDepartures(stationId, when: when, results: results);
 
   Future<List<Departure>> getArrivals(
     String stationId, {
     DateTime? when,
     int duration = 60,
     int results = 40,
-  }) =>
-      _vendo.getArrivals(stationId, when: when, results: results);
+  }) => _vendo.getArrivals(stationId, when: when, results: results);
 
   // ============================================================
   // TRIP DETAILS
@@ -82,10 +81,11 @@ class HafasService {
     try {
       final trip = await _vendo.getTrip(tripId);
       AppLog.log(
-          'getTrip ok ${sw.elapsedMilliseconds}ms · ${trip.line.displayName} '
-          '(${trip.stopovers.length} stops, '
-          '${trip.polyline?.length ?? 0} geo pts)',
-          tag: 'trip');
+        'getTrip ok ${sw.elapsedMilliseconds}ms · ${trip.line.displayName} '
+        '(${trip.stopovers.length} stops, '
+        '${trip.polyline?.length ?? 0} geo pts)',
+        tag: 'trip',
+      );
       // zuglauf already carries the geometry; cache it for reuse across days
       // (keyed by the physical route, not the date-bearing trip id).
       if (trip.polyline != null && trip.polyline!.isNotEmpty) {
@@ -99,12 +99,15 @@ class HafasService {
           : trip;
     } catch (e) {
       AppLog.log(
-          'Vendo zuglauf failed ${sw.elapsedMilliseconds}ms ($e) → trying HAFAS',
-          tag: 'trip');
+        'Vendo zuglauf failed ${sw.elapsedMilliseconds}ms ($e) → trying HAFAS',
+        tag: 'trip',
+      );
       try {
         final trip = await _getTripHafas(tripId);
-        AppLog.log('getTrip via HAFAS ok ${sw.elapsedMilliseconds}ms',
-            tag: 'trip');
+        AppLog.log(
+          'getTrip via HAFAS ok ${sw.elapsedMilliseconds}ms',
+          tag: 'trip',
+        );
         if (trip.polyline != null && trip.polyline!.isNotEmpty) {
           await PolylineCache.instance.put(trip.routeKey, trip.polyline!);
         }
@@ -135,11 +138,15 @@ class HafasService {
         .map((l) => l.tripId!)
         .toSet();
     final out = <String, Trip>{};
-    await Future.wait(ids.map((id) async {
-      try {
-        out[id] = await getTrip(id);
-      } catch (_) {/* keep the search-time value for this leg */}
-    }));
+    await Future.wait(
+      ids.map((id) async {
+        try {
+          out[id] = await getTrip(id);
+        } catch (_) {
+          /* keep the search-time value for this leg */
+        }
+      }),
+    );
     return out;
   }
 
@@ -192,8 +199,10 @@ class HafasService {
         return poly;
       }
     } catch (e) {
-      AppLog.log('Vendo polyline failed ($e) → straight-line fallback',
-          tag: 'trip');
+      AppLog.log(
+        'Vendo polyline failed ($e) → straight-line fallback',
+        tag: 'trip',
+      );
     }
     return null;
   }
@@ -255,8 +264,9 @@ class HafasService {
         allDeps = [];
       }
     } else {
-      final stationEntries =
-          AppConstants.majorStations.entries.take(5).toList();
+      final stationEntries = AppConstants.majorStations.entries
+          .take(5)
+          .toList();
       final futures = stationEntries.map((entry) async {
         try {
           return await getDepartures(entry.value, results: 80);
@@ -285,27 +295,32 @@ class HafasService {
 
         if (matches && !seenTripIds.contains(dep.tripId)) {
           seenTripIds.add(dep.tripId);
-          results.add(TrainSearchResult(
-            tripId: dep.tripId,
-            lineName: dep.line.displayName,
-            direction: dep.direction,
-            plannedWhen: dep.plannedWhen,
-            product: dep.line.productName,
-          ));
+          results.add(
+            TrainSearchResult(
+              tripId: dep.tripId,
+              lineName: dep.line.displayName,
+              direction: dep.direction,
+              plannedWhen: dep.plannedWhen,
+              product: dep.line.productName,
+            ),
+          );
         }
       }
     }
 
     results.sort((a, b) {
       if (productFilter != null) {
-        final aMatch =
-            a.product.toUpperCase().startsWith(productFilter) ? 0 : 1;
-        final bMatch =
-            b.product.toUpperCase().startsWith(productFilter) ? 0 : 1;
+        final aMatch = a.product.toUpperCase().startsWith(productFilter)
+            ? 0
+            : 1;
+        final bMatch = b.product.toUpperCase().startsWith(productFilter)
+            ? 0
+            : 1;
         if (aMatch != bMatch) return aMatch.compareTo(bMatch);
       }
-      return (a.plannedWhen ?? DateTime(0))
-          .compareTo(b.plannedWhen ?? DateTime(0));
+      return (a.plannedWhen ?? DateTime(0)).compareTo(
+        b.plannedWhen ?? DateTime(0),
+      );
     });
 
     return results;

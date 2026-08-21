@@ -28,29 +28,42 @@ void main() {
       expect(find.text('Nur ein Hinweis.'), findsOneWidget);
     });
 
-    testWidgets('the tone picks the accent, and info stays quiet',
-        (tester) async {
+    testWidgets('the tone picks the accent, and info stays quiet', (
+      tester,
+    ) async {
       // The point of the shared card: colour comes from what the message IS,
       // so a note can't end up as loud as a cancellation.
       late BuildContext ctx;
-      await tester.pumpWidget(MaterialApp(
-        home: Builder(builder: (c) {
-          ctx = c;
-          return const Scaffold(body: SizedBox());
-        }),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (c) {
+              ctx = c;
+              return const Scaffold(body: SizedBox());
+            },
+          ),
+        ),
+      );
       final scheme = Theme.of(ctx).colorScheme;
-      expect(const MessageCard(body: 'x', tone: MessageTone.info).accentOf(ctx),
-          scheme.outline);
       expect(
-          const MessageCard(body: 'x', tone: MessageTone.caution).accentOf(ctx),
-          AppColors.warning);
-      expect(const MessageCard(body: 'x', tone: MessageTone.alert).accentOf(ctx),
-          scheme.error);
+        const MessageCard(body: 'x', tone: MessageTone.info).accentOf(ctx),
+        scheme.outline,
+      );
       expect(
-          const MessageCard(body: 'x', tone: MessageTone.recommendation)
-              .accentOf(ctx),
-          AppColors.onTime);
+        const MessageCard(body: 'x', tone: MessageTone.caution).accentOf(ctx),
+        AppColors.warning,
+      );
+      expect(
+        const MessageCard(body: 'x', tone: MessageTone.alert).accentOf(ctx),
+        scheme.error,
+      );
+      expect(
+        const MessageCard(
+          body: 'x',
+          tone: MessageTone.recommendation,
+        ).accentOf(ctx),
+        AppColors.onTime,
+      );
     });
 
     testWidgets('a trailing action and a tap both work', (tester) async {

@@ -65,13 +65,17 @@ class LiveTripTracker extends Notifier<LiveTripState>
     // Re-evaluate the active trip whenever the saved trips or the master
     // notification toggle change.
     ref.listen(libraryProvider, (prev, next) => _evaluate());
-    ref.listen(settingsProvider.select((s) => s.remindersEnabled),
-        (prev, next) => _evaluate());
+    ref.listen(
+      settingsProvider.select((s) => s.remindersEnabled),
+      (prev, next) => _evaluate(),
+    );
     // The GPS companion toggle also gates us: while it's on, a foreground
     // service keeps this isolate alive in the background, so we keep polling
     // and can push a Gleiswechsel with the app pocketed (#50).
-    ref.listen(settingsProvider.select((s) => s.exitAlarmEnabled),
-        (prev, next) => _evaluate());
+    ref.listen(
+      settingsProvider.select((s) => s.exitAlarmEnabled),
+      (prev, next) => _evaluate(),
+    );
     // Defer the first evaluation: it reads `state`, which isn't valid until
     // this build() returns the initial value. Running it in a microtask lets
     // the provider finish initialising first (else Riverpod throws "tried to
@@ -88,7 +92,8 @@ class LiveTripTracker extends Notifier<LiveTripState>
     if (_foreground) {
       _evaluate(); // came back → refresh now
     } else if (!_keepAliveInBackground) {
-      _timer?.cancel(); // no foreground service → the isolate freezes; stand down
+      _timer
+          ?.cancel(); // no foreground service → the isolate freezes; stand down
     }
     // else: the GPS companion's foreground service is holding this isolate
     // alive, so leave the poll timer running to catch a Gleiswechsel in the
@@ -113,11 +118,12 @@ class LiveTripTracker extends Notifier<LiveTripState>
     final active = enabled ? _pickActive(upcoming) : null;
     if (active == null) {
       AppLog.log(
-          'live tracker: keine aktive Reise '
-          '(Benachrichtigungen=${settings.remindersEnabled}, '
-          'GPS=${settings.exitAlarmEnabled}, gemerkte anstehende=${upcoming.length}, '
-          'davon getrackt im Fenster Abfahrt−1h…Ankunft: 0) → kein Live-Update',
-          tag: 'live');
+        'live tracker: keine aktive Reise '
+        '(Benachrichtigungen=${settings.remindersEnabled}, '
+        'GPS=${settings.exitAlarmEnabled}, gemerkte anstehende=${upcoming.length}, '
+        'davon getrackt im Fenster Abfahrt−1h…Ankunft: 0) → kein Live-Update',
+        tag: 'live',
+      );
       _timer?.cancel();
       _lastAlert.clear();
       if (state.activeKey != null) {
@@ -130,9 +136,10 @@ class LiveTripTracker extends Notifier<LiveTripState>
     }
     if (active.key != state.activeKey) {
       AppLog.log(
-          'live tracker: aktive Reise "${active.journey.origin?.name ?? '?'} → '
-          '${active.journey.destination?.name ?? '?'}" → poll + Live-Update',
-          tag: 'live');
+        'live tracker: aktive Reise "${active.journey.origin?.name ?? '?'} → '
+        '${active.journey.destination?.name ?? '?'}" → poll + Live-Update',
+        tag: 'live',
+      );
       _lastAlert.clear();
       // A different trip: a Live Update dismissed on the previous one must not
       // suppress this one.
@@ -155,7 +162,9 @@ class LiveTripTracker extends Notifier<LiveTripState>
   /// not an earlier one you left behind. Only if none has departed yet does it
   /// fall back to the soonest upcoming.
   static SavedJourney? pickActiveTrip(
-      List<SavedJourney> upcoming, DateTime now) {
+    List<SavedJourney> upcoming,
+    DateTime now,
+  ) {
     final running = <({SavedJourney j, DateTime dep})>[];
     final pending = <({SavedJourney j, DateTime dep})>[];
     for (final j in upcoming) {
@@ -197,8 +206,9 @@ class LiveTripTracker extends Notifier<LiveTripState>
       // it is the thing the rider actually looks at while travelling. Where the
       // device won't promote it this is a no-op and the alerts above stay the
       // only channel.
-      LiveUpdateService.chipShowsStops =
-          ref.read(settingsProvider).liveChipStops;
+      LiveUpdateService.chipShowsStops = ref
+          .read(settingsProvider)
+          .liveChipStops;
       unawaited(LiveUpdateService.show(journey.journey));
     } catch (e) {
       AppLog.log('live poll failed ($e)', tag: 'live');
@@ -217,7 +227,8 @@ class LiveTripTracker extends Notifier<LiveTripState>
     // Current leg = first one not yet completed (its arrival still ahead).
     final idx = transit.indexWhere((l) {
       final arr = l.arrival ?? l.plannedArrival;
-      return arr == null || arr.isAfter(now.subtract(const Duration(minutes: 2)));
+      return arr == null ||
+          arr.isAfter(now.subtract(const Duration(minutes: 2)));
     });
     if (idx < 0) {
       _evaluate(); // whole trip done
@@ -233,9 +244,8 @@ class LiveTripTracker extends Notifier<LiveTripState>
       trips[leg.tripId!] = curTrip;
     }
 
-    final boarded = (leg.departure ?? leg.plannedDeparture)
-            ?.isBefore(now) ??
-        false;
+    final boarded =
+        (leg.departure ?? leg.plannedDeparture)?.isBefore(now) ?? false;
 
     if (curTrip != null) {
       final lineName = leg.line?.displayName ?? 'Zug';
@@ -244,12 +254,20 @@ class LiveTripTracker extends Notifier<LiveTripState>
         final s = _stopFor(curTrip, leg.origin.id, leg.origin.name);
         if (s != null) {
           _checkCancelled(s, lineName);
-          _checkDelay(curTrip.id, '$lineName ab ${leg.origin.name}',
-              s.departureDelay, s.departure ?? s.plannedDeparture,
-              tag: 'dep');
-          _checkPlatform(curTrip.id, leg.origin.name, s.departurePlatform,
-              s.plannedDeparturePlatform,
-              tag: 'depplat');
+          _checkDelay(
+            curTrip.id,
+            '$lineName ab ${leg.origin.name}',
+            s.departureDelay,
+            s.departure ?? s.plannedDeparture,
+            tag: 'dep',
+          );
+          _checkPlatform(
+            curTrip.id,
+            leg.origin.name,
+            s.departurePlatform,
+            s.plannedDeparturePlatform,
+            tag: 'depplat',
+          );
           _checkZugbindung(leg, s);
         }
       } else {
@@ -257,9 +275,13 @@ class LiveTripTracker extends Notifier<LiveTripState>
         final s = _stopFor(curTrip, leg.destination.id, leg.destination.name);
         if (s != null) {
           _checkCancelled(s, lineName);
-          _checkDelay(curTrip.id, '$lineName an ${leg.destination.name}',
-              s.arrivalDelay, s.arrival ?? s.plannedArrival,
-              tag: 'arr');
+          _checkDelay(
+            curTrip.id,
+            '$lineName an ${leg.destination.name}',
+            s.arrivalDelay,
+            s.arrival ?? s.plannedArrival,
+            tag: 'arr',
+          );
           _checkZugbindung(leg, s);
         }
       }
@@ -270,19 +292,29 @@ class LiveTripTracker extends Notifier<LiveTripState>
     if (next != null && next.tripId != null) {
       final nextTrip = await hafas.getTrip(next.tripId!);
       trips[next.tripId!] = nextTrip;
-      final arrStop =
-          curTrip != null ? _stopFor(curTrip, leg.destination.id, leg.destination.name) : null;
+      final arrStop = curTrip != null
+          ? _stopFor(curTrip, leg.destination.id, leg.destination.name)
+          : null;
       final depStop = _stopFor(nextTrip, next.origin.id, next.origin.name);
       final liveArr = arrStop?.arrival ?? arrStop?.plannedArrival;
       final liveDep = depStop?.departure ?? depStop?.plannedDeparture;
-      _checkPlatform(nextTrip.id, next.origin.name, depStop?.departurePlatform,
-          depStop?.plannedDeparturePlatform,
-          tag: 'nextplat');
+      _checkPlatform(
+        nextTrip.id,
+        next.origin.name,
+        depStop?.departurePlatform,
+        depStop?.plannedDeparturePlatform,
+        tag: 'nextplat',
+      );
       if (liveArr != null && liveDep != null) {
         final gap = liveDep.difference(liveArr).inMinutes;
-        _checkTransfer(next.tripId!, next.line?.displayName ?? 'Anschluss',
-            next.origin.name, gap, liveDep,
-            samePlatform: journey.samePlatformTransferInto(next));
+        _checkTransfer(
+          next.tripId!,
+          next.line?.displayName ?? 'Anschluss',
+          next.origin.name,
+          gap,
+          liveDep,
+          samePlatform: journey.samePlatformTransferInto(next),
+        );
       }
     }
 
@@ -293,33 +325,57 @@ class LiveTripTracker extends Notifier<LiveTripState>
 
   void _checkCancelled(Stopover s, String line) {
     if (!s.cancelled) return;
-    _alertOnce('cancel:${s.stop.id}', 'fällt aus',
-        title: 'Fahrt fällt aus', body: '$line entfällt an ${s.stop.name}.');
+    _alertOnce(
+      'cancel:${s.stop.id}',
+      'fällt aus',
+      title: 'Fahrt fällt aus',
+      body: '$line entfällt an ${s.stop.name}.',
+    );
   }
 
-  void _checkDelay(String tripId, String what, int? delaySec, DateTime? when,
-      {required String tag}) {
+  void _checkDelay(
+    String tripId,
+    String what,
+    int? delaySec,
+    DateTime? when, {
+    required String tag,
+  }) {
     if (delaySec == null || delaySec < 300) return; // only ≥5 min
     final min = delaySec ~/ 60;
     // Bucket to 5-min steps so we re-ping when it worsens, not every minute.
     final bucket = (min ~/ 5) * 5;
-    _alertOnce('delay:$tag:$tripId', '$bucket',
-        title: '+$min Min: $what',
-        body: when != null ? 'Neu: ${when.hhmm}.' : 'Verspätung +$min Min.');
+    _alertOnce(
+      'delay:$tag:$tripId',
+      '$bucket',
+      title: '+$min Min: $what',
+      body: when != null ? 'Neu: ${when.hhmm}.' : 'Verspätung +$min Min.',
+    );
   }
 
   void _checkPlatform(
-      String tripId, String station, String? live, String? planned,
-      {required String tag}) {
+    String tripId,
+    String station,
+    String? live,
+    String? planned, {
+    required String tag,
+  }) {
     if (live == null || planned == null || live == planned) return;
-    _alertOnce('plat:$tag:$tripId', live,
-        title: '⚠️ Gleiswechsel: $station',
-        body: 'Jetzt Gleis $live (statt $planned).');
+    _alertOnce(
+      'plat:$tag:$tripId',
+      live,
+      title: '⚠️ Gleiswechsel: $station',
+      body: 'Jetzt Gleis $live (statt $planned).',
+    );
   }
 
   void _checkTransfer(
-      String tripId, String nextLine, String station, int gap, DateTime dep,
-      {bool samePlatform = false}) {
+    String tripId,
+    String nextLine,
+    String station,
+    int gap,
+    DateTime dep, {
+    bool samePlatform = false,
+  }) {
     // Judge the gap the way the rider experiences it, so the push and the
     // on-screen risk banner can't disagree about the same transfer (#11.7).
     // Same platform → nothing to walk, so the profile doesn't scale it (#20.6)
@@ -330,7 +386,8 @@ class LiveTripTracker extends Notifier<LiveTripState>
     final String title, body;
     if (gap < 0) {
       title = 'Anschluss gefährdet: $nextLine';
-      body = 'In $station ${gap.abs()} Min zu spät — Anschluss könnte weg sein.';
+      body =
+          'In $station ${gap.abs()} Min zu spät — Anschluss könnte weg sein.';
     } else {
       title = 'Knapper Umstieg: $nextLine';
       // Quote the planned minutes (that's what the board says) and name the
@@ -355,32 +412,42 @@ class LiveTripTracker extends Notifier<LiveTripState>
   /// Whether a Sparpreis' Zugbindung is lifted: a long-distance train that's
   /// cancelled or ≥20 min late frees the rider to take any train (#zugbindung).
   /// Pure + public so the rule is unit-tested, not just wired in.
-  static bool zugbindungAufgehoben(
-          {String? product, int delaySeconds = 0, bool cancelled = false}) =>
-      isFernverkehr(product) && (cancelled || delaySeconds >= 1200);
+  static bool zugbindungAufgehoben({
+    String? product,
+    int delaySeconds = 0,
+    bool cancelled = false,
+  }) => isFernverkehr(product) && (cancelled || delaySeconds >= 1200);
 
   void _checkZugbindung(JourneyLeg leg, Stopover s) {
     final delaySec = s.arrivalDelay ?? s.departureDelay ?? 0;
     if (!zugbindungAufgehoben(
-        product: leg.line?.product,
-        delaySeconds: delaySec,
-        cancelled: s.cancelled)) {
+      product: leg.line?.product,
+      delaySeconds: delaySec,
+      cancelled: s.cancelled,
+    )) {
       return;
     }
     final line = leg.line?.displayName ?? 'Fernzug';
-    _alertOnce('zugbindung:${leg.tripId ?? line}', s.cancelled ? 'X' : 'late',
-        title: '✅ Zugbindung aufgehoben',
-        body: s.cancelled
-            ? '$line fällt aus — bei Sparpreis darfst du jetzt beliebige '
+    _alertOnce(
+      'zugbindung:${leg.tripId ?? line}',
+      s.cancelled ? 'X' : 'late',
+      title: '✅ Zugbindung aufgehoben',
+      body: s.cancelled
+          ? '$line fällt aus — bei Sparpreis darfst du jetzt beliebige '
                 'Züge zum Ziel nehmen.'
-            : '$line +${delaySec ~/ 60} Min — bei Sparpreis ist die '
-                'Zugbindung aufgehoben, nimm den nächsten passenden Zug.');
+          : '$line +${delaySec ~/ 60} Min — bei Sparpreis ist die '
+                'Zugbindung aufgehoben, nimm den nächsten passenden Zug.',
+    );
   }
 
   /// Fire an alert for [key] only when [value] differs from what we last sent
   /// for it — kills repeat-pings on every poll.
-  void _alertOnce(String key, String value,
-      {required String title, required String body}) {
+  void _alertOnce(
+    String key,
+    String value, {
+    required String title,
+    required String body,
+  }) {
     if (_lastAlert[key] == value) return;
     _lastAlert[key] = value;
     // The alert is about the trip being tracked, so a tap opens its Reiseplan.
@@ -415,7 +482,8 @@ class LiveTripTracker extends Notifier<LiveTripState>
     var soon = false;
     for (final t in state.trips.values) {
       for (final s in t.stopovers) {
-        final e = s.departure ?? s.plannedDeparture ?? s.arrival ?? s.plannedArrival;
+        final e =
+            s.departure ?? s.plannedDeparture ?? s.arrival ?? s.plannedArrival;
         if (e != null && e.isAfter(now)) {
           if (e.difference(now) <= const Duration(minutes: 6)) soon = true;
           break;
@@ -423,8 +491,9 @@ class LiveTripTracker extends Notifier<LiveTripState>
       }
     }
     _timer = Timer(
-        soon ? const Duration(seconds: 30) : const Duration(minutes: 2),
-        _poll);
+      soon ? const Duration(seconds: 30) : const Duration(minutes: 2),
+      _poll,
+    );
   }
 }
 

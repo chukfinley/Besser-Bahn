@@ -22,26 +22,28 @@ const _vendoEnum = {
 
 Station _st(String name) => Station(id: name, name: name);
 
-Journey _journey(String product) => Journey(legs: [
-      JourneyLeg(
-        tripId: 't-$product',
-        origin: _st('München Hbf'),
-        destination: _st('Augsburg Hbf'),
-        plannedDeparture: DateTime(2026, 7, 16, 9),
-        arrival: DateTime(2026, 7, 16, 9, 31),
-        line: TransitLine(
-            name: product,
-            fahrtNr: '568',
-            productName: product,
-            product: product),
-      )
-    ]);
+Journey _journey(String product) => Journey(
+  legs: [
+    JourneyLeg(
+      tripId: 't-$product',
+      origin: _st('München Hbf'),
+      destination: _st('Augsburg Hbf'),
+      plannedDeparture: DateTime(2026, 7, 16, 9),
+      arrival: DateTime(2026, 7, 16, 9, 31),
+      line: TransitLine(
+        name: product,
+        fahrtNr: '568',
+        productName: product,
+        product: product,
+      ),
+    ),
+  ],
+);
 
 void main() {
   group('ProductCategory.codesFor', () {
     test('all categories selected asks for ALL', () {
-      expect(ProductCategory.codesFor(ProductCategory.values.toSet()),
-          ['ALL']);
+      expect(ProductCategory.codesFor(ProductCategory.values.toSet()), ['ALL']);
     });
 
     test('empty selection falls back to ALL rather than an empty query', () {
@@ -53,7 +55,8 @@ void main() {
       // The query must name every remaining mode — asking for ALL and
       // filtering afterwards is what returned an empty list.
       final codes = ProductCategory.codesFor(
-          ProductCategory.values.toSet()..remove(ProductCategory.fern));
+        ProductCategory.values.toSet()..remove(ProductCategory.fern),
+      );
 
       expect(codes, isNot(contains('ALL')));
       expect(codes, contains('NAHVERKEHRSONSTIGEZUEGE'));
@@ -71,13 +74,17 @@ void main() {
     });
 
     test('categories cover the enum exactly, with no mode in two places', () {
-      final all = [
-        for (final c in ProductCategory.values) ...c.vendoCodes,
-      ];
-      expect(all.toSet(), _vendoEnum,
-          reason: 'ProductCategory must cover every VerkehrsmittelModel value');
-      expect(all.length, all.toSet().length,
-          reason: 'a mode assigned to two categories is sent twice');
+      final all = [for (final c in ProductCategory.values) ...c.vendoCodes];
+      expect(
+        all.toSet(),
+        _vendoEnum,
+        reason: 'ProductCategory must cover every VerkehrsmittelModel value',
+      );
+      expect(
+        all.length,
+        all.toSet().length,
+        reason: 'a mode assigned to two categories is sent twice',
+      );
     });
   });
 
@@ -85,11 +92,12 @@ void main() {
     test('defaults off and survives an unrelated copyWith', () {
       expect(JourneySearchState().onlyDeutschlandTicket, isFalse);
       expect(
-          JourneySearchState(onlyDeutschlandTicket: true)
-              .copyWith(sortMode: JourneySortMode.duration)
-              .onlyDeutschlandTicket,
-          isTrue,
-          reason: 'copyWith must carry the flag, or the re-search drops it');
+        JourneySearchState(
+          onlyDeutschlandTicket: true,
+        ).copyWith(sortMode: JourneySortMode.duration).onlyDeutschlandTicket,
+        isTrue,
+        reason: 'copyWith must carry the flag, or the re-search drops it',
+      );
     });
   });
 

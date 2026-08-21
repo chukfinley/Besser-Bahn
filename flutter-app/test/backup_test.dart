@@ -78,7 +78,9 @@ void main() {
   });
 
   test('file name carries the day it was made', () {
-    expect(Backup.fileNameFor(DateTime(2026, 8, 5)),
-        'besser-bahn-2026-08-05.bbbk');
+    expect(
+      Backup.fileNameFor(DateTime(2026, 8, 5)),
+      'besser-bahn-2026-08-05.bbbk',
+    );
   });
 }

@@ -87,18 +87,21 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
           _resolving = false;
           _resolveError = resolved == null
               ? 'Konnte keine Verbindung aus dem Link lesen. Prüfe den DB-Link '
-                  '(z. B. bahn.de/buchung/start?vbid=…).'
+                    '(z. B. bahn.de/buchung/start?vbid=…).'
               : 'Diese Verbindung hat zu wenige Halte für ein Split-Ticket.';
         });
         return;
       }
       setState(() => _resolving = false);
       final dep = resolved.plannedDeparture ?? resolved.departure;
-      ref.read(splitTicketProvider.notifier).analyze(
+      ref
+          .read(splitTicketProvider.notifier)
+          .analyze(
             stops: stops,
             date: dep != null ? dep.toIso8601String().split('T').first : '',
             directPrice: resolved.price?.amount ?? 0,
-            routeLabel: '${resolved.origin?.name ?? ''} → '
+            routeLabel:
+                '${resolved.origin?.name ?? ''} → '
                 '${resolved.destination?.name ?? ''}',
             jobKey: 'link:$link',
           );
@@ -116,9 +119,7 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
     final state = ref.watch(splitTicketProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Split-Ticketing'),
-      ),
+      appBar: AppBar(title: const Text('Split-Ticketing')),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
@@ -140,7 +141,8 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
           // shared message shape at caution volume (#38).
           const MessageCard(
             tone: MessageTone.caution,
-            body: 'Split-Tickets haben kein Anschluss-Recht. '
+            body:
+                'Split-Tickets haben kein Anschluss-Recht. '
                 'Das Risiko bei Verspätungen liegt beim Fahrgast.',
           ),
 
@@ -216,8 +218,9 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
             Text(
               'Füge einen geteilten DB-Link ein (bahn.de/buchung/start?vbid=…), '
               'um günstigere Split-Tickets für diese Verbindung zu finden.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -246,8 +249,10 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
             ),
             if (_resolveError != null) ...[
               const SizedBox(height: 8),
-              Text(_resolveError!,
-                  style: TextStyle(color: theme.colorScheme.error)),
+              Text(
+                _resolveError!,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
             ],
             const SizedBox(height: 12),
             SizedBox(
@@ -259,7 +264,9 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.call_split),
                 label: Text(_resolving ? 'Lese Link…' : 'Analysieren'),
@@ -279,19 +286,25 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
       padding: const EdgeInsets.fromLTRB(24, 48, 24, 0),
       child: Column(
         children: [
-          Icon(Icons.call_split,
-              size: 56, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.call_split,
+            size: 56,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 16),
-          Text('Noch keine Analyse',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center),
+          Text(
+            'Noch keine Analyse',
+            style: theme.textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
           Text(
             'Suche eine Verbindung und tippe in der Detailansicht auf '
             '„Split-Ticket suchen“. Die Analyse läuft dann im Hintergrund und '
             'meldet sich, sobald sie fertig ist.',
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -318,8 +331,11 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            Icon(Icons.alt_route,
-                size: 20, color: theme.colorScheme.onPrimaryContainer),
+            Icon(
+              Icons.alt_route,
+              size: 20,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -328,8 +344,9 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                   Text(
                     'Split-Ticket für',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer
-                          .withAlpha(180),
+                      color: theme.colorScheme.onPrimaryContainer.withAlpha(
+                        180,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -380,9 +397,12 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
             LinearProgressIndicator(value: progress.progress),
             if (progress.currentSegment.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(progress.currentSegment,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              Text(
+                progress.currentSegment,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ],
         ),
@@ -396,9 +416,10 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
   Widget _buildAssumptions(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final s = ref.watch(settingsProvider);
-    final primaryTraveler = s.searchParty.travelers
-        .firstWhere((t) => t.typ.isPerson,
-            orElse: () => const Traveler(typ: TravelerType.erwachsener));
+    final primaryTraveler = s.searchParty.travelers.firstWhere(
+      (t) => t.typ.isPerson,
+      orElse: () => const Traveler(typ: TravelerType.erwachsener),
+    );
     final hasBC = primaryTraveler.bahnCard != Reduction.none;
     final hasWeitere = primaryTraveler.weitere != Reduction.none;
     final hasSba = primaryTraveler.sba != SbaOption.none;
@@ -413,8 +434,11 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.tune,
-                    size: 16, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.tune,
+                  size: 16,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 6),
                 Text('Preise gelten für', style: theme.textTheme.titleSmall),
                 const Spacer(),
@@ -427,22 +451,34 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                   icon: const Icon(Icons.edit, size: 14),
                   label: const Text('Ändern', style: TextStyle(fontSize: 12)),
                   onPressed: () async {
-                    final newParty = await showReisendeSheet(context, s.searchParty);
+                    final newParty = await showReisendeSheet(
+                      context,
+                      s.searchParty,
+                    );
                     if (newParty == null) return;
-                    ref.read(settingsProvider.notifier).setSearchParty(newParty);
+                    ref
+                        .read(settingsProvider.notifier)
+                        .setSearchParty(newParty);
 
                     // Re-run the active analysis with the updated party
                     if (journey != null) {
                       final stops = splitStopsFromJourney(journey!);
-                      final dep = journey!.plannedDeparture ?? journey!.departure;
-                      final date = dep != null ? dep.toIso8601String().split('T').first : '';
-                      ref.read(splitTicketProvider.notifier).analyze(
-                        stops: stops,
-                        date: date,
-                        directPrice: journey!.price?.amount ?? 0,
-                        routeLabel: '${journey!.origin?.name ?? ''} → ${journey!.destination?.name ?? ''}',
-                        jobKey: 'rerun:${DateTime.now().millisecondsSinceEpoch}',
-                      );
+                      final dep =
+                          journey!.plannedDeparture ?? journey!.departure;
+                      final date = dep != null
+                          ? dep.toIso8601String().split('T').first
+                          : '';
+                      ref
+                          .read(splitTicketProvider.notifier)
+                          .analyze(
+                            stops: stops,
+                            date: date,
+                            directPrice: journey!.price?.amount ?? 0,
+                            routeLabel:
+                                '${journey!.origin?.name ?? ''} → ${journey!.destination?.name ?? ''}',
+                            jobKey:
+                                'rerun:${DateTime.now().millisecondsSinceEpoch}',
+                          );
                     }
                   },
                 ),
@@ -455,17 +491,26 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
               children: [
                 Chip(
                   avatar: Icon(
-                      hasBC ? Icons.check_circle : Icons.credit_card_off,
-                      size: 16,
-                      color: hasBC ? AppColors.onTime : null),
-                  label: Text(hasBC ? primaryTraveler.bahnCard.label : 'ohne BahnCard'),
-                  backgroundColor: hasBC ? AppColors.onTime.withAlpha(20) : null,
+                    hasBC ? Icons.check_circle : Icons.credit_card_off,
+                    size: 16,
+                    color: hasBC ? AppColors.onTime : null,
+                  ),
+                  label: Text(
+                    hasBC ? primaryTraveler.bahnCard.label : 'ohne BahnCard',
+                  ),
+                  backgroundColor: hasBC
+                      ? AppColors.onTime.withAlpha(20)
+                      : null,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
                 if (hasWeitere)
                   Chip(
-                    avatar: const Icon(Icons.check_circle, size: 16, color: AppColors.onTime),
+                    avatar: const Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: AppColors.onTime,
+                    ),
                     label: Text(primaryTraveler.weitere.label),
                     backgroundColor: AppColors.onTime.withAlpha(20),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -473,7 +518,11 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                   ),
                 if (hasSba)
                   Chip(
-                    avatar: const Icon(Icons.check_circle, size: 16, color: AppColors.onTime),
+                    avatar: const Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: AppColors.onTime,
+                    ),
                     label: Text(primaryTraveler.sba.label),
                     backgroundColor: AppColors.onTime.withAlpha(20),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -481,13 +530,18 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                   ),
                 Chip(
                   avatar: Icon(
-                      isDTicket ? Icons.check_circle : Icons.cancel,
-                      size: 16,
-                      color: isDTicket ? AppColors.onTime : null),
-                  label: Text(isDTicket
-                      ? 'mit Deutschland-Ticket'
-                      : 'ohne Deutschland-Ticket'),
-                  backgroundColor: isDTicket ? AppColors.onTime.withAlpha(20) : null,
+                    isDTicket ? Icons.check_circle : Icons.cancel,
+                    size: 16,
+                    color: isDTicket ? AppColors.onTime : null,
+                  ),
+                  label: Text(
+                    isDTicket
+                        ? 'mit Deutschland-Ticket'
+                        : 'ohne Deutschland-Ticket',
+                  ),
+                  backgroundColor: isDTicket
+                      ? AppColors.onTime.withAlpha(20)
+                      : null,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -516,7 +570,9 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
   }
 
   Widget _buildPriceComparison(
-      BuildContext context, TicketAnalysisResult result) {
+    BuildContext context,
+    TicketAnalysisResult result,
+  ) {
     final theme = Theme.of(context);
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -528,16 +584,20 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Direktpreis:'),
-                Text('${result.directPrice.toStringAsFixed(2)} €',
-                    style: const TextStyle(fontSize: 16)),
+                Text(
+                  '${result.directPrice.toStringAsFixed(2)} €',
+                  style: const TextStyle(fontSize: 16),
+                ),
               ],
             ),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Split-Preis:',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'Split-Preis:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 Text(
                   '${result.splitPrice.toStringAsFixed(2)} €',
                   style: TextStyle(
@@ -559,10 +619,13 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Ersparnis',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.onTime)),
+                    Text(
+                      'Ersparnis',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.onTime,
+                      ),
+                    ),
                     Text(
                       '${result.savings.toStringAsFixed(2)} € '
                       '(${result.savingsPercent.toStringAsFixed(0)}%)',
@@ -584,8 +647,9 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
             Text(
               '${result.combinationsChecked} Kombinationen in '
               '${result.elapsed.inSeconds}s geprüft',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -597,12 +661,14 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
   /// the "Gespart"-Zähler in der Reisestatistik (#70). Only a confirmed purchase
   /// counts; a merely computed saving never does.
   Widget _buildBoughtButton(BuildContext context, TicketAnalysisResult result) {
-    final label = ref.watch(splitTicketProvider).routeLabel ??
+    final label =
+        ref.watch(splitTicketProvider).routeLabel ??
         '${journey?.origin?.name ?? ''} → ${journey?.destination?.name ?? ''}';
     final departureIso = journey?.departure?.toIso8601String();
     final dedupeKey = '$label|${departureIso ?? ''}';
-    final already =
-        ref.watch(purchasedSplitsProvider.notifier).contains(dedupeKey);
+    final already = ref
+        .watch(purchasedSplitsProvider.notifier)
+        .contains(dedupeKey);
 
     if (already) {
       return Row(
@@ -610,9 +676,13 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
         children: [
           Icon(Icons.check_circle, size: 18, color: AppColors.onTime),
           const SizedBox(width: 6),
-          Text('Als gekauft gezählt',
-              style: TextStyle(
-                  color: AppColors.onTime, fontWeight: FontWeight.w600)),
+          Text(
+            'Als gekauft gezählt',
+            style: TextStyle(
+              color: AppColors.onTime,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       );
     }
@@ -623,7 +693,9 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
         icon: const Icon(Icons.savings_outlined),
         label: const Text('Ich habe dieses Split-Ticket gekauft'),
         onPressed: () async {
-          await ref.read(purchasedSplitsProvider.notifier).add(
+          await ref
+              .read(purchasedSplitsProvider.notifier)
+              .add(
                 PurchasedSplit(
                   routeLabel: label,
                   directPrice: result.directPrice,
@@ -636,8 +708,9 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                    'Gespart: ${result.savings.toStringAsFixed(2)} € — '
-                    'zählt jetzt in der Reisestatistik.'),
+                  'Gespart: ${result.savings.toStringAsFixed(2)} € — '
+                  'zählt jetzt in der Reisestatistik.',
+                ),
               ),
             );
           }
@@ -647,7 +720,11 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
   }
 
   Widget _buildTicketCard(
-      BuildContext context, WidgetRef ref, SplitTicket ticket, int index) {
+    BuildContext context,
+    WidgetRef ref,
+    SplitTicket ticket,
+    int index,
+  ) {
     final theme = Theme.of(context);
     final settings = ref.read(settingsProvider);
 
@@ -665,10 +742,13 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: Text('$index',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimaryContainer)),
+                child: Text(
+                  '$index',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -691,12 +771,19 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                   if (ticket.coveredByDeutschlandTicket)
                     Row(
                       children: [
-                        Icon(Icons.check_circle,
-                            size: 14, color: AppColors.onTime),
+                        Icon(
+                          Icons.check_circle,
+                          size: 14,
+                          color: AppColors.onTime,
+                        ),
                         const SizedBox(width: 4),
-                        Text('Mit Deutschland-Ticket abgedeckt',
-                            style: TextStyle(
-                                fontSize: 12, color: AppColors.onTime)),
+                        Text(
+                          'Mit Deutschland-Ticket abgedeckt',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.onTime,
+                          ),
+                        ),
                       ],
                     ),
                   // The fare couldn't be tied to this connection's trains, so
@@ -708,17 +795,19 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                       padding: const EdgeInsets.only(top: 2),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline,
-                              size: 13,
-                              color: Theme.of(context).colorScheme.outline),
+                          Icon(
+                            Icons.info_outline,
+                            size: 13,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               'Preis ggf. zuggebunden — beim Buchen prüfen',
                               style: TextStyle(
-                                  fontSize: 11,
-                                  color:
-                                      Theme.of(context).colorScheme.outline),
+                                fontSize: 11,
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
                             ),
                           ),
                         ],
@@ -748,14 +837,16 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
                         bahnCard: settings.bahnCard,
                         deutschlandTicket: settings.hasDeutschlandTicket,
                       );
-                      launchUrl(Uri.parse(url),
-                          mode: LaunchMode.externalApplication);
+                      launchUrl(
+                        Uri.parse(url),
+                        mode: LaunchMode.externalApplication,
+                      );
                     },
                     style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 30)),
-                    child:
-                        const Text('Buchen', style: TextStyle(fontSize: 12)),
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 30),
+                    ),
+                    child: const Text('Buchen', style: TextStyle(fontSize: 12)),
                   ),
               ],
             ),
@@ -764,5 +855,4 @@ class _SplitTicketScreenState extends ConsumerState<SplitTicketScreen> {
       ),
     );
   }
-
 }

@@ -25,11 +25,11 @@ class StopoverPlanArgs {
   });
 
   StopoverPlanArgs copyWith({DateTime? deadline}) => StopoverPlanArgs(
-        from: from,
-        hub: hub,
-        to: to,
-        deadline: deadline ?? this.deadline,
-      );
+    from: from,
+    hub: hub,
+    to: to,
+    deadline: deadline ?? this.deadline,
+  );
 }
 
 class StopoverPlanState {
@@ -96,19 +96,18 @@ class StopoverPlanState {
     String? error,
     bool clearFirstLeg = false,
     bool clearSecondLeg = false,
-  }) =>
-      StopoverPlanState(
-        args: args ?? this.args,
-        stayMinutes: stayMinutes ?? this.stayMinutes,
-        secondLeg: clearSecondLeg ? null : (secondLeg ?? this.secondLeg),
-        firstOptions: firstOptions ?? this.firstOptions,
-        firstLeg: clearFirstLeg ? null : (firstLeg ?? this.firstLeg),
-        firstEarlierRef: firstEarlierRef ?? this.firstEarlierRef,
-        hiddenFirstCount: hiddenFirstCount ?? this.hiddenFirstCount,
-        isLoading: isLoading ?? this.isLoading,
-        // Never sticky: an error belongs to the load that produced it.
-        error: error,
-      );
+  }) => StopoverPlanState(
+    args: args ?? this.args,
+    stayMinutes: stayMinutes ?? this.stayMinutes,
+    secondLeg: clearSecondLeg ? null : (secondLeg ?? this.secondLeg),
+    firstOptions: firstOptions ?? this.firstOptions,
+    firstLeg: clearFirstLeg ? null : (firstLeg ?? this.firstLeg),
+    firstEarlierRef: firstEarlierRef ?? this.firstEarlierRef,
+    hiddenFirstCount: hiddenFirstCount ?? this.hiddenFirstCount,
+    isLoading: isLoading ?? this.isLoading,
+    // Never sticky: an error belongs to the load that produced it.
+    error: error,
+  );
 }
 
 class StopoverPlanNotifier extends Notifier<StopoverPlanState> {
@@ -151,10 +150,9 @@ class StopoverPlanNotifier extends Notifier<StopoverPlanState> {
     }
   }
 
-  void selectFirstLeg(Journey? journey) =>
-      state = journey == null
-          ? state.copyWith(clearFirstLeg: true)
-          : state.copyWith(firstLeg: journey);
+  void selectFirstLeg(Journey? journey) => state = journey == null
+      ? state.copyWith(clearFirstLeg: true)
+      : state.copyWith(firstLeg: journey);
 
   /// Both halves: the train to the appointment, then everything that gets to the
   /// hub in time to still catch it with the wanted stay in between.
@@ -174,7 +172,8 @@ class StopoverPlanNotifier extends Notifier<StopoverPlanState> {
           isLoading: false,
           clearSecondLeg: true,
           firstOptions: const [],
-          error: 'Ab ${args.hub.name} ist ${args.to.name} um '
+          error:
+              'Ab ${args.hub.name} ist ${args.to.name} um '
               '${_hhmm(args.deadline)} nicht erreichbar. '
               'Späteren Termin wählen.',
         );
@@ -199,8 +198,14 @@ class StopoverPlanNotifier extends Notifier<StopoverPlanState> {
       // Ask for arrival at the hub by "second leg leaves − wanted stay". DB then
       // returns the window ending there, which is exactly the set that qualifies
       // — plus a few just outside it, which the filter below drops.
-      final target = hubDeparture.subtract(Duration(minutes: state.stayMinutes));
-      final result = await _search(from: args.from, to: args.hub, arriveBy: target);
+      final target = hubDeparture.subtract(
+        Duration(minutes: state.stayMinutes),
+      );
+      final result = await _search(
+        from: args.from,
+        to: args.hub,
+        arriveBy: target,
+      );
       final options = firstLegOptions(
         result.journeys,
         hubDeparture,
@@ -227,7 +232,9 @@ class StopoverPlanNotifier extends Notifier<StopoverPlanState> {
     if (args == null || token == null || hubDeparture == null) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final target = hubDeparture.subtract(Duration(minutes: state.stayMinutes));
+      final target = hubDeparture.subtract(
+        Duration(minutes: state.stayMinutes),
+      );
       final result = await _search(
         from: args.from,
         to: args.hub,
@@ -269,7 +276,9 @@ class StopoverPlanNotifier extends Notifier<StopoverPlanState> {
   }) {
     final settings = ref.read(settingsProvider);
     final party = settings.searchParty;
-    return ref.read(vendoServiceProvider).searchJourneys(
+    return ref
+        .read(vendoServiceProvider)
+        .searchJourneys(
           fromLocationId: from.vendoLocationId,
           toLocationId: to.vendoLocationId,
           dateTime: arriveBy,
@@ -293,4 +302,5 @@ class StopoverPlanNotifier extends Notifier<StopoverPlanState> {
 
 final stopoverPlanProvider =
     NotifierProvider<StopoverPlanNotifier, StopoverPlanState>(
-        StopoverPlanNotifier.new);
+      StopoverPlanNotifier.new,
+    );

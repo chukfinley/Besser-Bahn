@@ -127,14 +127,14 @@ class ChukNavStyle {
 
   @override
   int get hashCode => Object.hash(
-        trackColor,
-        highlightColor,
-        activeColor,
-        inactiveColor,
-        height,
-        collapsedHeight,
-        radius,
-        iconSize,
-        Object.hashAll(shadow ?? const []),
-      );
+    trackColor,
+    highlightColor,
+    activeColor,
+    inactiveColor,
+    height,
+    collapsedHeight,
+    radius,
+    iconSize,
+    Object.hashAll(shadow ?? const []),
+  );
 }

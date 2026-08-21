@@ -24,27 +24,36 @@ class PredictionService {
   Future<JourneyPrediction?> predict(Journey journey) async {
     final payload = buildTransferData(journey);
     if (payload == null) {
-      AppLog.log('skip: journey lacks coords/times for features', tag: 'predict');
+      AppLog.log(
+        'skip: journey lacks coords/times for features',
+        tag: 'predict',
+      );
       return null;
     }
 
     final url = '$_base/v1/journey-scores';
     try {
       final res = await _client
-          .post(Uri.parse(url),
-              headers: {'Content-Type': 'application/json'},
-              body: utf8.encode(json.encode(payload)))
+          .post(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: utf8.encode(json.encode(payload)),
+          )
           .timeout(const Duration(seconds: 10));
       if (res.statusCode != 200) {
-        AppLog.log('HTTP ${res.statusCode}: ${_snippet(res.bodyBytes)}',
-            tag: 'predict');
+        AppLog.log(
+          'HTTP ${res.statusCode}: ${_snippet(res.bodyBytes)}',
+          tag: 'predict',
+        );
         return null;
       }
       final data =
           json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       final p = JourneyPrediction.fromJson(data);
-      AppLog.log('verb=${p.verbindungsscore} pünktl=${p.puenktlichkeit}',
-          tag: 'predict');
+      AppLog.log(
+        'verb=${p.verbindungsscore} pünktl=${p.puenktlichkeit}',
+        tag: 'predict',
+      );
       return p;
     } catch (e) {
       AppLog.log('failed ($e)', tag: 'predict');
@@ -159,7 +168,12 @@ class PredictionService {
         }
       }
 
-      final brg = _bearing(o.latitude!, o.longitude!, d.latitude!, d.longitude!);
+      final brg = _bearing(
+        o.latitude!,
+        o.longitude!,
+        d.latitude!,
+        d.longitude!,
+      );
       final dist = _legDistanceMeters(leg);
       final regional = _isRegional(leg.line?.product);
       final cat = _category(leg);
@@ -168,21 +182,44 @@ class PredictionService {
           : (leg.line?.displayName ?? '');
       final op = leg.line?.operatorName ?? _operatorFor(leg.line?.product);
       final num =
-          int.tryParse((leg.line?.fahrtNr ?? '').replaceAll(RegExp(r'[^0-9]'), ''))
-              ?? 0;
+          int.tryParse(
+            (leg.line?.fahrtNr ?? '').replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          0;
 
       addRow(
-        num: num, la: o.latitude!, lo: o.longitude!, seq: 0, dist: 0,
-        brg: brg, delay: leg.departureDelayMinutes, time: dep,
-        regional: regional, arr: false, op: op, cat: cat, ln: ln,
-        ptt: depPtt, mtt: depMtt,
+        num: num,
+        la: o.latitude!,
+        lo: o.longitude!,
+        seq: 0,
+        dist: 0,
+        brg: brg,
+        delay: leg.departureDelayMinutes,
+        time: dep,
+        regional: regional,
+        arr: false,
+        op: op,
+        cat: cat,
+        ln: ln,
+        ptt: depPtt,
+        mtt: depMtt,
       );
       addRow(
-        num: num, la: d.latitude!, lo: d.longitude!,
+        num: num,
+        la: d.latitude!,
+        lo: d.longitude!,
         seq: leg.stopovers.isNotEmpty ? leg.stopovers.length - 1 : 1,
-        dist: dist, brg: brg, delay: leg.arrivalDelayMinutes, time: arr,
-        regional: regional, arr: true, op: op, cat: cat, ln: ln,
-        ptt: arrPtt, mtt: arrMtt,
+        dist: dist,
+        brg: brg,
+        delay: leg.arrivalDelayMinutes,
+        time: arr,
+        regional: regional,
+        arr: true,
+        op: op,
+        cat: cat,
+        ln: ln,
+        ptt: arrPtt,
+        mtt: arrMtt,
       );
     }
 
@@ -237,7 +274,8 @@ class PredictionService {
   double _haversine(double la1, double lo1, double la2, double lo2) {
     final dLa = _rad(la2 - la1);
     final dLo = _rad(lo2 - lo1);
-    final a = sin(dLa / 2) * sin(dLa / 2) +
+    final a =
+        sin(dLa / 2) * sin(dLa / 2) +
         cos(_rad(la1)) * cos(_rad(la2)) * sin(dLo / 2) * sin(dLo / 2);
     return _earthR * 2 * atan2(sqrt(a), sqrt(1 - a));
   }
@@ -245,7 +283,8 @@ class PredictionService {
   int _bearing(double la1, double lo1, double la2, double lo2) {
     final dLo = _rad(lo2 - lo1);
     final y = sin(dLo) * cos(_rad(la2));
-    final x = cos(_rad(la1)) * sin(_rad(la2)) -
+    final x =
+        cos(_rad(la1)) * sin(_rad(la2)) -
         sin(_rad(la1)) * cos(_rad(la2)) * cos(dLo);
     final brg = atan2(y, x) * 180 / pi;
     return ((brg + 360) % 360).round();
@@ -255,8 +294,14 @@ class PredictionService {
 
   bool _isRegional(String? product) => product == null
       ? true
-      : const {'regional', 'suburban', 'subway', 'tram', 'bus', 'ferry'}
-          .contains(product);
+      : const {
+          'regional',
+          'suburban',
+          'subway',
+          'tram',
+          'bus',
+          'ferry',
+        }.contains(product);
 
   String _operatorFor(String? product) {
     switch (product) {

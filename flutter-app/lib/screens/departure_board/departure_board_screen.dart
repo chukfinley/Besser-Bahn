@@ -148,15 +148,22 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
                     itemBuilder: (_) => [
                       const PopupMenuItem(value: null, child: Text('Alle')),
                       const PopupMenuItem(
-                          value: 'nationalExpress', child: Text('ICE')),
+                        value: 'nationalExpress',
+                        child: Text('ICE'),
+                      ),
                       const PopupMenuItem(
-                          value: 'national', child: Text('IC/EC')),
+                        value: 'national',
+                        child: Text('IC/EC'),
+                      ),
                       const PopupMenuItem(
-                          value: 'regionalExpress', child: Text('RE')),
+                        value: 'regionalExpress',
+                        child: Text('RE'),
+                      ),
+                      const PopupMenuItem(value: 'regional', child: Text('RB')),
                       const PopupMenuItem(
-                          value: 'regional', child: Text('RB')),
-                      const PopupMenuItem(
-                          value: 'suburban', child: Text('S-Bahn')),
+                        value: 'suburban',
+                        child: Text('S-Bahn'),
+                      ),
                     ],
                   ),
                 ],
@@ -170,13 +177,17 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(Icons.sync,
-                      size: 13, color: theme.colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.sync,
+                    size: 13,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Aktualisiert ${state.lastUpdated!.hhmm}',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -192,7 +203,10 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
   }
 
   Widget _buildBoard(
-      BuildContext context, WidgetRef ref, DepartureBoardState state) {
+    BuildContext context,
+    WidgetRef ref,
+    DepartureBoardState state,
+  ) {
     if (state.station == null) {
       return const Center(
         child: Padding(
@@ -230,7 +244,9 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
           return _DepartureTile(
             departure: departures[index],
             onTap: () {
-              ref.read(trainLookupProvider.notifier).lookupByTripId(
+              ref
+                  .read(trainLookupProvider.notifier)
+                  .lookupByTripId(
                     departures[index].tripId,
                     lineLabel: departures[index].line.name,
                   );
@@ -276,13 +292,15 @@ class _DepartureTile extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  decoration:
-                      departure.cancelled ? TextDecoration.lineThrough : null,
+                  decoration: departure.cancelled
+                      ? TextDecoration.lineThrough
+                      : null,
                 ),
               ),
               DelayBadge(
-                  delaySeconds: departure.delay,
-                  cancelled: departure.cancelled),
+                delaySeconds: departure.delay,
+                cancelled: departure.cancelled,
+              ),
             ],
           ),
         ),
@@ -297,8 +315,7 @@ class _DepartureTile extends StatelessWidget {
             ),
             child: Text(
               departure.line.displayName,
-              style: const TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 8),
@@ -324,8 +341,9 @@ class _DepartureTile extends StatelessWidget {
                 departure.remarks.first,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurfaceVariant),
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],

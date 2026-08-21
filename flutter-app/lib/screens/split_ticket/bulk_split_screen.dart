@@ -60,9 +60,8 @@ class _BulkSplitScreenState extends ConsumerState<BulkSplitScreen> {
   /// [BulkSplitState.deutschlandTicket].
   DTicketQuote? _quoteOf(BulkSplitRow row, BulkSplitState state) =>
       row.status == BulkRowStatus.done
-          ? dTicketQuoteFrom(row.result,
-              deutschlandTicket: state.deutschlandTicket)
-          : null;
+      ? dTicketQuoteFrom(row.result, deutschlandTicket: state.deutschlandTicket)
+      : null;
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +133,7 @@ class _BulkSplitScreenState extends ConsumerState<BulkSplitScreen> {
                 ],
                 selected: {dMode},
                 showSelectedIcon: false,
-                onSelectionChanged: (s) =>
-                    setState(() => _dTicket = s.first),
+                onSelectionChanged: (s) => setState(() => _dTicket = s.first),
               ),
             ),
 
@@ -347,7 +345,10 @@ class _BulkSplitScreenState extends ConsumerState<BulkSplitScreen> {
         if (quote == null) return ('', false);
         if (quote.fullyCovered) return ('D-Ticket reicht', true);
         if (quote.savesMoney) {
-          return ('D-Ticket spart −${quote.saving!.toStringAsFixed(2)} €', true);
+          return (
+            'D-Ticket spart −${quote.saving!.toStringAsFixed(2)} €',
+            true,
+          );
         }
         // Pure long-distance: the ticket is worth nothing here. Better said out
         // loud than dressed up as a saving.

@@ -12,13 +12,17 @@ import '../../../models/coach_sequence.dart';
 /// Banner that tells the rider which portion of a splitting train to board.
 /// Caller must guarantee `sequence.splits` (a real split to distinct
 /// destinations) — not merely `groups.length > 1`.
-Widget splitTrainBanner(BuildContext context, CoachSequence sequence,
-    {String? targetDestination}) {
+Widget splitTrainBanner(
+  BuildContext context,
+  CoachSequence sequence, {
+  String? targetDestination,
+}) {
   final theme = Theme.of(context);
   final groups = sequence.groups;
   final target = targetDestination;
-  final mine =
-      (target != null && target.isNotEmpty) ? sequence.portionTo(target) : null;
+  final mine = (target != null && target.isNotEmpty)
+      ? sequence.portionTo(target)
+      : null;
   // LOUD red: a fully filled, saturated red block with white text — impossible
   // to miss. This is a "board the wrong portion and you don't arrive" warning.
   const red = Color(0xFFD32011); // strong signal red
@@ -45,11 +49,14 @@ Widget splitTrainBanner(BuildContext context, CoachSequence sequence,
           children: [
             const Icon(Icons.warning_amber_rounded, size: 22, color: fg),
             const SizedBox(width: 7),
-            Text('ACHTUNG · Zug teilt sich',
-                style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: fg,
-                    letterSpacing: 0.3)),
+            Text(
+              'ACHTUNG · Zug teilt sich',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: fg,
+                letterSpacing: 0.3,
+              ),
+            ),
           ],
         ),
         if (mine != null) ...[
@@ -62,7 +69,7 @@ Widget splitTrainBanner(BuildContext context, CoachSequence sequence,
             text: mine.sectors.isNotEmpty
                 ? 'Für $target: in Abschnitt ${mine.sectors.join('–')} einsteigen'
                 : 'Für $target: Zugteil Richtung '
-                    '${mine.transport.destination ?? target}',
+                      '${mine.transport.destination ?? target}',
           ),
         ],
         const SizedBox(height: 6),
@@ -75,22 +82,30 @@ Widget splitTrainBanner(BuildContext context, CoachSequence sequence,
               icon: Icons.block,
               text: g.sectors.isNotEmpty
                   ? 'Nicht: Richtung ${g.transport.destination ?? "?"} · '
-                      'Abschnitt ${g.sectors.join('–')}'
+                        'Abschnitt ${g.sectors.join('–')}'
                   : 'Nicht: Richtung ${g.transport.destination ?? "?"}',
             ),
         if (mine == null) ...[
           const SizedBox(height: 4),
-          Text('Vor Einstieg Fahrtzielanzeige am Zug beachten.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: fg.withAlpha(230))),
+          Text(
+            'Vor Einstieg Fahrtzielanzeige am Zug beachten.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: fg.withAlpha(230),
+            ),
+          ),
         ],
       ],
     ),
   );
 }
 
-Widget _bannerLine(BuildContext context, Color fg,
-    {required bool primary, required IconData icon, required String text}) {
+Widget _bannerLine(
+  BuildContext context,
+  Color fg, {
+  required bool primary,
+  required IconData icon,
+  required String text,
+}) {
   final theme = Theme.of(context);
   final secondary = fg.withAlpha(215);
   return Padding(
@@ -103,11 +118,14 @@ Widget _bannerLine(BuildContext context, Color fg,
         Expanded(
           child: Text(
             text,
-            style: (primary ? theme.textTheme.bodyMedium : theme.textTheme.bodySmall)
-                ?.copyWith(
-              color: primary ? fg : secondary,
-              fontWeight: primary ? FontWeight.w900 : FontWeight.w500,
-            ),
+            style:
+                (primary
+                        ? theme.textTheme.bodyMedium
+                        : theme.textTheme.bodySmall)
+                    ?.copyWith(
+                      color: primary ? fg : secondary,
+                      fontWeight: primary ? FontWeight.w900 : FontWeight.w500,
+                    ),
           ),
         ),
       ],

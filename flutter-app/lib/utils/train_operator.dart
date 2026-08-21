@@ -30,8 +30,11 @@ const _byCode = <String, TrainOperator>{
 };
 
 /// The operator for a line, or null when unknown.
-TrainOperator? operatorFor(
-    {String? productName, String? product, String? name}) {
+TrainOperator? operatorFor({
+  String? productName,
+  String? product,
+  String? name,
+}) {
   final code = (productName ?? '').trim().toLowerCase();
   final byCode = _byCode[code];
   if (byCode != null) return byCode;

@@ -8,18 +8,27 @@ import 'package:flutter_test/flutter_test.dart';
 Station _st(String name) => Station(id: name, name: name);
 
 TransitLine _line(String name) => TransitLine(
-    name: name, fahrtNr: '1', productName: name, product: 'regional');
+  name: name,
+  fahrtNr: '1',
+  productName: name,
+  product: 'regional',
+);
 
-JourneyLeg _leg(String from, String to, String line,
-        {DateTime? arr, DateTime? dep, bool cancelled = false}) =>
-    JourneyLeg(
-      origin: _st(from),
-      destination: _st(to),
-      line: _line(line),
-      arrival: arr,
-      departure: dep,
-      cancelled: cancelled,
-    );
+JourneyLeg _leg(
+  String from,
+  String to,
+  String line, {
+  DateTime? arr,
+  DateTime? dep,
+  bool cancelled = false,
+}) => JourneyLeg(
+  origin: _st(from),
+  destination: _st(to),
+  line: _line(line),
+  arrival: arr,
+  departure: dep,
+  cancelled: cancelled,
+);
 
 Journey _journey(List<JourneyLeg> legs) => Journey(legs: legs);
 
@@ -37,26 +46,31 @@ void main() {
 
     test('transferCount is boarded legs minus one', () {
       expect(
-          TripMetrics.transferCount(
-              _journey([_leg('A', 'B', 'RE1'), _leg('B', 'C', 'RE2')])),
-          1);
+        TripMetrics.transferCount(
+          _journey([_leg('A', 'B', 'RE1'), _leg('B', 'C', 'RE2')]),
+        ),
+        1,
+      );
       expect(TripMetrics.transferCount(_journey([_leg('A', 'B', 'RE1')])), 0);
     });
 
-    test('missedConnections fires when feeder arrives after onward departs', () {
-      final t0 = DateTime(2026, 8, 1, 9, 0);
-      final made = _journey([
-        _leg('A', 'B', 'RE1', arr: t0),
-        _leg('B', 'C', 'RE2', dep: t0.add(const Duration(minutes: 5))),
-      ]);
-      expect(TripMetrics.missedConnections(made), 0);
+    test(
+      'missedConnections fires when feeder arrives after onward departs',
+      () {
+        final t0 = DateTime(2026, 8, 1, 9, 0);
+        final made = _journey([
+          _leg('A', 'B', 'RE1', arr: t0),
+          _leg('B', 'C', 'RE2', dep: t0.add(const Duration(minutes: 5))),
+        ]);
+        expect(TripMetrics.missedConnections(made), 0);
 
-      final missed = _journey([
-        _leg('A', 'B', 'RE1', arr: t0.add(const Duration(minutes: 10))),
-        _leg('B', 'C', 'RE2', dep: t0),
-      ]);
-      expect(TripMetrics.missedConnections(missed), 1);
-    });
+        final missed = _journey([
+          _leg('A', 'B', 'RE1', arr: t0.add(const Duration(minutes: 10))),
+          _leg('B', 'C', 'RE2', dep: t0),
+        ]);
+        expect(TripMetrics.missedConnections(missed), 1);
+      },
+    );
 
     test('a cancelled onward leg counts as missed', () {
       final missed = _journey([
@@ -81,10 +95,16 @@ void main() {
 
     test('connectionsMade never negative and complements missed', () {
       const s = TravelStats(
-          tripCount: 2, connectionsTotal: 3, connectionsMissed: 1);
+        tripCount: 2,
+        connectionsTotal: 3,
+        connectionsMissed: 1,
+      );
       expect(s.connectionsMade, 2);
       const bad = TravelStats(
-          tripCount: 1, connectionsTotal: 0, connectionsMissed: 2);
+        tripCount: 1,
+        connectionsTotal: 0,
+        connectionsMissed: 2,
+      );
       expect(bad.connectionsMade, 0);
     });
 

@@ -23,8 +23,11 @@ Stopover? _stopFor(Trip trip, Station station) {
 /// Realtime departure platform for [leg], preferring the freshly-fetched [live]
 /// trip's stop (which carries `ezGleis`) over the leg's search-time value — so a
 /// Gleiswechsel announced after the search still shows in the share (#50).
-String? _livePlatform(JourneyLeg leg, Map<String, Trip>? live,
-    {required bool arrival}) {
+String? _livePlatform(
+  JourneyLeg leg,
+  Map<String, Trip>? live, {
+  required bool arrival,
+}) {
   final id = leg.tripId;
   final trip = (id != null && live != null) ? live[id] : null;
   if (trip != null) {
@@ -35,13 +38,17 @@ String? _livePlatform(JourneyLeg leg, Map<String, Trip>? live,
   return arrival ? leg.arrivalPlatform : leg.departurePlatform;
 }
 
-DateTime? _liveTime(JourneyLeg leg, Map<String, Trip>? live,
-    {required bool arrival}) {
+DateTime? _liveTime(
+  JourneyLeg leg,
+  Map<String, Trip>? live, {
+  required bool arrival,
+}) {
   final id = leg.tripId;
   final trip = (id != null && live != null) ? live[id] : null;
   if (trip != null) {
     final so = _stopFor(trip, arrival ? leg.destination : leg.origin);
-    final t = arrival ? (so?.arrival ?? so?.plannedArrival)
+    final t = arrival
+        ? (so?.arrival ?? so?.plannedArrival)
         : (so?.departure ?? so?.plannedDeparture);
     if (t != null) return t;
   }
@@ -89,17 +96,22 @@ String _lineLabel(JourneyLeg leg) {
 /// [live] optionally maps `leg.tripId` → a freshly-fetched [Trip]; when given,
 /// each leg's platform and time are read from it (realtime `ezGleis`), so the
 /// share reflects a Gleiswechsel/delay the search snapshot didn't have (#50).
-String journeyShareText(Journey journey, String link,
-    {Map<String, Trip>? live}) {
+String journeyShareText(
+  Journey journey,
+  String link, {
+  Map<String, Trip>? live,
+}) {
   final o = journey.origin?.name ?? '';
   final d = journey.destination?.name ?? '';
   final dep = (journey.plannedDeparture ?? journey.departure)?.toLocal();
 
   final b = StringBuffer()..writeln('$o → $d');
   if (dep != null) {
-    b.writeln('${_weekdayDe[dep.weekday - 1]} '
-        '${dep.day.toString().padLeft(2, '0')}.'
-        '${dep.month.toString().padLeft(2, '0')}.${dep.year}');
+    b.writeln(
+      '${_weekdayDe[dep.weekday - 1]} '
+      '${dep.day.toString().padLeft(2, '0')}.'
+      '${dep.month.toString().padLeft(2, '0')}.${dep.year}',
+    );
   }
 
   for (final leg in journey.legs.where((l) => !l.isWalking)) {
@@ -111,13 +123,19 @@ String journeyShareText(Journey journey, String link,
     final arrPlat = _livePlatform(leg, live, arrival: true);
     final abG = depPlat != null ? ', Gleis $depPlat' : '';
     final anG = arrPlat != null ? ', Gleis $arrPlat' : '';
-    b.writeln('Ab ${_hhmm(_liveTime(leg, live, arrival: false))} '
-        '${leg.origin.name}$abG');
-    b.writeln('An ${_hhmm(_liveTime(leg, live, arrival: true))} '
-        '${leg.destination.name}$anG');
+    b.writeln(
+      'Ab ${_hhmm(_liveTime(leg, live, arrival: false))} '
+      '${leg.origin.name}$abG',
+    );
+    b.writeln(
+      'An ${_hhmm(_liveTime(leg, live, arrival: true))} '
+      '${leg.destination.name}$anG',
+    );
   }
 
-  b..writeln()..write('Verbindung ansehen: $link');
+  b
+    ..writeln()
+    ..write('Verbindung ansehen: $link');
   return b.toString();
 }
 
@@ -140,9 +158,11 @@ String etaShareText(Journey journey, String link, {Map<String, Trip>? live}) {
 
   final b = StringBuffer()..writeln('🚆 Ich komme nach $d');
   if (arr != null) {
-    b.writeln('Ankunft ~${_hhmm(arr)}'
-        '${plat != null ? ', Gleis $plat' : ''}'
-        '${line != null ? ' ($line)' : ''}');
+    b.writeln(
+      'Ankunft ~${_hhmm(arr)}'
+      '${plat != null ? ', Gleis $plat' : ''}'
+      '${line != null ? ' ($line)' : ''}',
+    );
   }
   if (delay > 0) b.writeln('+$delay Min später als geplant');
   b.write('Live verfolgen: $link');

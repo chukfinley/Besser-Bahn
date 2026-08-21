@@ -238,8 +238,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final args = state.extra as BestPriceArgs;
-          return BestPriceScreen(
-              from: args.from, to: args.to, date: args.date);
+          return BestPriceScreen(from: args.from, to: args.to, date: args.date);
         },
       ),
       // A single train's run, pushed (with back button) from a connection leg

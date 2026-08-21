@@ -4,8 +4,9 @@ import '../models/journey.dart';
 import '../models/station.dart';
 import '../services/regional_transit_service.dart';
 
-final regionalTransitServiceProvider =
-    Provider<RegionalTransitService>((ref) => RegionalTransitService());
+final regionalTransitServiceProvider = Provider<RegionalTransitService>(
+  (ref) => RegionalTransitService(),
+);
 
 /// One "which bay does this bus really leave from" question.
 class BayQuery {
@@ -59,8 +60,14 @@ class BayQuery {
       other.dbPlatform == dbPlatform;
 
   @override
-  int get hashCode =>
-      Object.hash(stop.id, line, towards, plannedDeparture, product, dbPlatform);
+  int get hashCode => Object.hash(
+    stop.id,
+    line,
+    towards,
+    plannedDeparture,
+    product,
+    dbPlatform,
+  );
 }
 
 /// The bay a bus has been moved to, or null when it has not been (which is the
@@ -68,20 +75,20 @@ class BayQuery {
 ///
 /// Never keeps the UI waiting and never fails it: unresolved and error both read
 /// as "no correction", and the Reiseplan shows the timetable's bay as before.
-final bayCorrectionProvider =
-    FutureProvider.autoDispose.family<PlatformCorrection?, BayQuery>(
-  (ref, query) async {
-    if (!query.worthAsking) return null;
-    // Hold the answer for the life of the screen rather than re-asking on every
-    // rebuild; the board behind it is cached per quarter hour anyway.
-    ref.keepAlive();
-    return ref.read(regionalTransitServiceProvider).platformCorrection(
-          stop: query.stop,
-          line: query.line,
-          towards: query.towards,
-          plannedDeparture: query.plannedDeparture,
-          product: query.product,
-          dbPlatform: query.dbPlatform,
-        );
-  },
-);
+final bayCorrectionProvider = FutureProvider.autoDispose
+    .family<PlatformCorrection?, BayQuery>((ref, query) async {
+      if (!query.worthAsking) return null;
+      // Hold the answer for the life of the screen rather than re-asking on every
+      // rebuild; the board behind it is cached per quarter hour anyway.
+      ref.keepAlive();
+      return ref
+          .read(regionalTransitServiceProvider)
+          .platformCorrection(
+            stop: query.stop,
+            line: query.line,
+            towards: query.towards,
+            plannedDeparture: query.plannedDeparture,
+            product: query.product,
+            dbPlatform: query.dbPlatform,
+          );
+    });

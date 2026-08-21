@@ -65,11 +65,17 @@ class SeatPlanBody extends StatelessWidget {
                 const Icon(Icons.event_seat, size: 17, color: AppColors.onTime),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Freie Sitzplätze',
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Freie Sitzplätze',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                Icon(expanded ? Icons.expand_less : Icons.expand_more, size: 20),
+                Icon(
+                  expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 20,
+                ),
               ],
             ),
           ),
@@ -88,7 +94,9 @@ class SeatPlanBody extends StatelessWidget {
               data: (map) {
                 if (map == null || map.isEmpty) {
                   return _info(
-                      theme, 'Für diesen Zug ist kein Sitzplan verfügbar.');
+                    theme,
+                    'Für diesen Zug ist kein Sitzplan verfügbar.',
+                  );
                 }
                 return _content(theme, map);
               },
@@ -107,8 +115,9 @@ class SeatPlanBody extends StatelessWidget {
           child: Text(
             '${map.totalFree} von ${map.totalSeats} Plätzen frei'
             '${coach != null ? '  ·  Wagen ${coach.number}: ${coach.freeCount} frei' : map.freeCoachHint}',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         // Own DB-style train strip only when there's no Wagenreihung selector.
@@ -131,8 +140,9 @@ class SeatPlanBody extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                color: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.35),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.35,
+                ),
                 // The coach is drawn vertically now (long axis top-to-bottom),
                 // so it scrolls DOWN inside a bounded window and fits the phone
                 // width instead of being a cramped sideways strip.
@@ -141,10 +151,11 @@ class SeatPlanBody extends StatelessWidget {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.vertical,
                     padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 12),
+                      vertical: 12,
+                      horizontal: 12,
+                    ),
                     child: Center(
-                      child:
-                          CoachSeatPlan(coach: coach, layout: coach.layout!),
+                      child: CoachSeatPlan(coach: coach, layout: coach.layout!),
                     ),
                   ),
                 ),
@@ -182,13 +193,16 @@ class SeatPlanBody extends StatelessWidget {
               color: _statusColor(s.status),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(s.number,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: s.status == SeatStatus.free
-                        ? Colors.white
-                        : theme.colorScheme.onSurfaceVariant)),
+            child: Text(
+              s.number,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: s.status == SeatStatus.free
+                    ? Colors.white
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
       ],
     );
@@ -196,38 +210,54 @@ class SeatPlanBody extends StatelessWidget {
 
   Widget _legend(ThemeData theme) {
     Widget chip(Color c, String label) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 11,
-                height: 11,
-                decoration: BoxDecoration(
-                    color: c, borderRadius: BorderRadius.circular(3))),
-            const SizedBox(width: 5),
-            Text(label, style: theme.textTheme.labelSmall),
-          ],
-        );
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 11,
+          height: 11,
+          decoration: BoxDecoration(
+            color: c,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(label, style: theme.textTheme.labelSmall),
+      ],
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Wrap(spacing: 16, runSpacing: 8, children: [
-        chip(AppColors.onTime, 'frei'),
-        chip(AppColors.closedCoach, 'reserviert'),
-      ]),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 8,
+        children: [
+          chip(AppColors.onTime, 'frei'),
+          chip(AppColors.closedCoach, 'reserviert'),
+        ],
+      ),
     );
   }
 
   Widget _info(ThemeData theme, String msg) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(children: [
-          Icon(Icons.info_outline,
-              size: 20, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 10),
-          Expanded(
-              child: Text(msg,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant))),
-        ]),
-      );
+    padding: const EdgeInsets.all(20),
+    child: Row(
+      children: [
+        Icon(
+          Icons.info_outline,
+          size: 20,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            msg,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 Color _statusColor(SeatStatus s) {
@@ -270,8 +300,9 @@ class _TrainStrip extends StatelessWidget {
           final nr = int.tryParse(c.number);
           final isSel = nr != null && nr == selectedWagon;
           final first = c.layout?.klasse == 'KLASSE_1';
-          final classColor =
-              first ? AppColors.firstClass : AppColors.secondClass;
+          final classColor = first
+              ? AppColors.firstClass
+              : AppColors.secondClass;
           final full = !c.hasFree;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -296,19 +327,25 @@ class _TrainStrip extends StatelessWidget {
                     Container(height: 5, color: classColor),
                     Expanded(
                       child: Center(
-                        child: Text('Wg ${c.number}',
-                            style: theme.textTheme.labelMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Wg ${c.number}',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
-                      child: Text('${c.freeCount} frei',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                              color: full
-                                  ? AppColors.closedCoach
-                                  : AppColors.onTime,
-                              fontWeight: FontWeight.w600)),
+                      child: Text(
+                        '${c.freeCount} frei',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: full
+                              ? AppColors.closedCoach
+                              : AppColors.onTime,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -335,9 +372,13 @@ class _Nose extends StatelessWidget {
         color: AppColors.locomotive,
         borderRadius: front
             ? const BorderRadius.horizontal(
-                left: Radius.circular(22), right: Radius.circular(4))
+                left: Radius.circular(22),
+                right: Radius.circular(4),
+              )
             : const BorderRadius.horizontal(
-                left: Radius.circular(4), right: Radius.circular(22)),
+                left: Radius.circular(4),
+                right: Radius.circular(22),
+              ),
       ),
       child: const Center(
         child: Icon(Icons.train, color: Colors.white, size: 16),
@@ -434,23 +475,30 @@ class _CoachPainter extends CustomPainter {
   // Translate a grid coordinate into canvas pixels (content centred via bbox).
   // Rotated 90°: grid-X (along the train) → screen-Y (down), grid-Y (across)
   // → screen-X (right), so the coach reads top-to-bottom.
-  Offset _p(double x, double y) =>
-      Offset((y - bounds.minY + margin) * unit, (x - bounds.minX + margin) * unit);
+  Offset _p(double x, double y) => Offset(
+    (y - bounds.minY + margin) * unit,
+    (x - bounds.minX + margin) * unit,
+  );
 
   @override
   void paint(Canvas canvas, Size size) {
     // Coach body outline filling the canvas (uniform margin all around).
     final body = RRect.fromRectAndRadius(
-      Rect.fromLTWH(unit * 0.6, unit * 0.6, size.width - unit * 1.2,
-          size.height - unit * 1.2),
+      Rect.fromLTWH(
+        unit * 0.6,
+        unit * 0.6,
+        size.width - unit * 1.2,
+        size.height - unit * 1.2,
+      ),
       Radius.circular(unit * 1.5),
     );
     canvas.drawRRect(
-        body,
-        Paint()
-          ..color = onSurfaceVariant.withValues(alpha: 0.25)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5);
+      body,
+      Paint()
+        ..color = onSurfaceVariant.withValues(alpha: 0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
 
     final seatSize = unit * 3.0;
     for (final el in layout.elements) {
@@ -521,7 +569,9 @@ class _CoachPainter extends CustomPainter {
       )..layout(maxWidth: s);
       // Centre the glyph box within the seat square.
       tp.paint(
-          canvas, Offset(o.dx + (s - tp.width) / 2, o.dy + (s - tp.height) / 2));
+        canvas,
+        Offset(o.dx + (s - tp.width) / 2, o.dy + (s - tp.height) / 2),
+      );
     }
   }
 
@@ -530,8 +580,9 @@ class _CoachPainter extends CustomPainter {
     if (sub.startsWith('TISCH')) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(o.dx, o.dy, unit * 2.4, unit * 2.4),
-            Radius.circular(unit * 0.4)),
+          Rect.fromLTWH(o.dx, o.dy, unit * 2.4, unit * 2.4),
+          Radius.circular(unit * 0.4),
+        ),
         Paint()..color = onSurfaceVariant.withValues(alpha: 0.3),
       );
     } else if (sub.startsWith('WAND')) {
@@ -557,11 +608,12 @@ class _CoachPainter extends CustomPainter {
       final col = cls == '1' ? AppColors.firstClass : AppColors.onTime;
       canvas.drawRRect(rr, Paint()..color = col.withValues(alpha: 0.20));
       canvas.drawRRect(
-          rr,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.2
-            ..color = col);
+        rr,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = col,
+      );
       _centerText(
         canvas,
         box,
@@ -579,13 +631,17 @@ class _CoachPainter extends CustomPainter {
     final icon = _symbolIcon(el.subtype);
     if (icon == null) return;
     // Framed pictogram so symbols read as boxed amenities, not loose glyphs.
-    canvas.drawRRect(rr, Paint()..color = onSurfaceVariant.withValues(alpha: 0.10));
     canvas.drawRRect(
-        rr,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0
-          ..color = onSurfaceVariant.withValues(alpha: 0.4));
+      rr,
+      Paint()..color = onSurfaceVariant.withValues(alpha: 0.10),
+    );
+    canvas.drawRRect(
+      rr,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..color = onSurfaceVariant.withValues(alpha: 0.4),
+    );
     _centerText(
       canvas,
       box,
@@ -607,9 +663,12 @@ class _CoachPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(
-        canvas,
-        Offset(box.left + (box.width - tp.width) / 2,
-            box.top + (box.height - tp.height) / 2));
+      canvas,
+      Offset(
+        box.left + (box.width - tp.width) / 2,
+        box.top + (box.height - tp.height) / 2,
+      ),
+    );
   }
 
   IconData? _symbolIcon(String? subtype) {

@@ -50,8 +50,7 @@ class StationSearchField extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<StationSearchField> createState() =>
-      _StationSearchFieldState();
+  ConsumerState<StationSearchField> createState() => _StationSearchFieldState();
 }
 
 class _StationSearchFieldState extends ConsumerState<StationSearchField> {
@@ -155,7 +154,8 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant),
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
             child: Consumer(
               builder: (context, ref, _) {
@@ -184,7 +184,7 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
                         context,
                         geo == null
                             ? 'Keine Treffer für „$query". Haltestelle, '
-                                'Adresse oder Ort eingeben.'
+                                  'Adresse oder Ort eingeben.'
                             : 'Keine Haltestellen in der Nähe dieser Koordinate.',
                         icon: geo == null
                             ? Icons.search_off
@@ -198,10 +198,11 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
                         children: [
                           if (geo != null)
                             _notice(
-                                context,
-                                geo.label != null
-                                    ? 'Haltestellen nahe „${geo.label}"'
-                                    : 'Haltestellen in der Nähe der Koordinate'),
+                              context,
+                              geo.label != null
+                                  ? 'Haltestellen nahe „${geo.label}"'
+                                  : 'Haltestellen in der Nähe der Koordinate',
+                            ),
                           Flexible(
                             child: ListView.builder(
                               padding: EdgeInsets.zero,
@@ -240,7 +241,9 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
         widget.stopsOnly ? list.where((s) => s.isStop).toList() : list;
     final favorites = usable(library.favorites);
     final recents = usable(library.recents);
-    final routes = widget.onRouteSelected != null ? widget.savedRoutes : const [];
+    final routes = widget.onRouteSelected != null
+        ? widget.savedRoutes
+        : const [];
     if (routes.isEmpty && favorites.isEmpty && recents.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -277,18 +280,22 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
       title: Row(
         children: [
           Flexible(
-            child: Text(route.from.name,
-                style: const TextStyle(fontSize: 14),
-                overflow: TextOverflow.ellipsis),
+            child: Text(
+              route.from.name,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 6),
             child: Icon(Icons.arrow_forward, size: 14),
           ),
           Flexible(
-            child: Text(route.to.name,
-                style: const TextStyle(fontSize: 14),
-                overflow: TextOverflow.ellipsis),
+            child: Text(
+              route.to.name,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -306,31 +313,36 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
   }
 
   Widget _sectionHeader(String label) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.4,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+    child: Text(
+      label,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    ),
+  );
 
   static Widget _busy() => const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(
-            child: SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(strokeWidth: 2))),
-      );
+    padding: EdgeInsets.all(16),
+    child: Center(
+      child: SizedBox(
+        height: 24,
+        width: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    ),
+  );
 
   /// A one-line explanation inside the menu — why this list is nearby stops
   /// rather than name matches, or why there is no list at all.
-  Widget _notice(BuildContext context, String text,
-      {IconData icon = Icons.my_location}) {
+  Widget _notice(
+    BuildContext context,
+    String text, {
+    IconData icon = Icons.my_location,
+  }) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
@@ -339,8 +351,10 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
           Icon(icon, size: 15, color: scheme.primary),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(text,
-                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+            ),
           ),
         ],
       ),
@@ -348,10 +362,10 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
   }
 
   static IconData _kindIcon(LocationKind kind) => switch (kind) {
-        LocationKind.station => Icons.train,
-        LocationKind.address => Icons.home_outlined,
-        LocationKind.poi => Icons.place_outlined,
-      };
+    LocationKind.station => Icons.train,
+    LocationKind.address => Icons.home_outlined,
+    LocationKind.poi => Icons.place_outlined,
+  };
 
   Widget _stationTile(WidgetRef ref, Station station) {
     final isFav = ref.watch(libraryProvider).isStationFavorite(station.id);
@@ -364,10 +378,13 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
       // to tell "Kieler Straße 30" (Adresse) from a stop of the same name.
       subtitle: station.isStop
           ? null
-          : Text(station.kind.label,
+          : Text(
+              station.kind.label,
               style: TextStyle(
-                  fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
       trailing: IconButton(
         icon: Icon(
           isFav ? Icons.star : Icons.star_border,
@@ -424,12 +441,13 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
     // Exact name match — but ONLY if it's unambiguous, i.e. no other result
     // extends it (so "Berlin" doesn't auto-pick while "Berlin Hauptbahnhof",
     // "Berlin Ostbahnhof" … are still candidates; "Kiel Hauptbahnhof" does).
-    final exact =
-        stations.where((s) => s.name.toLowerCase() == typed).toList();
+    final exact = stations.where((s) => s.name.toLowerCase() == typed).toList();
     if (exact.length == 1) {
-      final extendedByOther = stations.any((s) =>
-          s.name.length > typed.length &&
-          s.name.toLowerCase().startsWith(typed));
+      final extendedByOther = stations.any(
+        (s) =>
+            s.name.length > typed.length &&
+            s.name.toLowerCase().startsWith(typed),
+      );
       if (!extendedByOther) _selectStation(exact.first);
     }
   }
@@ -469,8 +487,7 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
               ? IconButton(
                   tooltip: 'Eingabe löschen',
                   icon: Icon(Icons.clear, size: widget.dense ? 18 : 20),
-                  visualDensity:
-                      widget.dense ? VisualDensity.compact : null,
+                  visualDensity: widget.dense ? VisualDensity.compact : null,
                   onPressed: () {
                     _controller.clear();
                     ref.read(stationSearchProvider.notifier).clear();

@@ -39,18 +39,18 @@ class PurchasedSplit {
   String get dedupeKey => '$routeLabel|${departureIso ?? ''}';
 
   Map<String, dynamic> toJson() => {
-        'routeLabel': routeLabel,
-        'directPrice': directPrice,
-        'splitPrice': splitPrice,
-        'purchasedAtMs': purchasedAtMs,
-        if (departureIso != null) 'departureIso': departureIso,
-      };
+    'routeLabel': routeLabel,
+    'directPrice': directPrice,
+    'splitPrice': splitPrice,
+    'purchasedAtMs': purchasedAtMs,
+    if (departureIso != null) 'departureIso': departureIso,
+  };
 
   factory PurchasedSplit.fromJson(Map<String, dynamic> json) => PurchasedSplit(
-        routeLabel: json['routeLabel'] as String? ?? '',
-        directPrice: (json['directPrice'] as num?)?.toDouble() ?? 0,
-        splitPrice: (json['splitPrice'] as num?)?.toDouble() ?? 0,
-        purchasedAtMs: (json['purchasedAtMs'] as num?)?.toInt() ?? 0,
-        departureIso: json['departureIso'] as String?,
-      );
+    routeLabel: json['routeLabel'] as String? ?? '',
+    directPrice: (json['directPrice'] as num?)?.toDouble() ?? 0,
+    splitPrice: (json['splitPrice'] as num?)?.toDouble() ?? 0,
+    purchasedAtMs: (json['purchasedAtMs'] as num?)?.toInt() ?? 0,
+    departureIso: json['departureIso'] as String?,
+  );
 }

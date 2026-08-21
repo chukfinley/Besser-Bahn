@@ -31,18 +31,20 @@ const _result = TicketAnalysisResult(
 );
 
 BulkSplitRow _row() => BulkSplitRow(
-      journey: Journey(legs: [
-        JourneyLeg(
-          origin: const Station(id: '8098160', name: 'Berlin Hbf'),
-          destination: const Station(id: '8000049', name: 'Braunschweig Hbf'),
-        ),
-      ]),
-      label: '19:47 – 21:38',
-      duration: const Duration(hours: 1, minutes: 51),
-      transfers: 1,
-      trains: 'ICE 842 + RE50',
-      directPrice: 71.0,
-    );
+  journey: Journey(
+    legs: [
+      JourneyLeg(
+        origin: const Station(id: '8098160', name: 'Berlin Hbf'),
+        destination: const Station(id: '8000049', name: 'Braunschweig Hbf'),
+      ),
+    ],
+  ),
+  label: '19:47 – 21:38',
+  duration: const Duration(hours: 1, minutes: 51),
+  transfers: 1,
+  trains: 'ICE 842 + RE50',
+  directPrice: 71.0,
+);
 
 void main() {
   group('the price comparison keeps the tickets behind its numbers (#24)', () {
@@ -76,10 +78,9 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(splitTicketProvider.notifier).showResult(
-            _result,
-            routeLabel: 'Berlin Hbf → Braunschweig Hbf',
-          );
+      container
+          .read(splitTicketProvider.notifier)
+          .showResult(_result, routeLabel: 'Berlin Hbf → Braunschweig Hbf');
 
       final state = container.read(splitTicketProvider);
       expect(state.isLoading, isFalse);

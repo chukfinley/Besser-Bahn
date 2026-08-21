@@ -2,13 +2,13 @@ import 'package:besser_bahn/models/db_account.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 DbBahnCard _card({String? from, String? until}) => DbBahnCard(
-      nummer: '7081411251741233',
-      typ: 'BC25',
-      produktBezeichnung: 'BahnCard 25',
-      klasse: 'KLASSE_2',
-      gueltigAb: from,
-      gueltigBis: until,
-    );
+  nummer: '7081411251741233',
+  typ: 'BC25',
+  produktBezeichnung: 'BahnCard 25',
+  klasse: 'KLASSE_2',
+  gueltigAb: from,
+  gueltigBis: until,
+);
 
 void main() {
   final now = DateTime(2026, 7, 22, 12);
@@ -31,8 +31,11 @@ void main() {
       final card = _card(from: '2026-07-23', until: '2027-07-22');
       expect(card.isNotYetValidAt(now), isTrue);
       expect(card.isValidAt(now), isFalse);
-      expect(card.isExpiredAt(now), isFalse,
-          reason: 'not-yet-valid is not the same as dead');
+      expect(
+        card.isExpiredAt(now),
+        isFalse,
+        reason: 'not-yet-valid is not the same as dead',
+      );
     });
 
     test('a card valid from today counts from 00:00', () {

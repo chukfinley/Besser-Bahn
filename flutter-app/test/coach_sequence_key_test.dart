@@ -21,14 +21,13 @@ Stopover stop({
   DateTime? departure,
   DateTime? plannedArrival,
   DateTime? arrival,
-}) =>
-    Stopover(
-      stop: const Station(id: '8000207', name: 'Köln Hbf'),
-      plannedDeparture: plannedDeparture,
-      departure: departure,
-      plannedArrival: plannedArrival,
-      arrival: arrival,
-    );
+}) => Stopover(
+  stop: const Station(id: '8000207', name: 'Köln Hbf'),
+  plannedDeparture: plannedDeparture,
+  departure: departure,
+  plannedArrival: plannedArrival,
+  arrival: arrival,
+);
 
 void main() {
   group('Stopover.sequenceTime — the key must ride the SERVICE date (#32)', () {
@@ -74,13 +73,15 @@ void main() {
       // delayed train is fetched twice and the offline copy is written under a
       // key the live path never reads back.
       String key(DateTime t) => CoachSequenceService.cacheKeyFor(
-            category: 'ICE',
-            number: 205,
-            stationEva: '8000207',
-            departureTime: t,
-          );
-      expect(key(DateTime.utc(2026, 7, 16, 20, 54)),
-          isNot(key(DateTime.utc(2026, 7, 16, 21, 32))));
+        category: 'ICE',
+        number: 205,
+        stationEva: '8000207',
+        departureTime: t,
+      );
+      expect(
+        key(DateTime.utc(2026, 7, 16, 20, 54)),
+        isNot(key(DateTime.utc(2026, 7, 16, 21, 32))),
+      );
     });
 
     test('the same instant in another zone is the same key', () {

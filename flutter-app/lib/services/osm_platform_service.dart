@@ -115,9 +115,10 @@ class OsmPlatformService {
       final disk = await _readDisk(slug);
       if (disk != null) {
         AppLog.log(
-            'OSM disk "$slug": ${disk.platforms.length} platforms, '
-            '${disk.rails.length} rails',
-            tag: 'osm');
+          'OSM disk "$slug": ${disk.platforms.length} platforms, '
+          '${disk.rails.length} rails',
+          tag: 'osm',
+        );
         _attempts.remove(slug);
         return _settle(slug, disk);
       }
@@ -137,7 +138,8 @@ class OsmPlatformService {
       // hold the geometry and whose `ref` carries the Gleis pair (Kiel: "3;4",
       // while the member ways only carry section labels like "A1"/"6b"). Fetch
       // both; relation members come inlined with `out geom`.
-      final ql = '[out:json][timeout:25];'
+      final ql =
+          '[out:json][timeout:25];'
           '('
           'way["public_transport"="platform"]["ref"]($bbox);'
           'relation["public_transport"="platform"]["ref"]($bbox);'
@@ -168,8 +170,10 @@ class OsmPlatformService {
             resp = r;
             break;
           }
-          AppLog.log('OSM overpass "$slug" $endpoint HTTP ${r.statusCode}',
-              tag: 'osm');
+          AppLog.log(
+            'OSM overpass "$slug" $endpoint HTTP ${r.statusCode}',
+            tag: 'osm',
+          );
         } catch (e) {
           AppLog.log('OSM overpass "$slug" $endpoint error: $e', tag: 'osm');
         }
@@ -193,7 +197,7 @@ class OsmPlatformService {
               ? _stitchRing([
                   for (final m in (el['members'] as List?) ?? const [])
                     if (m is Map && m['type'] == 'way')
-                      _coords(m['geometry'] as List?)
+                      _coords(m['geometry'] as List?),
                 ])
               : _coords(el['geometry'] as List?);
           if (pts.length >= 2) platforms.add((ref: ref, pts: pts));
@@ -201,9 +205,10 @@ class OsmPlatformService {
       }
       final geometry = OsmPlatformGeometry(platforms: platforms, rails: rails);
       AppLog.log(
-          'OSM overpass "$slug": ${platforms.length} platforms, '
-          '${rails.length} rails',
-          tag: 'osm');
+        'OSM overpass "$slug": ${platforms.length} platforms, '
+        '${rails.length} rails',
+        tag: 'osm',
+      );
       // Empty (no platforms or no rails) is treated as "nothing usable" → null,
       // so the caller draws no train; but we still cache it as resolved.
       _attempts.remove(slug);
@@ -263,10 +268,10 @@ class OsmPlatformService {
       final m = json.decode(await f.readAsString()) as Map<String, dynamic>;
       if (m['v'] != _diskV) return null;
       List<LatLng> pts(List? raw) => [
-            for (final c in raw ?? const [])
-              if (c is List && c.length >= 2)
-                LatLng((c[0] as num).toDouble(), (c[1] as num).toDouble())
-          ];
+        for (final c in raw ?? const [])
+          if (c is List && c.length >= 2)
+            LatLng((c[0] as num).toDouble(), (c[1] as num).toDouble()),
+      ];
       final platforms = <({String ref, List<LatLng> pts})>[];
       for (final p in (m['platforms'] as List? ?? const [])) {
         if (p is! Map) continue;
@@ -299,11 +304,16 @@ class OsmPlatformService {
           for (final p in g.platforms)
             {
               'r': p.ref,
-              'p': [for (final q in p.pts) [q.latitude, q.longitude]],
-            }
+              'p': [
+                for (final q in p.pts) [q.latitude, q.longitude],
+              ],
+            },
         ],
         'rails': [
-          for (final r in g.rails) [for (final q in r) [q.latitude, q.longitude]]
+          for (final r in g.rails)
+            [
+              for (final q in r) [q.latitude, q.longitude],
+            ],
         ],
       };
       await _fileFor(dir, slug).writeAsString(json.encode(m));
@@ -313,17 +323,20 @@ class OsmPlatformService {
 
 /// Overpass `geometry` array ([{lat,lon}, …]) → LatLng list.
 List<LatLng> _coords(List? geom) => [
-      for (final g in geom ?? const [])
-        if (g is Map && g['lat'] != null && g['lon'] != null)
-          LatLng((g['lat'] as num).toDouble(), (g['lon'] as num).toDouble())
-    ];
+  for (final g in geom ?? const [])
+    if (g is Map && g['lat'] != null && g['lon'] != null)
+      LatLng((g['lat'] as num).toDouble(), (g['lon'] as num).toDouble()),
+];
 
 /// Stitch a multipolygon relation's member [ways] into one ordered ring by
 /// chaining ways that share an endpoint (handling reversed direction). OSM
 /// shares node coordinates exactly between connected ways; we compare with a
 /// tiny epsilon. Returns the longest chain we can assemble from the first way.
 List<LatLng> _stitchRing(List<List<LatLng>> ways) {
-  final segs = [for (final w in ways) if (w.length >= 2) List<LatLng>.from(w)];
+  final segs = [
+    for (final w in ways)
+      if (w.length >= 2) List<LatLng>.from(w),
+  ];
   if (segs.isEmpty) return const [];
   bool near(LatLng a, LatLng b) =>
       (a.latitude - b.latitude).abs() < 1e-7 &&

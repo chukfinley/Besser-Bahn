@@ -45,10 +45,12 @@ List<LatLng> _resample(List<LatLng> path, int n) {
     }
     final seg = cum[i + 1] - cum[i];
     final f = seg > 0 ? (dd - cum[i]) / seg : 0.0;
-    out.add(LatLng(
-      path[i].latitude + (path[i + 1].latitude - path[i].latitude) * f,
-      path[i].longitude + (path[i + 1].longitude - path[i].longitude) * f,
-    ));
+    out.add(
+      LatLng(
+        path[i].latitude + (path[i + 1].latitude - path[i].latitude) * f,
+        path[i].longitude + (path[i + 1].longitude - path[i].longitude) * f,
+      ),
+    );
   }
   return out;
 }
@@ -58,8 +60,12 @@ List<LatLng> _resample(List<LatLng> path, int n) {
 /// ends into the two long edges and return the one nearer [ref] (the trusted
 /// cube chain on the wanted Gleis's side). Ported verbatim from the preview's
 /// `_trackSideEdge`.
-List<LatLng> _trackSideEdge(List<LatLng> poly, List<LatLng> ref,
-    {LatLng? ours, LatLng? mate}) {
+List<LatLng> _trackSideEdge(
+  List<LatLng> poly,
+  List<LatLng> ref, {
+  LatLng? ours,
+  LatLng? mate,
+}) {
   final loop = poly.toList();
   if (loop.length > 1 &&
       loop.first.latitude == loop.last.latitude &&
@@ -74,7 +80,7 @@ List<LatLng> _trackSideEdge(List<LatLng> poly, List<LatLng> ref,
   if (axis == null) return poly;
   final ts = [
     for (final p in loop)
-      (xy(p).x - axis.cx) * axis.dx + (xy(p).y - axis.cy) * axis.dy
+      (xy(p).x - axis.cx) * axis.dx + (xy(p).y - axis.cy) * axis.dy,
   ];
   var iMin = 0, iMax = 0;
   for (var i = 1; i < ts.length; i++) {
@@ -98,8 +104,10 @@ List<LatLng> _trackSideEdge(List<LatLng> poly, List<LatLng> ref,
   if (ref.length < 2) {
     return [
       for (var k = 0; k < n; k++)
-        LatLng((e1[k].latitude + e2[k].latitude) / 2,
-            (e1[k].longitude + e2[k].longitude) / 2),
+        LatLng(
+          (e1[k].latitude + e2[k].latitude) / 2,
+          (e1[k].longitude + e2[k].longitude) / 2,
+        ),
     ];
   }
   final m2 = 111320.0 * math.cos(e1.first.latitude * math.pi / 180);
@@ -130,8 +138,7 @@ List<LatLng> _trackSideEdge(List<LatLng> poly, List<LatLng> ref,
   // the *direction* has to agree, and both datasets describe the same platform.
   if (ours != null && mate != null) {
     final px = -axis.dy, py = axis.dx; // unit normal of the island axis
-    double off(LatLng p) =>
-        (xy(p).x - axis.cx) * px + (xy(p).y - axis.cy) * py;
+    double off(LatLng p) => (xy(p).x - axis.cx) * px + (xy(p).y - axis.cy) * py;
     final side = off(ours) - off(mate);
     double meanOff(List<LatLng> e) =>
         e.map(off).reduce((a, b) => a + b) / e.length;
@@ -231,9 +238,9 @@ List<LatLng> osmRailForGleis({
   // suffixes ("7;8", "3;4", or "1;2a;2b"). Match the wanted Gleis against each
   // token's numeric part so "2" matches "2a" and "6" matches "6b".
   bool refHasGleis(String ref) => ref.split(';').any((t) {
-        final digits = t.replaceAll(RegExp(r'[^0-9]'), '');
-        return digits == gleis;
-      });
+    final digits = t.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits == gleis;
+  });
   // Several platforms can match (e.g. a section way mis-tagged with the Gleis);
   // return the first that actually yields a rail, so a dud doesn't block us.
   final ours = gleisPoi?[gleis];
@@ -333,7 +340,9 @@ List<LatLng> _straightenThroatEnds(List<LatLng> spine) {
     final m = math.sqrt(dx * dx + dy * dy);
     if (m == 0) return b;
     return LatLng(
-        b.latitude + dy / m * need / 111320.0, b.longitude + dx / m * need / mlon);
+      b.latitude + dy / m * need / 111320.0,
+      b.longitude + dx / m * need / mlon,
+    );
   }
 
   final out = <LatLng>[...core];

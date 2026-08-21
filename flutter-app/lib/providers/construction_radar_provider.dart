@@ -33,37 +33,37 @@ const _kSampleDaysAhead = <int>[1, 7, 14];
 /// data the app already shows stays untouched.
 final constructionRadarProvider =
     FutureProvider.autoDispose<List<ConstructionAlert>>((ref) async {
-  final routes = ref.watch(libraryProvider).routes;
-  if (routes.isEmpty) return const [];
+      final routes = ref.watch(libraryProvider).routes;
+      if (routes.isEmpty) return const [];
 
-  final vendo = ref.read(vendoServiceProvider);
-  final now = DateTime.now();
+      final vendo = ref.read(vendoServiceProvider);
+      final now = DateTime.now();
 
-  Future<ConstructionAlert?> scan(SavedRoute route) async {
-    if (route.from.id.isEmpty || route.to.id.isEmpty) return null;
-    final notes = <String>{};
-    for (final days in _kSampleDaysAhead) {
-      final when = DateTime(now.year, now.month, now.day + days, 12);
-      try {
-        final result = await vendo
-            .searchJourneys(
-              fromLocationId: route.from.id,
-              toLocationId: route.to.id,
-              dateTime: when,
-            )
-            .timeout(const Duration(seconds: 8));
-        for (final j in result.journeys) {
-          notes.addAll(constructionNotes(j.disruptions));
+      Future<ConstructionAlert?> scan(SavedRoute route) async {
+        if (route.from.id.isEmpty || route.to.id.isEmpty) return null;
+        final notes = <String>{};
+        for (final days in _kSampleDaysAhead) {
+          final when = DateTime(now.year, now.month, now.day + days, 12);
+          try {
+            final result = await vendo
+                .searchJourneys(
+                  fromLocationId: route.from.id,
+                  toLocationId: route.to.id,
+                  dateTime: when,
+                )
+                .timeout(const Duration(seconds: 8));
+            for (final j in result.journeys) {
+              notes.addAll(constructionNotes(j.disruptions));
+            }
+          } catch (_) {
+            // Dead/slow API or no connections for that day — skip, don't fail the
+            // whole radar.
+          }
         }
-      } catch (_) {
-        // Dead/slow API or no connections for that day — skip, don't fail the
-        // whole radar.
+        if (notes.isEmpty) return null;
+        return ConstructionAlert(route: route, notes: notes.toList());
       }
-    }
-    if (notes.isEmpty) return null;
-    return ConstructionAlert(route: route, notes: notes.toList());
-  }
 
-  final results = await Future.wait(routes.map(scan));
-  return results.whereType<ConstructionAlert>().toList();
-});
+      final results = await Future.wait(routes.map(scan));
+      return results.whereType<ConstructionAlert>().toList();
+    });

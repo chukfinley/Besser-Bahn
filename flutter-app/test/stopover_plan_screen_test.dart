@@ -14,14 +14,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// The plan screen: two legs that are deliberately NOT one connection, with the
 /// gap between them stated as the thing being chosen.
 
-const _selent =
-    Station(id: '8005292', name: 'Selent', locationId: 'A=1@L=8005292@');
-const _kiel =
-    Station(id: '8000199', name: 'Kiel Hbf', locationId: 'A=1@L=8000199@');
+const _selent = Station(
+  id: '8005292',
+  name: 'Selent',
+  locationId: 'A=1@L=8005292@',
+);
+const _kiel = Station(
+  id: '8000199',
+  name: 'Kiel Hbf',
+  locationId: 'A=1@L=8000199@',
+);
 const _praxis = Station(
-    id: '625109',
-    name: 'Kiel Professor-Peters-Platz',
-    locationId: 'A=1@L=625109@');
+  id: '625109',
+  name: 'Kiel Professor-Peters-Platz',
+  locationId: 'A=1@L=625109@',
+);
 
 /// Tomorrow at 09:48 — future-dated so nothing renders as "already gone".
 final _deadline = DateTime.now()
@@ -31,20 +38,24 @@ final _deadline = DateTime.now()
 DateTime _at(int h, int m) =>
     _deadline.copyWith(hour: h, minute: m, second: 0, millisecond: 0);
 
-Journey _journey(Station from, Station to, DateTime departure, DateTime arrival) =>
-    Journey(
-      refreshToken: '${from.id}-${departure.hour}${departure.minute}',
-      legs: [
-        JourneyLeg(
-          origin: from,
-          destination: to,
-          departure: departure,
-          plannedDeparture: departure,
-          arrival: arrival,
-          plannedArrival: arrival,
-        ),
-      ],
-    );
+Journey _journey(
+  Station from,
+  Station to,
+  DateTime departure,
+  DateTime arrival,
+) => Journey(
+  refreshToken: '${from.id}-${departure.hour}${departure.minute}',
+  legs: [
+    JourneyLeg(
+      origin: from,
+      destination: to,
+      departure: departure,
+      plannedDeparture: departure,
+      arrival: arrival,
+      plannedArrival: arrival,
+    ),
+  ],
+);
 
 final _second = _journey(_kiel, _praxis, _at(9, 30), _at(9, 42));
 final _early = _journey(_selent, _kiel, _at(7, 20), _at(7, 55)); // 1 h 35
@@ -104,21 +115,20 @@ StopoverPlanState _seed({
   int stayMinutes = 30,
   int hiddenFirstCount = 0,
   String? firstEarlierRef,
-}) =>
-    StopoverPlanState(
-      args: StopoverPlanArgs(
-        from: _selent,
-        hub: _kiel,
-        to: _praxis,
-        deadline: _deadline,
-      ),
-      stayMinutes: stayMinutes,
-      secondLeg: secondLeg,
-      firstOptions: firstOptions,
-      firstLeg: firstLeg,
-      hiddenFirstCount: hiddenFirstCount,
-      firstEarlierRef: firstEarlierRef,
-    );
+}) => StopoverPlanState(
+  args: StopoverPlanArgs(
+    from: _selent,
+    hub: _kiel,
+    to: _praxis,
+    deadline: _deadline,
+  ),
+  stayMinutes: stayMinutes,
+  secondLeg: secondLeg,
+  firstOptions: firstOptions,
+  firstLeg: firstLeg,
+  hiddenFirstCount: hiddenFirstCount,
+  firstEarlierRef: firstEarlierRef,
+);
 
 void main() {
   testWidgets('without a plan it says how to start one', (tester) async {
@@ -126,8 +136,9 @@ void main() {
     expect(find.textContaining('Kein Zwischenstopp gewählt'), findsOneWidget);
   });
 
-  testWidgets('shows both legs, the appointment and the wanted stay',
-      (tester) async {
+  testWidgets('shows both legs, the appointment and the wanted stay', (
+    tester,
+  ) async {
     await _pump(
       tester,
       _seed(secondLeg: _second, firstOptions: [_early, _late]),
@@ -139,10 +150,7 @@ void main() {
     expect(find.textContaining('Etappe 2'), findsOneWidget);
     expect(find.textContaining('Etappe 1'), findsOneWidget);
     // Nothing picked yet → the strip states the minimum, not a fake exact stay.
-    expect(
-      find.text('Aufenthalt in Kiel Hbf: mind. 30 min'),
-      findsOneWidget,
-    );
+    expect(find.text('Aufenthalt in Kiel Hbf: mind. 30 min'), findsOneWidget);
   });
 
   testWidgets('every ride to the hub says what stay it buys', (tester) async {
@@ -155,8 +163,9 @@ void main() {
     expect(find.text('35 min Aufenthalt'), findsOneWidget);
   });
 
-  testWidgets('picking one turns the minimum into the real stay',
-      (tester) async {
+  testWidgets('picking one turns the minimum into the real stay', (
+    tester,
+  ) async {
     final notifier = await _pump(
       tester,
       _seed(secondLeg: _second, firstOptions: [_early, _late]),
@@ -170,8 +179,9 @@ void main() {
     expect(find.textContaining('Weiter um 09:30'), findsOneWidget);
   });
 
-  testWidgets('saving is blocked until a ride to the hub is picked',
-      (tester) async {
+  testWidgets('saving is blocked until a ride to the hub is picked', (
+    tester,
+  ) async {
     await _pump(tester, _seed(secondLeg: _second, firstOptions: [_early]));
 
     final blocked = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -186,11 +196,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    final notifier = _Seeded(_seed(
-      secondLeg: _second,
-      firstOptions: [_early],
-      firstLeg: _early,
-    ));
+    final notifier = _Seeded(
+      _seed(secondLeg: _second, firstOptions: [_early], firstLeg: _early),
+    );
     late WidgetRef ref;
     await tester.pumpWidget(
       ProviderScope(
@@ -199,10 +207,12 @@ void main() {
           predictionServiceProvider.overrideWithValue(_NoPredictions()),
         ],
         child: MaterialApp(
-          home: Consumer(builder: (context, r, _) {
-            ref = r;
-            return const StopoverPlanScreen();
-          }),
+          home: Consumer(
+            builder: (context, r, _) {
+              ref = r;
+              return const StopoverPlanScreen();
+            },
+          ),
         ),
       ),
     );
@@ -215,8 +225,9 @@ void main() {
     expect(find.textContaining('2 einzelne Etappen'), findsOneWidget);
   });
 
-  testWidgets('an empty list blames the stay, not the timetable',
-      (tester) async {
+  testWidgets('an empty list blames the stay, not the timetable', (
+    tester,
+  ) async {
     await _pump(
       tester,
       _seed(secondLeg: _second, stayMinutes: 180, hiddenFirstCount: 3),
@@ -229,8 +240,9 @@ void main() {
     expect(find.textContaining('3 kämen knapper an'), findsOneWidget);
   });
 
-  testWidgets('"Früher" is offered while there is a window left to page',
-      (tester) async {
+  testWidgets('"Früher" is offered while there is a window left to page', (
+    tester,
+  ) async {
     final notifier = await _pump(
       tester,
       _seed(
@@ -245,8 +257,9 @@ void main() {
     expect(notifier.earlierLoads, 1);
   });
 
-  testWidgets('changing the wanted stay goes through the notifier',
-      (tester) async {
+  testWidgets('changing the wanted stay goes through the notifier', (
+    tester,
+  ) async {
     final notifier = await _pump(
       tester,
       _seed(secondLeg: _second, firstOptions: [_early]),

@@ -116,15 +116,19 @@ class _DepartureCardState extends ConsumerState<DepartureCard> {
             // Countdown row.
             Row(
               children: [
-                Icon(Icons.schedule,
-                    color: theme.colorScheme.onSecondaryContainer),
+                Icon(
+                  Icons.schedule,
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        mins <= 0 ? 'Fährt jetzt ab' : 'Abfahrt in ${_dur(mins)}',
+                        mins <= 0
+                            ? 'Fährt jetzt ab'
+                            : 'Abfahrt in ${_dur(mins)}',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.onSecondaryContainer,
@@ -145,19 +149,23 @@ class _DepartureCardState extends ConsumerState<DepartureCard> {
             ),
             Divider(
               height: 18,
-              color:
-                  theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.2),
+              color: theme.colorScheme.onSecondaryContainer.withValues(
+                alpha: 0.2,
+              ),
             ),
             // Leave-by row (door-to-door).
             Row(
               children: [
-                Icon(Icons.directions_walk,
-                    color: theme.colorScheme.onSecondaryContainer),
+                Icon(
+                  Icons.directions_walk,
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: walk == null
                       ? Text(
-                          _error ?? 'Wann musst du los? Fußweg zu $origin berechnen.',
+                          _error ??
+                              'Wann musst du los? Fußweg zu $origin berechnen.',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: _error != null
                                 ? theme.colorScheme.error
@@ -180,12 +188,14 @@ class _DepartureCardState extends ConsumerState<DepartureCard> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : IconButton(
                         visualDensity: VisualDensity.compact,
                         color: theme.colorScheme.onSecondaryContainer,
                         icon: Icon(
-                            walk == null ? Icons.my_location : Icons.refresh),
+                          walk == null ? Icons.my_location : Icons.refresh,
+                        ),
                         tooltip: 'Standort verwenden',
                         onPressed: _computeWalk,
                       ),

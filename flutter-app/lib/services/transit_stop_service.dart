@@ -65,12 +65,14 @@ class TransitStopService {
       final poles = <StopPole>[];
       for (final s in stops) {
         if (metresBetween(center, s.latLng) > _poleRadiusM) continue;
-        poles.add(StopPole(
-          latLng: s.latLng,
-          name: s.name,
-          bay: s.track,
-          directions: directions[s.id] ?? const [],
-        ));
+        poles.add(
+          StopPole(
+            latLng: s.latLng,
+            name: s.name,
+            bay: s.track,
+            directions: directions[s.id] ?? const [],
+          ),
+        );
       }
       AppLog.log('DELFI poles at $key: ${poles.length}', tag: 'osm');
       return _settle(key, poles);
@@ -87,10 +89,12 @@ class TransitStopService {
   Future<List<_MotisStop>> _stopsInBox(LatLng c) async {
     final dLat = _boxM / 111320.0;
     final dLon = _boxM / (111320.0 * 0.6); // ~cos(53°), Germany
-    final uri = Uri.parse('$_base/map/stops').replace(queryParameters: {
-      'min': '${c.latitude - dLat},${c.longitude - dLon}',
-      'max': '${c.latitude + dLat},${c.longitude + dLon}',
-    });
+    final uri = Uri.parse('$_base/map/stops').replace(
+      queryParameters: {
+        'min': '${c.latitude - dLat},${c.longitude - dLon}',
+        'max': '${c.latitude + dLat},${c.longitude + dLon}',
+      },
+    );
     final res = await _client
         .get(uri, headers: {'User-Agent': _userAgent, 'Accept': '*/*'})
         .timeout(_timeout);
@@ -112,28 +116,36 @@ class TransitStopService {
           .toSet();
       // Rail platforms have their own (much better) map; this is for the stops
       // that have none.
-      if (!modes.any((m) => const {'BUS', 'TRAM', 'COACH', 'FERRY'}.contains(m))) {
+      if (!modes.any(
+        (m) => const {'BUS', 'TRAM', 'COACH', 'FERRY'}.contains(m),
+      )) {
         continue;
       }
-      out.add(_MotisStop(
-        id: id,
-        name: (e['name'] as String?) ?? '',
-        latLng: LatLng(lat, lon),
-        track: trackOf(id),
-      ));
+      out.add(
+        _MotisStop(
+          id: id,
+          name: (e['name'] as String?) ?? '',
+          latLng: LatLng(lat, lon),
+          track: trackOf(id),
+        ),
+      );
     }
-    out.sort((a, b) =>
-        metresBetween(c, a.latLng).compareTo(metresBetween(c, b.latLng)));
+    out.sort(
+      (a, b) =>
+          metresBetween(c, a.latLng).compareTo(metresBetween(c, b.latLng)),
+    );
     return out;
   }
 
   /// Line + headsign per pole id, from one departure board.
   Future<Map<String, List<String>>> _directionsFor(String stopId) async {
-    final uri = Uri.parse('$_base/stoptimes').replace(queryParameters: {
-      'stopId': stopId,
-      'time': DateTime.now().toUtc().toIso8601String(),
-      'n': '$_departures',
-    });
+    final uri = Uri.parse('$_base/stoptimes').replace(
+      queryParameters: {
+        'stopId': stopId,
+        'time': DateTime.now().toUtc().toIso8601String(),
+        'n': '$_departures',
+      },
+    );
     final res = await _client
         .get(uri, headers: {'User-Agent': _userAgent, 'Accept': '*/*'})
         .timeout(_timeout);
@@ -173,8 +185,9 @@ class TransitStopService {
       final headsign = (st['headsign'] as String?)?.trim();
       if (headsign == null || headsign.isEmpty) continue;
       final line = (st['routeShortName'] as String?)?.trim();
-      final label =
-          line == null || line.isEmpty ? headsign : '$line → $headsign';
+      final label = line == null || line.isEmpty
+          ? headsign
+          : '$line → $headsign';
       final list = out.putIfAbsent(id, () => <String>[]);
       if (!list.contains(label)) list.add(label);
     }

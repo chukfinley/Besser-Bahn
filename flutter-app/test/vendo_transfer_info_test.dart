@@ -29,37 +29,38 @@ Map<String, dynamic> _leg({
   int? distanz,
   bool weiterfahrtAmGleichenBahnsteig = false,
   String? kurztext,
-}) =>
-    {
-      'typ': typ,
-      'kurztext': ?kurztext,
-      'abgangsOrt': {'name': from, 'evaNr': '1'},
-      'ankunftsOrt': {'name': to, 'evaNr': '2'},
-      'abgangsDatum': ?abgang,
-      'ankunftsDatum': ?ankunft,
-      'abschnittsDauer': ?dauer,
-      'verfuegbareZeit': ?verfuegbareZeit,
-      'distanz': ?distanz,
-      'weiterfahrtAmGleichenBahnsteig': weiterfahrtAmGleichenBahnsteig,
-      'halte': const [],
-    };
+}) => {
+  'typ': typ,
+  'kurztext': ?kurztext,
+  'abgangsOrt': {'name': from, 'evaNr': '1'},
+  'ankunftsOrt': {'name': to, 'evaNr': '2'},
+  'abgangsDatum': ?abgang,
+  'ankunftsDatum': ?ankunft,
+  'abschnittsDauer': ?dauer,
+  'verfuegbareZeit': ?verfuegbareZeit,
+  'distanz': ?distanz,
+  'weiterfahrtAmGleichenBahnsteig': weiterfahrtAmGleichenBahnsteig,
+  'halte': const [],
+};
 
 String _body(List<Map<String, dynamic>> abschnitte) => json.encode({
-      'verbindungen': [
-        {
-          'verbindung': {
-            'kontext': 'ctx',
-            'verbindungsAbschnitte': abschnitte,
-          }
-        }
-      ]
-    });
+  'verbindungen': [
+    {
+      'verbindung': {'kontext': 'ctx', 'verbindungsAbschnitte': abschnitte},
+    },
+  ],
+});
 
 Future<Journey> _parse(List<Map<String, dynamic>> abschnitte) async {
-  final svc = VendoService(client: MockClient((_) async =>
-      http.Response.bytes(utf8.encode(_body(abschnitte)), 200)));
+  final svc = VendoService(
+    client: MockClient(
+      (_) async => http.Response.bytes(utf8.encode(_body(abschnitte)), 200),
+    ),
+  );
   final res = await svc.searchJourneys(
-      fromLocationId: 'A=1@L=8000207@', toLocationId: 'A=1@L=8000261@');
+    fromLocationId: 'A=1@L=8000207@',
+    toLocationId: 'A=1@L=8000261@',
+  );
   return res.journeys.single;
 }
 
@@ -70,28 +71,31 @@ void main() {
     setUp(() async {
       journey = await _parse([
         _leg(
-            typ: 'FAHRZEUG',
-            kurztext: 'ICE',
-            from: 'Köln Hbf',
-            to: 'Köln Messe/Deutz',
-            abgang: '2026-07-18T09:00:00+02:00',
-            ankunft: '2026-07-18T09:06:00+02:00'),
+          typ: 'FAHRZEUG',
+          kurztext: 'ICE',
+          from: 'Köln Hbf',
+          to: 'Köln Messe/Deutz',
+          abgang: '2026-07-18T09:00:00+02:00',
+          ankunft: '2026-07-18T09:06:00+02:00',
+        ),
         _leg(
-            typ: 'FUSSWEG',
-            from: 'Köln Messe/Deutz',
-            to: 'Köln Messe/Deutz Gl.11-12',
-            abgang: '2026-07-18T09:06:00+02:00',
-            ankunft: '2026-07-18T09:18:00+02:00',
-            dauer: 420,
-            verfuegbareZeit: 720,
-            distanz: 59),
+          typ: 'FUSSWEG',
+          from: 'Köln Messe/Deutz',
+          to: 'Köln Messe/Deutz Gl.11-12',
+          abgang: '2026-07-18T09:06:00+02:00',
+          ankunft: '2026-07-18T09:18:00+02:00',
+          dauer: 420,
+          verfuegbareZeit: 720,
+          distanz: 59,
+        ),
         _leg(
-            typ: 'FAHRZEUG',
-            kurztext: 'ICE',
-            from: 'Köln Messe/Deutz Gl.11-12',
-            to: 'München Hbf',
-            abgang: '2026-07-18T09:18:00+02:00',
-            ankunft: '2026-07-18T13:30:00+02:00'),
+          typ: 'FAHRZEUG',
+          kurztext: 'ICE',
+          from: 'Köln Messe/Deutz Gl.11-12',
+          to: 'München Hbf',
+          abgang: '2026-07-18T09:18:00+02:00',
+          ankunft: '2026-07-18T13:30:00+02:00',
+        ),
       ]);
     });
 
@@ -115,43 +119,53 @@ void main() {
     setUp(() async {
       journey = await _parse([
         _leg(
-            typ: 'FAHRZEUG',
-            kurztext: 'ICE',
-            from: 'Köln Hbf',
-            to: 'Mannheim Hbf',
-            abgang: '2026-07-18T09:00:00+02:00',
-            ankunft: '2026-07-18T11:00:00+02:00'),
+          typ: 'FAHRZEUG',
+          kurztext: 'ICE',
+          from: 'Köln Hbf',
+          to: 'Mannheim Hbf',
+          abgang: '2026-07-18T09:00:00+02:00',
+          ankunft: '2026-07-18T11:00:00+02:00',
+        ),
         _leg(
-            typ: 'FUSSWEG',
-            from: 'Mannheim Hbf',
-            to: 'Mannheim Hbf',
-            abgang: '2026-07-18T11:00:00+02:00',
-            ankunft: '2026-07-18T11:12:00+02:00',
-            dauer: 720,
-            weiterfahrtAmGleichenBahnsteig: true),
+          typ: 'FUSSWEG',
+          from: 'Mannheim Hbf',
+          to: 'Mannheim Hbf',
+          abgang: '2026-07-18T11:00:00+02:00',
+          ankunft: '2026-07-18T11:12:00+02:00',
+          dauer: 720,
+          weiterfahrtAmGleichenBahnsteig: true,
+        ),
         _leg(
-            typ: 'FAHRZEUG',
-            kurztext: 'ICE',
-            from: 'Mannheim Hbf',
-            to: 'München Hbf',
-            abgang: '2026-07-18T11:12:00+02:00',
-            ankunft: '2026-07-18T14:00:00+02:00'),
+          typ: 'FAHRZEUG',
+          kurztext: 'ICE',
+          from: 'Mannheim Hbf',
+          to: 'München Hbf',
+          abgang: '2026-07-18T11:12:00+02:00',
+          ankunft: '2026-07-18T14:00:00+02:00',
+        ),
       ]);
     });
 
     test('abschnittsDauer is NOT taken as a walk without verfuegbareZeit', () {
       final walk = journey.legs[1];
       expect(walk.transferAvailable, isNull);
-      expect(walk.walkingDuration, isNull,
-          reason: 'dauer == the whole window here; calling it a 12-min walk '
-              'across one platform would be invented');
+      expect(
+        walk.walkingDuration,
+        isNull,
+        reason:
+            'dauer == the whole window here; calling it a 12-min walk '
+            'across one platform would be invented',
+      );
       expect(walk.transferBufferMinutes, isNull);
     });
 
     test('same-platform flag is read off the walk leg', () {
       expect(journey.legs[1].samePlatformTransfer, isTrue);
-      expect(journey.legs[2].samePlatformTransfer, isFalse,
-          reason: 'DB puts the flag on the FUSSWEG, not on the train');
+      expect(
+        journey.legs[2].samePlatformTransfer,
+        isFalse,
+        reason: 'DB puts the flag on the FUSSWEG, not on the train',
+      );
       // ...and the journey answers for the train you change INTO.
       expect(journey.samePlatformTransferInto(journey.legs[2]), isTrue);
     });
@@ -171,7 +185,10 @@ void main() {
     });
 
     test('still scales a real walk', () {
-      expect(TransferProfile.accessible.effectiveGap(9, samePlatform: false), 5);
+      expect(
+        TransferProfile.accessible.effectiveGap(9, samePlatform: false),
+        5,
+      );
     });
   });
 }

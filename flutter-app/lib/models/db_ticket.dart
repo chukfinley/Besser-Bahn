@@ -15,14 +15,14 @@ class DbReiseIndex {
   });
 
   factory DbReiseIndex.fromJson(Map<String, dynamic> j) => DbReiseIndex(
-        auftragsnummer: (j['auftragsnummer'] ?? '').toString(),
-        kundenwunschIds: (j['kundenwunschIds'] as List<dynamic>? ?? const [])
-            .map((e) => e.toString())
-            .toList(),
-        aenderungsDatum: DateTime.tryParse(
-                (j['aenderungsDatum'] ?? '').toString())
-            ?.toLocal(),
-      );
+    auftragsnummer: (j['auftragsnummer'] ?? '').toString(),
+    kundenwunschIds: (j['kundenwunschIds'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .toList(),
+    aenderungsDatum: DateTime.tryParse(
+      (j['aenderungsDatum'] ?? '').toString(),
+    )?.toLocal(),
+  );
 }
 
 /// One entry of `reisenuebersicht.reiseIndizes` — a *tracked* but unpaid trip
@@ -46,11 +46,12 @@ class DbSavedReiseIndex {
       DbSavedReiseIndex(
         rkUuid: (j['rkUuid'] ?? '').toString(),
         reisekettenId: (j['reisekettenId'] as num?)?.toInt(),
-        aenderungsDatum:
-            DateTime.tryParse((j['aenderungsDatum'] ?? '').toString())
-                ?.toLocal(),
-        startDatum:
-            DateTime.tryParse((j['startDatum'] ?? '').toString())?.toLocal(),
+        aenderungsDatum: DateTime.tryParse(
+          (j['aenderungsDatum'] ?? '').toString(),
+        )?.toLocal(),
+        startDatum: DateTime.tryParse(
+          (j['startDatum'] ?? '').toString(),
+        )?.toLocal(),
       );
 }
 
@@ -151,9 +152,10 @@ class DbTicket {
     if (html == null) return null;
     // Match e.g. "Von Kiel (4000)" / "Nach Bad Vilbel (123)" — non-greedy
     // station name, optional bracketed numeric SH-Tarif id.
-    final m = RegExp('$prefix\\s+([^<\\n(]{2,80}?)(?:\\s*\\((\\d+)\\))?\\s*<',
-            multiLine: true)
-        .firstMatch(html);
+    final m = RegExp(
+      '$prefix\\s+([^<\\n(]{2,80}?)(?:\\s*\\((\\d+)\\))?\\s*<',
+      multiLine: true,
+    ).firstMatch(html);
     if (m == null) return null;
     final name = m.group(1)?.trim();
     if (name == null || name.isEmpty) return null;
@@ -191,8 +193,9 @@ class DbTicket {
       barcode: _extractBarcode(html),
       ticketHtml: html,
       kciTicketRefId: info['kciTicketRefId'] as String?,
-      tripUUID: ((info['verbindung'] as Map<String, dynamic>?)?['tripUUID'])
-          as String?,
+      tripUUID:
+          ((info['verbindung'] as Map<String, dynamic>?)?['tripUUID'])
+              as String?,
       reservierungen: (info['reservierungen'] as List<dynamic>? ?? const [])
           .whereType<Map<String, dynamic>>()
           .map(DbReservierung.fromJson)
@@ -219,8 +222,9 @@ class DbTicket {
   /// logo); the barcode is by far the largest, so pick the biggest one.
   static Uint8List? _extractBarcode(String? html) {
     if (html == null) return null;
-    final matches = RegExp(r'data:image/png;base64,([A-Za-z0-9+/=]+)')
-        .allMatches(html);
+    final matches = RegExp(
+      r'data:image/png;base64,([A-Za-z0-9+/=]+)',
+    ).allMatches(html);
     String? best;
     for (final m in matches) {
       final b64 = m.group(1);
@@ -306,8 +310,11 @@ class DbReservierung {
 
   /// "Wagen 22 · Platz 88" (joins all reserved seats).
   String get seatLabel => plaetze
-      .map((p) => 'Wagen ${p.wagen}'
-          '${p.platz.isNotEmpty ? ' · Platz ${p.platz}' : ''}')
+      .map(
+        (p) =>
+            'Wagen ${p.wagen}'
+            '${p.platz.isNotEmpty ? ' · Platz ${p.platz}' : ''}',
+      )
       .join('   ');
 
   factory DbReservierung.fromJson(Map<String, dynamic> j) {
@@ -336,7 +343,7 @@ class DbPlatz {
   const DbPlatz({required this.wagen, required this.platz});
 
   factory DbPlatz.fromJson(Map<String, dynamic> j) => DbPlatz(
-        wagen: (j['nummer'] ?? '').toString(),
-        platz: (j['plaetzeBeschreibung'] ?? '').toString(),
-      );
+    wagen: (j['nummer'] ?? '').toString(),
+    platz: (j['plaetzeBeschreibung'] ?? '').toString(),
+  );
 }

@@ -29,8 +29,7 @@ bool isDTicketProduct(String? product) =>
 /// alternative that the rider isn't taking. ALL hops must be covered: one ICE
 /// hop makes the whole segment payable — the bug behind #13, where any single
 /// D-Ticket-eligible section marked an ICE segment as free.
-bool isSegmentDTicketCovered(
-    List<Map<String, dynamic>> stops, int i, int j) {
+bool isSegmentDTicketCovered(List<Map<String, dynamic>> stops, int i, int j) {
   for (var k = i; k < j; k++) {
     final product = stops[k]['_product'];
     // '' = no train on this hop (transfer gap) → fare-neutral, keep checking.
@@ -50,7 +49,10 @@ bool isSegmentDTicketCovered(
 /// Returns empty when any hop's train is unknown — then there's nothing to
 /// match on and the price can't be vouched for.
 List<String> segmentTrainNumbers(
-    List<Map<String, dynamic>> stops, int i, int j) {
+  List<Map<String, dynamic>> stops,
+  int i,
+  int j,
+) {
   final trains = <String>[];
   for (var k = i; k < j; k++) {
     if (stops[k]['_product'] == '') continue; // transfer gap, no train
@@ -68,7 +70,8 @@ class _Stop {
   const _Stop(this.stop, this.time);
 }
 
-String _norm(String s) => s.toLowerCase().trim().replaceAll(RegExp(r'\s+'), ' ');
+String _norm(String s) =>
+    s.toLowerCase().trim().replaceAll(RegExp(r'\s+'), ' ');
 
 bool _sameStation(Station a, Station b) {
   if (a.id.isNotEmpty && b.id.isNotEmpty) return a.id == b.id;
@@ -80,13 +83,18 @@ bool _sameStation(Station a, Station b) {
 /// A run may call at the same station twice (Ring lines, Zürich-style
 /// turnbacks), so when [when] is known the closest call in time wins rather
 /// than blindly the first one.
-int _indexOfStop(List<Stopover> stops, Station station, DateTime? when,
-    {int from = 0}) {
+int _indexOfStop(
+  List<Stopover> stops,
+  Station station,
+  DateTime? when, {
+  int from = 0,
+}) {
   var best = -1;
   Duration? bestDiff;
   for (var i = from; i < stops.length; i++) {
     if (!_sameStation(stops[i].stop, station)) continue;
-    final t = stops[i].departure ??
+    final t =
+        stops[i].departure ??
         stops[i].plannedDeparture ??
         stops[i].arrival ??
         stops[i].plannedArrival;
@@ -116,11 +124,17 @@ int _indexOfStop(List<Stopover> stops, Station station, DateTime? when,
 /// the leg's own stop list, which is leg-scoped by construction.
 List<Stopover>? tripStopsForLeg(Trip trip, JourneyLeg leg) {
   final board = _indexOfStop(
-      trip.stopovers, leg.origin, leg.plannedDeparture ?? leg.departure);
+    trip.stopovers,
+    leg.origin,
+    leg.plannedDeparture ?? leg.departure,
+  );
   if (board < 0) return null;
   final alight = _indexOfStop(
-      trip.stopovers, leg.destination, leg.plannedArrival ?? leg.arrival,
-      from: board + 1);
+    trip.stopovers,
+    leg.destination,
+    leg.plannedArrival ?? leg.arrival,
+    from: board + 1,
+  );
   if (alight < 0) return null;
   return trip.stopovers.sublist(board, alight + 1);
 }
@@ -131,7 +145,7 @@ List<Stopover>? tripStopsForLeg(Trip trip, JourneyLeg leg) {
 /// leg's own `halte`, else just its two endpoints.
 List<_Stop> _legStops(JourneyLeg leg, Trip? trip) {
   final own = [
-    for (final so in leg.stopovers) _Stop(so.stop, so.departure ?? so.arrival)
+    for (final so in leg.stopovers) _Stop(so.stop, so.departure ?? so.arrival),
   ];
   if (trip != null) {
     final ride = tripStopsForLeg(trip, leg);
@@ -139,11 +153,12 @@ List<_Stop> _legStops(JourneyLeg leg, Trip? trip) {
       return [
         for (final so in ride)
           _Stop(
-              so.stop,
-              so.departure ??
-                  so.plannedDeparture ??
-                  so.arrival ??
-                  so.plannedArrival)
+            so.stop,
+            so.departure ??
+                so.plannedDeparture ??
+                so.arrival ??
+                so.plannedArrival,
+          ),
       ];
     }
   }
@@ -186,8 +201,14 @@ List<Map<String, dynamic>> splitStopsFromJourney(
 }) {
   final stops = <Map<String, dynamic>>[];
 
-  void add(String id, String name, DateTime? dep, bool boundary, String? product,
-      String? fahrtNr) {
+  void add(
+    String id,
+    String name,
+    DateTime? dep,
+    bool boundary,
+    String? product,
+    String? fahrtNr,
+  ) {
     if (id.isEmpty) return;
     if (stops.isNotEmpty && stops.last['id'] == id) {
       if (dep != null) stops.last['departure_iso'] = dep.toIso8601String();
@@ -222,8 +243,14 @@ List<Map<String, dynamic>> splitStopsFromJourney(
     for (var i = 0; i < legStops.length; i++) {
       final s = legStops[i];
       final last = i == legStops.length - 1;
-      add(s.stop.id, s.stop.name, s.time, i == 0 || last, last ? '' : product,
-          last ? null : fahrtNr);
+      add(
+        s.stop.id,
+        s.stop.name,
+        s.time,
+        i == 0 || last,
+        last ? '' : product,
+        last ? null : fahrtNr,
+      );
     }
   }
 

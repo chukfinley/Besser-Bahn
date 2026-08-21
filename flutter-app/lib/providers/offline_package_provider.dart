@@ -9,8 +9,9 @@ import 'account_provider.dart';
 import 'connectivity_provider.dart';
 import 'service_providers.dart';
 
-final offlineStoreProvider =
-    Provider<OfflineStore>((ref) => OfflineStore.instance);
+final offlineStoreProvider = Provider<OfflineStore>(
+  (ref) => OfflineStore.instance,
+);
 
 final offlinePackageServiceProvider = Provider<OfflinePackageService>((ref) {
   return OfflinePackageService(
@@ -43,10 +44,10 @@ class OfflinePackageStatus {
   static const none = OfflinePackageStatus();
 
   OfflinePackageState get state => packageState(
-        manifest: manifest,
-        downloading: downloading,
-        now: DateTime.now(),
-      );
+    manifest: manifest,
+    downloading: downloading,
+    now: DateTime.now(),
+  );
 
   /// "vor 3 h" — the age that has to accompany any offline data.
   String? get ageLabel {
@@ -63,12 +64,11 @@ class OfflinePackageStatus {
     OfflineManifest? manifest,
     bool? downloading,
     OfflineDownloadProgress? progress,
-  }) =>
-      OfflinePackageStatus(
-        manifest: manifest ?? this.manifest,
-        downloading: downloading ?? this.downloading,
-        progress: progress,
-      );
+  }) => OfflinePackageStatus(
+    manifest: manifest ?? this.manifest,
+    downloading: downloading ?? this.downloading,
+    progress: progress,
+  );
 }
 
 /// Every journey's package, keyed by `SavedJourney.key`.
@@ -88,7 +88,8 @@ class OfflinePackagesNotifier
   Future<void> _loadAll() async {
     final manifests = await ref.read(offlineStoreProvider).allManifests();
     state = {
-      for (final m in manifests) m.journeyKey: OfflinePackageStatus(manifest: m),
+      for (final m in manifests)
+        m.journeyKey: OfflinePackageStatus(manifest: m),
     };
   }
 
@@ -111,19 +112,22 @@ class OfflinePackagesNotifier
     _put(journeyKey, current.copyWith(downloading: true));
 
     try {
-      final manifest = await ref.read(offlinePackageServiceProvider).download(
+      final manifest = await ref
+          .read(offlinePackageServiceProvider)
+          .download(
             journey,
             journeyKey: journeyKey,
             ticket: await _ticketInfo(journeyKey),
             onProgress: (p) {
               if (!statusFor(journeyKey).downloading) return;
               _put(
-                  journeyKey,
-                  OfflinePackageStatus(
-                    manifest: current.manifest,
-                    downloading: true,
-                    progress: p,
-                  ));
+                journeyKey,
+                OfflinePackageStatus(
+                  manifest: current.manifest,
+                  downloading: true,
+                  progress: p,
+                ),
+              );
             },
           );
       _put(journeyKey, OfflinePackageStatus(manifest: manifest));
@@ -148,8 +152,7 @@ class OfflinePackagesNotifier
   }
 
   /// Total bytes across every package.
-  int get totalBytes =>
-      state.values.fold(0, (sum, s) => sum + s.bytes);
+  int get totalBytes => state.values.fold(0, (sum, s) => sum + s.bytes);
 
   /// Does a ticket exist for this journey, and is it already cached?
   ///
@@ -160,7 +163,10 @@ class OfflinePackagesNotifier
       final trips = await ref.read(ticketTripsProvider.future);
       final match = trips.where((t) => t.journeyKey == journeyKey).firstOrNull;
       if (match == null) return (exists: false, cached: false);
-      return (exists: true, cached: await isTicketCachedOffline(match.ticketKey));
+      return (
+        exists: true,
+        cached: await isTicketCachedOffline(match.ticketKey),
+      );
     } catch (_) {
       // Not logged in / list unavailable → "no ticket", rather than claiming
       // one is missing.
@@ -169,12 +175,17 @@ class OfflinePackagesNotifier
   }
 }
 
-final offlinePackagesProvider = NotifierProvider<OfflinePackagesNotifier,
-    Map<String, OfflinePackageStatus>>(OfflinePackagesNotifier.new);
+final offlinePackagesProvider =
+    NotifierProvider<
+      OfflinePackagesNotifier,
+      Map<String, OfflinePackageStatus>
+    >(OfflinePackagesNotifier.new);
 
 /// One journey's status. Watch this from a row so only that row rebuilds.
-final offlinePackageProvider =
-    Provider.family<OfflinePackageStatus, String>((ref, journeyKey) {
+final offlinePackageProvider = Provider.family<OfflinePackageStatus, String>((
+  ref,
+  journeyKey,
+) {
   return ref.watch(offlinePackagesProvider)[journeyKey] ??
       OfflinePackageStatus.none;
 });
@@ -191,7 +202,11 @@ final offlinePackagesSizeProvider = Provider<int>((ref) {
 /// plumbing. Safe to call on every build: the in-flight guard in [
 /// OfflinePackagesNotifier.download] makes a repeat call a no-op, and
 /// [shouldAutoRefresh] returns false once the package is fresh again.
-void maybeAutoRefreshPackage(WidgetRef ref, String journeyKey, Journey journey) {
+void maybeAutoRefreshPackage(
+  WidgetRef ref,
+  String journeyKey,
+  Journey journey,
+) {
   final status = ref.read(offlinePackageProvider(journeyKey));
   if (!shouldAutoRefresh(
     state: status.state,

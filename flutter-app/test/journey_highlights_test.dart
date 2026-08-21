@@ -34,14 +34,21 @@ void main() {
       final mid = _j(minutes: 178, price: 29.90, tag: 'mid'); // 2:58
       final scores = {'fast': 63.0, 'cheap': 81.0, 'safe': 94.0, 'mid': 90.0};
 
-      final out = journeyHighlights([fast, cheap, safe, mid],
-          (j) => scores[j.legs.first.tripId]);
+      final out = journeyHighlights([
+        fast,
+        cheap,
+        safe,
+        mid,
+      ], (j) => scores[j.legs.first.tripId]);
 
       expect(out[JourneyHighlight.fastest], same(fast));
       expect(out[JourneyHighlight.cheapest], same(cheap));
       expect(out[JourneyHighlight.safest], same(safe));
-      expect(out[JourneyHighlight.balanced], same(mid),
-          reason: 'the middle option wins on the combined axes');
+      expect(
+        out[JourneyHighlight.balanced],
+        same(mid),
+        reason: 'the middle option wins on the combined axes',
+      );
     });
 
     test('no prices → no "Günstigste" rather than a made-up one', () {
@@ -53,15 +60,20 @@ void main() {
       expect(out[JourneyHighlight.fastest], same(a));
     });
 
-    test('identical fares → "Günstigste" is dropped (it distinguishes nothing)',
-        () {
-      final a = _j(minutes: 100, price: 20, tag: 'a');
-      final b = _j(minutes: 120, price: 20, tag: 'b');
-      final out = journeyHighlights([a, b], (j) => null);
+    test(
+      'identical fares → "Günstigste" is dropped (it distinguishes nothing)',
+      () {
+        final a = _j(minutes: 100, price: 20, tag: 'a');
+        final b = _j(minutes: 120, price: 20, tag: 'b');
+        final out = journeyHighlights([a, b], (j) => null);
 
-      expect(out.containsKey(JourneyHighlight.cheapest), isFalse,
-          reason: 'labelling one of two equal fares "cheapest" is noise');
-    });
+        expect(
+          out.containsKey(JourneyHighlight.cheapest),
+          isFalse,
+          reason: 'labelling one of two equal fares "cheapest" is noise',
+        );
+      },
+    );
 
     test('predictions still loading → no "Sicherste" yet', () {
       final a = _j(minutes: 100, price: 20, tag: 'a');
@@ -82,17 +94,20 @@ void main() {
       final balanced = out[JourneyHighlight.balanced];
       if (balanced != null) {
         expect(
-            out.entries
-                .where((e) => e.key != JourneyHighlight.balanced)
-                .any((e) => identical(e.value, balanced)),
-            isFalse,
-            reason: 'a badge that repeats another tells you nothing');
+          out.entries
+              .where((e) => e.key != JourneyHighlight.balanced)
+              .any((e) => identical(e.value, balanced)),
+          isFalse,
+          reason: 'a badge that repeats another tells you nothing',
+        );
       }
     });
 
     test('one connection gets no badges — there is nothing to compare', () {
-      expect(journeyHighlights([_j(minutes: 100, price: 20)], (j) => 90.0),
-          isEmpty);
+      expect(
+        journeyHighlights([_j(minutes: 100, price: 20)], (j) => 90.0),
+        isEmpty,
+      );
       expect(journeyHighlights([], (j) => null), isEmpty);
     });
 

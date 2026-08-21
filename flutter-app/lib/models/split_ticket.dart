@@ -60,9 +60,8 @@ class SplitTicketProgress {
     this.currentSegment = '',
   });
 
-  double get progress => totalCombinations > 0
-      ? processedCombinations / totalCombinations
-      : 0;
+  double get progress =>
+      totalCombinations > 0 ? processedCombinations / totalCombinations : 0;
 }
 
 enum BahnCardType {

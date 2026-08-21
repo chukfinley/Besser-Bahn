@@ -21,14 +21,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// (project_vendo_rate_limit), so the number of requests is a correctness
 /// property: changing the stay must re-search one half, not both.
 
-const _selent =
-    Station(id: '8005292', name: 'Selent', locationId: 'A=1@L=8005292@');
-const _kiel =
-    Station(id: '8000199', name: 'Kiel Hbf', locationId: 'A=1@L=8000199@');
+const _selent = Station(
+  id: '8005292',
+  name: 'Selent',
+  locationId: 'A=1@L=8005292@',
+);
+const _kiel = Station(
+  id: '8000199',
+  name: 'Kiel Hbf',
+  locationId: 'A=1@L=8000199@',
+);
 const _praxis = Station(
-    id: '625109',
-    name: 'Kiel Professor-Peters-Platz',
-    locationId: 'A=1@L=625109@');
+  id: '625109',
+  name: 'Kiel Professor-Peters-Platz',
+  locationId: 'A=1@L=625109@',
+);
 
 final _deadline = DateTime(2026, 7, 27, 9, 48);
 
@@ -42,41 +49,37 @@ Map<String, dynamic> _conn(
   Station to,
   DateTime departure,
   DateTime arrival,
-) =>
-    {
-      'verbindung': {
-        'verbindungsAbschnitte': [
+) => {
+  'verbindung': {
+    'verbindungsAbschnitte': [
+      {
+        'typ': 'FAHRZEUG',
+        'zuglaufId': '${from.id}-${departure.hour}${departure.minute}',
+        'abgangsOrt': {'evaNr': from.id, 'name': from.name},
+        'ankunftsOrt': {'evaNr': to.id, 'name': to.name},
+        'abgangsDatum': _iso(departure),
+        'ankunftsDatum': _iso(arrival),
+        'mitteltext': 'RE 72',
+        'kurztext': 'RE',
+        'zugNummer': '72',
+        'produktGattung': 'REGIONALZUG',
+        'halte': [
           {
-            'typ': 'FAHRZEUG',
-            'zuglaufId': '${from.id}-${departure.hour}${departure.minute}',
-            'abgangsOrt': {'evaNr': from.id, 'name': from.name},
-            'ankunftsOrt': {'evaNr': to.id, 'name': to.name},
+            'ort': {'evaNr': from.id, 'name': from.name},
             'abgangsDatum': _iso(departure),
+          },
+          {
+            'ort': {'evaNr': to.id, 'name': to.name},
             'ankunftsDatum': _iso(arrival),
-            'mitteltext': 'RE 72',
-            'kurztext': 'RE',
-            'zugNummer': '72',
-            'produktGattung': 'REGIONALZUG',
-            'halte': [
-              {
-                'ort': {'evaNr': from.id, 'name': from.name},
-                'abgangsDatum': _iso(departure),
-              },
-              {
-                'ort': {'evaNr': to.id, 'name': to.name},
-                'ankunftsDatum': _iso(arrival),
-              },
-            ],
-          }
+          },
         ],
       },
-    };
+    ],
+  },
+};
 
 String _body(List<Map<String, dynamic>> conns, {String? earlier}) =>
-    json.encode({
-      'verbindungen': conns,
-      'frueherContext': ?earlier,
-    });
+    json.encode({'verbindungen': conns, 'frueherContext': ?earlier});
 
 /// What one captured search asked for.
 typedef Ask = ({String from, String to, String when, String kind, String? ctx});
@@ -89,22 +92,25 @@ class _Backend {
 
   final asks = <Ask>[];
 
-  VendoService get service => VendoService(client: MockClient((req) async {
-        final body =
-            json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
-        final wunsch = (body['reiseHin'] as Map<String, dynamic>)['wunsch']
-            as Map<String, dynamic>;
-        final zeit = wunsch['zeitWunsch'] as Map<String, dynamic>;
-        final ask = (
-          from: wunsch['abgangsLocationId'] as String,
-          to: wunsch['zielLocationId'] as String,
-          when: zeit['reiseDatum'] as String,
-          kind: zeit['zeitPunktArt'] as String,
-          ctx: wunsch['context'] as String?,
-        );
-        asks.add(ask);
-        return http.Response.bytes(utf8.encode(answer(ask)), 200);
-      }));
+  VendoService get service => VendoService(
+    client: MockClient((req) async {
+      final body =
+          json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
+      final wunsch =
+          (body['reiseHin'] as Map<String, dynamic>)['wunsch']
+              as Map<String, dynamic>;
+      final zeit = wunsch['zeitWunsch'] as Map<String, dynamic>;
+      final ask = (
+        from: wunsch['abgangsLocationId'] as String,
+        to: wunsch['zielLocationId'] as String,
+        when: zeit['reiseDatum'] as String,
+        kind: zeit['zeitPunktArt'] as String,
+        ctx: wunsch['context'] as String?,
+      );
+      asks.add(ask);
+      return http.Response.bytes(utf8.encode(answer(ask)), 200);
+    }),
+  );
 }
 
 /// Selent → Kiel Hbf, three candidates for the ride to the hub.
@@ -133,15 +139,17 @@ ProviderContainer _container(_Backend backend) {
 /// A backend that answers the hub leg with [_toGoal] and the first leg with
 /// [_toHub], told apart by where the search starts.
 _Backend _twoLegBackend({String? earlier}) => _Backend((ask) {
-      final toGoal = ask.from == _kiel.vendoLocationId;
-      return _body(toGoal ? _toGoal : _toHub, earlier: toGoal ? null : earlier);
-    });
+  final toGoal = ask.from == _kiel.vendoLocationId;
+  return _body(toGoal ? _toGoal : _toHub, earlier: toGoal ? null : earlier);
+});
 
 Future<StopoverPlanState> _plan(
   ProviderContainer container, {
   int stayMinutes = 60,
 }) async {
-  container.read(stopoverPlanProvider.notifier).start(
+  container
+      .read(stopoverPlanProvider.notifier)
+      .start(
         StopoverPlanArgs(
           from: _selent,
           hub: _kiel,
@@ -169,31 +177,36 @@ void main() {
     expect(state.hubDeparture, _at(9, 30));
 
     // Leg 1: both roomy rides, the 5-minute one filtered out and counted.
-    expect([for (final j in state.firstOptions) j.departure],
-        [_at(7, 20), _at(8, 20)]);
+    expect(
+      [for (final j in state.firstOptions) j.departure],
+      [_at(7, 20), _at(8, 20)],
+    );
     expect(state.hiddenFirstCount, 1);
     expect(state.error, isNull);
     expect(state.isLoading, isFalse);
   });
 
-  test('both halves are arrival searches, and the hub one asks for "stay before '
-      'the onward train leaves"', () async {
-    final backend = _twoLegBackend();
-    await _plan(_container(backend), stayMinutes: 60);
+  test(
+    'both halves are arrival searches, and the hub one asks for "stay before '
+    'the onward train leaves"',
+    () async {
+      final backend = _twoLegBackend();
+      await _plan(_container(backend), stayMinutes: 60);
 
-    expect(backend.asks.length, 2);
-    expect(backend.asks.every((a) => a.kind == 'ANKUNFT'), isTrue);
+      expect(backend.asks.length, 2);
+      expect(backend.asks.every((a) => a.kind == 'ANKUNFT'), isTrue);
 
-    // First request: hub → goal, by the appointment.
-    expect(backend.asks[0].from, _kiel.vendoLocationId);
-    expect(backend.asks[0].to, _praxis.vendoLocationId);
-    expect(backend.asks[0].when, startsWith('2026-07-27T09:48'));
+      // First request: hub → goal, by the appointment.
+      expect(backend.asks[0].from, _kiel.vendoLocationId);
+      expect(backend.asks[0].to, _praxis.vendoLocationId);
+      expect(backend.asks[0].when, startsWith('2026-07-27T09:48'));
 
-    // Second: home → hub, by 09:30 minus the wanted hour = 08:30.
-    expect(backend.asks[1].from, _selent.vendoLocationId);
-    expect(backend.asks[1].to, _kiel.vendoLocationId);
-    expect(backend.asks[1].when, startsWith('2026-07-27T08:30'));
-  });
+      // Second: home → hub, by 09:30 minus the wanted hour = 08:30.
+      expect(backend.asks[1].from, _selent.vendoLocationId);
+      expect(backend.asks[1].to, _kiel.vendoLocationId);
+      expect(backend.asks[1].when, startsWith('2026-07-27T08:30'));
+    },
+  );
 
   test('a stay too long for the timetable empties the list and says so, '
       'instead of quietly handing back a tight change', () async {
@@ -208,9 +221,9 @@ void main() {
 
   test('an unreachable appointment is an error, not an empty plan', () async {
     // Only a connection that gets in at 09:57 — after the 09:48 appointment.
-    final backend = _Backend((_) => _body([
-          _conn(_kiel, _praxis, _at(9, 45), _at(9, 57)),
-        ]));
+    final backend = _Backend(
+      (_) => _body([_conn(_kiel, _praxis, _at(9, 45), _at(9, 57))]),
+    );
     final state = await _plan(_container(backend));
 
     expect(state.secondLeg, isNull);
@@ -241,22 +254,26 @@ void main() {
     expect([for (final j in state.firstOptions) j.departure], [_at(7, 20)]);
   });
 
-  test('changing the stay drops the picked ride — it may no longer qualify',
-      () async {
-    final backend = _twoLegBackend();
-    final container = _container(backend);
-    final state = await _plan(container, stayMinutes: 30);
-    final notifier = container.read(stopoverPlanProvider.notifier);
+  test(
+    'changing the stay drops the picked ride — it may no longer qualify',
+    () async {
+      final backend = _twoLegBackend();
+      final container = _container(backend);
+      final state = await _plan(container, stayMinutes: 30);
+      final notifier = container.read(stopoverPlanProvider.notifier);
 
-    notifier.selectFirstLeg(state.firstOptions.last); // the 35-minute one
-    expect(container.read(stopoverPlanProvider).plannedStay,
-        const Duration(minutes: 35));
+      notifier.selectFirstLeg(state.firstOptions.last); // the 35-minute one
+      expect(
+        container.read(stopoverPlanProvider).plannedStay,
+        const Duration(minutes: 35),
+      );
 
-    notifier.setStayMinutes(90);
-    await Future<void>.delayed(Duration.zero);
+      notifier.setStayMinutes(90);
+      await Future<void>.delayed(Duration.zero);
 
-    expect(container.read(stopoverPlanProvider).firstLeg, isNull);
-  });
+      expect(container.read(stopoverPlanProvider).firstLeg, isNull);
+    },
+  );
 
   test('a later appointment re-plans both halves', () async {
     final backend = _twoLegBackend();
@@ -274,34 +291,36 @@ void main() {
     expect(backend.asks[2].from, _kiel.vendoLocationId);
   });
 
-  test('"Früher" walks the ride to the hub further back, deduped and in order',
-      () async {
-    final backend = _Backend((ask) {
-      if (ask.from == _kiel.vendoLocationId) return _body(_toGoal);
-      // The paged window overlaps the first one by the 07:20 ride.
-      if (ask.ctx != null) {
-        return _body([
-          _conn(_selent, _kiel, _at(6, 20), _at(6, 55)),
-          _toHub.first,
-        ]);
-      }
-      return _body(_toHub, earlier: 'frueher-1');
-    });
-    final container = _container(backend);
-    await _plan(container, stayMinutes: 30);
-    expect(container.read(stopoverPlanProvider).firstEarlierRef, 'frueher-1');
+  test(
+    '"Früher" walks the ride to the hub further back, deduped and in order',
+    () async {
+      final backend = _Backend((ask) {
+        if (ask.from == _kiel.vendoLocationId) return _body(_toGoal);
+        // The paged window overlaps the first one by the 07:20 ride.
+        if (ask.ctx != null) {
+          return _body([
+            _conn(_selent, _kiel, _at(6, 20), _at(6, 55)),
+            _toHub.first,
+          ]);
+        }
+        return _body(_toHub, earlier: 'frueher-1');
+      });
+      final container = _container(backend);
+      await _plan(container, stayMinutes: 30);
+      expect(container.read(stopoverPlanProvider).firstEarlierRef, 'frueher-1');
 
-    await container
-        .read(stopoverPlanProvider.notifier)
-        .loadEarlierFirstLegs();
+      await container
+          .read(stopoverPlanProvider.notifier)
+          .loadEarlierFirstLegs();
 
-    expect(backend.asks.last.ctx, 'frueher-1');
-    final state = container.read(stopoverPlanProvider);
-    expect(
-      [for (final j in state.firstOptions) j.departure],
-      [_at(6, 20), _at(7, 20), _at(8, 20)],
-    );
-  });
+      expect(backend.asks.last.ctx, 'frueher-1');
+      final state = container.read(stopoverPlanProvider);
+      expect(
+        [for (final j in state.firstOptions) j.departure],
+        [_at(6, 20), _at(7, 20), _at(8, 20)],
+      );
+    },
+  );
 
   test('a failed search leaves an error, not a half-built plan', () async {
     final container = _container(_Backend((_) => 'not json'));

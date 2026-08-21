@@ -54,71 +54,70 @@ class _RotatingIdp {
   String accessToken = _jwt(0);
 
   http.Client client() => MockClient((req) async {
-        final path = req.url.path;
+    final path = req.url.path;
 
-        if (path.endsWith('/openid-connect/token')) {
-          tokenPosts++;
-          final body = Uri.splitQueryString(req.body);
-          final presented = body['refresh_token'];
-          if (presented != _validRefresh) {
-            // Reuse of a rotated token → Keycloak kills the family.
-            reuseDetected = true;
-            return http.Response(
-                json.encode({'error': 'invalid_grant'}), 400);
-          }
-          _rotation++;
-          _validRefresh = 'refresh-$_rotation';
-          accessToken = _jwt(_rotation);
-          return http.Response(
-            json.encode({
-              'access_token': accessToken,
-              'refresh_token': _validRefresh,
-              'expires_in': 300,
-            }),
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-
-        // Every mob endpoint requires the *current* access token.
-        if (req.headers['Authorization'] != 'Bearer $accessToken') {
-          return http.Response('', 401);
-        }
-
-        if (path == '/mob/kundenkonten/$_konto') {
-          return _json({
-            'kundenkontoId': _konto,
-            'kundennummer': '1234567890',
-            'vorname': 'Max',
-            'nachname': 'Mustermann',
-            'kundenprofile': [
-              {
-                'id': 'KP1',
-                'kontaktmailadresse': {'email': 'max@example.org'},
-              }
-            ],
-          });
-        }
-        if (path == '/mob/kundenkonten/$_konto/bbStatus') {
-          return _json({
-            'activeBonusPoints': 100,
-            'activeStatusPoints': 50,
-            'statusLevel': '1',
-            'bbSubscription': false,
-          });
-        }
-        if (path == '/mob/emobilebahncards') return _json([]);
-        if (path == '/mob/reisenuebersicht') {
-          return _json({'auftragsIndizes': [], 'reiseIndizes': []});
-        }
-        return http.Response('unexpected $path', 404);
-      });
-
-  static http.Response _json(Object body) => http.Response.bytes(
-        utf8.encode(json.encode(body)),
+    if (path.endsWith('/openid-connect/token')) {
+      tokenPosts++;
+      final body = Uri.splitQueryString(req.body);
+      final presented = body['refresh_token'];
+      if (presented != _validRefresh) {
+        // Reuse of a rotated token → Keycloak kills the family.
+        reuseDetected = true;
+        return http.Response(json.encode({'error': 'invalid_grant'}), 400);
+      }
+      _rotation++;
+      _validRefresh = 'refresh-$_rotation';
+      accessToken = _jwt(_rotation);
+      return http.Response(
+        json.encode({
+          'access_token': accessToken,
+          'refresh_token': _validRefresh,
+          'expires_in': 300,
+        }),
         200,
         headers: {'content-type': 'application/json'},
       );
+    }
+
+    // Every mob endpoint requires the *current* access token.
+    if (req.headers['Authorization'] != 'Bearer $accessToken') {
+      return http.Response('', 401);
+    }
+
+    if (path == '/mob/kundenkonten/$_konto') {
+      return _json({
+        'kundenkontoId': _konto,
+        'kundennummer': '1234567890',
+        'vorname': 'Max',
+        'nachname': 'Mustermann',
+        'kundenprofile': [
+          {
+            'id': 'KP1',
+            'kontaktmailadresse': {'email': 'max@example.org'},
+          },
+        ],
+      });
+    }
+    if (path == '/mob/kundenkonten/$_konto/bbStatus') {
+      return _json({
+        'activeBonusPoints': 100,
+        'activeStatusPoints': 50,
+        'statusLevel': '1',
+        'bbSubscription': false,
+      });
+    }
+    if (path == '/mob/emobilebahncards') return _json([]);
+    if (path == '/mob/reisenuebersicht') {
+      return _json({'auftragsIndizes': [], 'reiseIndizes': []});
+    }
+    return http.Response('unexpected $path', 404);
+  });
+
+  static http.Response _json(Object body) => http.Response.bytes(
+    utf8.encode(json.encode(body)),
+    200,
+    headers: {'content-type': 'application/json'},
+  );
 }
 
 void main() {
@@ -132,33 +131,43 @@ void main() {
       'db_access_token': _jwt(0),
       'db_refresh_token': 'refresh-0',
       'db_kundenkonto_id': _konto,
-      'db_expires_at':
-          DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+      'db_expires_at': DateTime.now()
+          .subtract(const Duration(hours: 1))
+          .toIso8601String(),
     });
   });
 
-  test('four concurrent reads after expiry refresh the token exactly once',
-      () async {
-    final idp = _RotatingIdp();
-    final service = DbAccountService(client: idp.client());
+  test(
+    'four concurrent reads after expiry refresh the token exactly once',
+    () async {
+      final idp = _RotatingIdp();
+      final service = DbAccountService(client: idp.client());
 
-    // The four fetches a full account refresh fires together.
-    final results = await Future.wait([
-      service.profile(),
-      service.bahnbonus(),
-      service.bahncards(),
-      service.reisenuebersichtJson(),
-    ]);
+      // The four fetches a full account refresh fires together.
+      final results = await Future.wait([
+        service.profile(),
+        service.bahnbonus(),
+        service.bahncards(),
+        service.reisenuebersichtJson(),
+      ]);
 
-    expect(idp.tokenPosts, 1,
-        reason: 'a single-flight refresh must collapse the concurrent expiry '
-            'discoveries into one token rotation');
-    expect(idp.reuseDetected, isFalse,
-        reason: 'no caller may present an already-rotated refresh token');
-    // All four actually returned data — the session survived.
-    expect((results[0] as DbProfile).kundennummer, '1234567890');
-    expect(await service.hasSession(), isTrue);
-  });
+      expect(
+        idp.tokenPosts,
+        1,
+        reason:
+            'a single-flight refresh must collapse the concurrent expiry '
+            'discoveries into one token rotation',
+      );
+      expect(
+        idp.reuseDetected,
+        isFalse,
+        reason: 'no caller may present an already-rotated refresh token',
+      );
+      // All four actually returned data — the session survived.
+      expect((results[0] as DbProfile).kundennummer, '1234567890');
+      expect(await service.hasSession(), isTrue);
+    },
+  );
 
   test('the rotated refresh token is persisted for the next run', () async {
     final idp = _RotatingIdp();

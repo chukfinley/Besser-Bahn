@@ -114,10 +114,7 @@ class MessageCard extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 8),
-            trailing!,
-          ],
+          if (trailing != null) ...[const SizedBox(width: 8), trailing!],
         ],
       ),
     );
@@ -132,9 +129,7 @@ class MessageCard extends StatelessWidget {
         border: Border(left: BorderSide(color: accent, width: 3)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: onTap == null
-          ? content
-          : InkWell(onTap: onTap, child: content),
+      child: onTap == null ? content : InkWell(onTap: onTap, child: content),
     );
   }
 }

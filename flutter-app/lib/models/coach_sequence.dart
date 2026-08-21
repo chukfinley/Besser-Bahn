@@ -32,15 +32,15 @@ class CoachSequence {
     );
   }
 
-  List<Coach> get allCoaches =>
-      groups.expand((g) => g.coaches).toList()
-        ..sort((a, b) =>
-            (a.platformPosition?.start ?? 0)
-                .compareTo(b.platformPosition?.start ?? 0));
+  List<Coach> get allCoaches => groups.expand((g) => g.coaches).toList()
+    ..sort(
+      (a, b) => (a.platformPosition?.start ?? 0).compareTo(
+        b.platformPosition?.start ?? 0,
+      ),
+    );
 
   bool get hasPlatformChange =>
-      scheduledPlatform != null &&
-      departurePlatform != scheduledPlatform;
+      scheduledPlatform != null && departurePlatform != scheduledPlatform;
 
   /// True only for a real Flügelzug: ≥2 portions bound for DIFFERENT
   /// destinations. Multiple coach groups that all share one destination (e.g.
@@ -226,8 +226,9 @@ class Coach {
       orientation: json['orientation'] as String? ?? '',
       status: json['status'] as String? ?? 'OPEN',
       type: CoachType.fromJson(typeJson),
-      platformPosition:
-          posJson != null ? CoachPosition.fromJson(posJson) : null,
+      platformPosition: posJson != null
+          ? CoachPosition.fromJson(posJson)
+          : null,
       amenities: amenitiesJson
           .whereType<Map<String, dynamic>>()
           .map(CoachAmenity.fromJson)
@@ -239,10 +240,10 @@ class Coach {
   bool get isFirstClass => type.hasFirstClass && !type.hasEconomyClass;
   bool get isSecondClass => type.hasEconomyClass && !type.hasFirstClass;
   bool get isMixed => type.hasFirstClass && type.hasEconomyClass;
-  bool get isRestaurant => type.category.contains('DINING') ||
-      type.category.contains('RESTAURANT');
-  bool get isLocomotive => type.category == 'POWERCAR' ||
-      type.category == 'LOCOMOTIVE';
+  bool get isRestaurant =>
+      type.category.contains('DINING') || type.category.contains('RESTAURANT');
+  bool get isLocomotive =>
+      type.category == 'POWERCAR' || type.category == 'LOCOMOTIVE';
 
   bool hasAmenity(String amenityType) =>
       amenities.any((a) => a.type == amenityType);

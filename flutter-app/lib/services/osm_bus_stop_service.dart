@@ -63,7 +63,8 @@ class OsmBusStopService {
       // The poles, then the route relations they belong to *with their member
       // lists* — that membership is the only way to say which direction leaves
       // from which pole.
-      final ql = '[out:json][timeout:25];'
+      final ql =
+          '[out:json][timeout:25];'
           'node["highway"~"bus_stop|tram_stop"](around:$_radiusM,$lat,$lon)->.s;'
           '.s out tags center;'
           'rel(bn.s)["type"="route"]["route"~"bus|tram|trolleybus"];'
@@ -86,7 +87,10 @@ class OsmBusStopService {
             resp = r;
             break;
           }
-          AppLog.log('OSM bus stops $endpoint HTTP ${r.statusCode}', tag: 'osm');
+          AppLog.log(
+            'OSM bus stops $endpoint HTTP ${r.statusCode}',
+            tag: 'osm',
+          );
         } catch (e) {
           AppLog.log('OSM bus stops $endpoint error: $e', tag: 'osm');
         }
@@ -163,13 +167,15 @@ class OsmBusStopService {
       if (lat == null || lon == null) continue;
       final at = LatLng(lat, lon);
       if (metresBetween(center, at) > poleRadiusM) continue;
-      out.add(StopPole(
-        latLng: at,
-        name: (tags['name'] as String?)?.trim() ?? '',
-        bay: (tags['local_ref'] as String?)?.trim(),
-        directions: directions[entry.key] ?? const [],
-        shelter: tags['shelter'] == 'yes',
-      ));
+      out.add(
+        StopPole(
+          latLng: at,
+          name: (tags['name'] as String?)?.trim() ?? '',
+          bay: (tags['local_ref'] as String?)?.trim(),
+          directions: directions[entry.key] ?? const [],
+          shelter: tags['shelter'] == 'yes',
+        ),
+      );
     }
     out.sort((a, b) => (a.bay ?? '~~').compareTo(b.bay ?? '~~'));
     return out;

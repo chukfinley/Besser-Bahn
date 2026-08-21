@@ -4,8 +4,7 @@ import '../services/vendo_service.dart';
 import 'split_stops.dart';
 
 /// Result of pricing the segments of one route. `null` segments stay infinite.
-typedef SplitProgress = void Function(
-    int processed, int total, String segment);
+typedef SplitProgress = void Function(int processed, int total, String segment);
 
 /// Pure split-ticket engine: price every `i→j` segment of an ordered stop list,
 /// find the cheapest forward split via DP, and clamp it to the direct fare (you
@@ -52,11 +51,16 @@ class SplitEngine {
         // is a different question and the source of #13's false "0,00 €" on
         // ICE segments.
         if (deutschlandTicket && isSegmentDTicketCovered(stops, i, j)) {
-          prices['$i-$j'] =
-              const SegmentPrice(price: 0.0, isDTicketCovered: true);
+          prices['$i-$j'] = const SegmentPrice(
+            price: 0.0,
+            isDTicketCovered: true,
+          );
           processed++;
-          onProgress?.call(processed, total,
-              '${stops[i]['name']} → ${stops[j]['name']}');
+          onProgress?.call(
+            processed,
+            total,
+            '${stops[i]['name']} → ${stops[j]['name']}',
+          );
           continue;
         }
 
@@ -81,8 +85,11 @@ class SplitEngine {
         if (isCancelled?.call() ?? false) return null;
         prices['$i-$j'] = price;
         processed++;
-        onProgress?.call(processed, total,
-            '${stops[i]['name']} → ${stops[j]['name']}');
+        onProgress?.call(
+          processed,
+          total,
+          '${stops[i]['name']} → ${stops[j]['name']}',
+        );
       }
     }
 
@@ -132,7 +139,8 @@ class SplitEngine {
     // identical endpoints (#13).
     // …unless it's a D-Ticket-covered route: "you need no ticket at all" is a
     // real, useful answer, not a degenerate split.
-    final isWholeRoute = resultTickets.length <= 1 &&
+    final isWholeRoute =
+        resultTickets.length <= 1 &&
         !(resultTickets.length == 1 &&
             resultTickets.first.coveredByDeutschlandTicket);
     // Never present a split that costs more than — or merely ties — the direct

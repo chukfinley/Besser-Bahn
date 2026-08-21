@@ -16,7 +16,8 @@ void main() {
     test('the full bahn.de link', () {
       expect(
         VendoService.extractVbid(
-            'https://www.bahn.de/buchung/start?vbid=$_uuid'),
+          'https://www.bahn.de/buchung/start?vbid=$_uuid',
+        ),
         _uuid,
       );
     });
@@ -24,14 +25,16 @@ void main() {
     test('the international link', () {
       expect(
         VendoService.extractVbid(
-            'https://int.bahn.de/en/buchung/start?vbid=$_uuid'),
+          'https://int.bahn.de/en/buchung/start?vbid=$_uuid',
+        ),
         _uuid,
       );
     });
 
     test('a whole shared message with the link inside it', () {
       // What you actually get when someone forwards a DB share text.
-      const text = '''
+      const text =
+          '''
 Berlin Südkreuz → Elstal
 Sa. 18.07.2026
 
@@ -44,7 +47,8 @@ Verbindung ansehen: https://www.bahn.de/buchung/start?vbid=$_uuid
     test('surrounding whitespace and a trailing query param', () {
       expect(
         VendoService.extractVbid(
-            '  https://www.bahn.de/buchung/start?vbid=$_uuid&lang=de  '),
+          '  https://www.bahn.de/buchung/start?vbid=$_uuid&lang=de  ',
+        ),
         _uuid,
       );
     });
@@ -53,8 +57,11 @@ Verbindung ansehen: https://www.bahn.de/buchung/start?vbid=$_uuid
       expect(VendoService.extractVbid(''), isNull);
       expect(VendoService.extractVbid('   '), isNull);
       expect(VendoService.extractVbid('hallo, wie gehts?'), isNull);
-      expect(VendoService.extractVbid('https://www.bahn.de/'), isNull,
-          reason: 'a link without a share id is not a share link');
+      expect(
+        VendoService.extractVbid('https://www.bahn.de/'),
+        isNull,
+        reason: 'a link without a share id is not a share link',
+      );
     });
   });
 }

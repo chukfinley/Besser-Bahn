@@ -9,11 +9,7 @@ import 'station_map_service.dart';
 import 'vendo_service.dart';
 
 /// Progress of a running package download, for the UI.
-typedef OfflineDownloadProgress = ({
-  OfflinePartKind kind,
-  int done,
-  int total,
-});
+typedef OfflineDownloadProgress = ({OfflinePartKind kind, int done, int total});
 
 /// Whether the account layer already holds a ticket for this journey.
 ///
@@ -35,10 +31,10 @@ class OfflinePackageService {
     required CoachSequenceService coach,
     required StationMapService stationMap,
     OfflineStore? store,
-  })  : _vendo = vendo,
-        _coach = coach,
-        _stationMap = stationMap,
-        _store = store ?? OfflineStore.instance;
+  }) : _vendo = vendo,
+       _coach = coach,
+       _stationMap = stationMap,
+       _store = store ?? OfflineStore.instance;
 
   final VendoService _vendo;
   final CoachSequenceService _coach;
@@ -70,43 +66,51 @@ class OfflinePackageService {
 
     // 1) Reiseplan — the raw run per leg, which also carries the polyline the
     //    tile corridor is derived from, so this must go first.
-    parts.add(await _downloadPlans(
-      journeyKey: journeyKey,
-      legs: legs,
-      trips: trips,
-      onProgress: onProgress,
-      stopped: stopped,
-    ));
+    parts.add(
+      await _downloadPlans(
+        journeyKey: journeyKey,
+        legs: legs,
+        trips: trips,
+        onProgress: onProgress,
+        stopped: stopped,
+      ),
+    );
 
     // 2) Wagenreihung — per leg, at the stop the rider boards.
     if (!stopped()) {
-      parts.add(await _downloadCoaches(
-        journeyKey: journeyKey,
-        legs: legs,
-        onProgress: onProgress,
-        stopped: stopped,
-      ));
+      parts.add(
+        await _downloadCoaches(
+          journeyKey: journeyKey,
+          legs: legs,
+          onProgress: onProgress,
+          stopped: stopped,
+        ),
+      );
     }
 
     // 3) Bahnhofskarten — origin, every transfer, destination.
     if (!stopped()) {
-      parts.add(await _downloadStationMaps(
-        journeyKey: journeyKey,
-        legs: legs,
-        onProgress: onProgress,
-        stopped: stopped,
-      ));
+      parts.add(
+        await _downloadStationMaps(
+          journeyKey: journeyKey,
+          legs: legs,
+          onProgress: onProgress,
+          stopped: stopped,
+        ),
+      );
     }
 
     // 4) Kartenkacheln along the corridor.
     if (!stopped()) {
-      parts.add(await _downloadTiles(
-        journeyKey: journeyKey,
-        journey: journey,
-        trips: trips,
-        onProgress: onProgress,
-        stopped: stopped,
-      ));
+      parts.add(
+        await _downloadTiles(
+          journeyKey: journeyKey,
+          journey: journey,
+          trips: trips,
+          onProgress: onProgress,
+          stopped: stopped,
+        ),
+      );
     }
 
     // 5) Ticket — nothing to download, only to report.
@@ -120,10 +124,11 @@ class OfflinePackageService {
     await _store.writeManifest(manifest);
 
     AppLog.log(
-        'offline package "$journeyKey" in ${sw.elapsedMilliseconds}ms: '
-        '${parts.map((p) => '${p.kind.name} ${p.stored}/${p.expected}').join(', ')} '
-        '· ${offlineSizeLabel(manifest.totalBytes)}',
-        tag: 'offline');
+      'offline package "$journeyKey" in ${sw.elapsedMilliseconds}ms: '
+      '${parts.map((p) => '${p.kind.name} ${p.stored}/${p.expected}').join(', ')} '
+      '· ${offlineSizeLabel(manifest.totalBytes)}',
+      tag: 'offline',
+    );
     return manifest;
   }
 
@@ -146,11 +151,18 @@ class OfflinePackageService {
 
     for (var i = 0; i < ids.length; i++) {
       if (stopped()) break;
-      onProgress?.call((kind: OfflinePartKind.plan, done: i, total: ids.length));
+      onProgress?.call((
+        kind: OfflinePartKind.plan,
+        done: i,
+        total: ids.length,
+      ));
       try {
         final raw = await _vendo.getTripRaw(ids[i]);
         bytes += await _store.writeJson(
-            journeyKey, OfflineStore.planName(ids[i]), raw);
+          journeyKey,
+          OfflineStore.planName(ids[i]),
+          raw,
+        );
         stored++;
         // Parse now so the tile corridor has geometry without a second fetch.
         try {
@@ -163,8 +175,11 @@ class OfflinePackageService {
         note ??= 'Zuglauf nicht abrufbar ($e)';
       }
     }
-    onProgress?.call(
-        (kind: OfflinePartKind.plan, done: ids.length, total: ids.length));
+    onProgress?.call((
+      kind: OfflinePartKind.plan,
+      done: ids.length,
+      total: ids.length,
+    ));
 
     if (ids.length < legs.length) {
       note ??= '${legs.length - ids.length} Abschnitt(e) ohne Zuglauf-ID';
@@ -185,7 +200,8 @@ class OfflinePackageService {
     required bool Function() stopped,
   }) async {
     // Only trains the vehicle-sequence endpoint serves, at a stop with a time.
-    final targets = <({String key, String cat, int number, String eva, DateTime time})>[];
+    final targets =
+        <({String key, String cat, int number, String eva, DateTime time})>[];
     for (final leg in legs) {
       final line = leg.line;
       // Scheduled first: this both keys the request on the right service date
@@ -193,14 +209,18 @@ class OfflinePackageService {
       // offline — a live-keyed copy of a delayed train would never be found (#32).
       final time = leg.plannedDeparture ?? leg.departure;
       if (line == null || time == null || leg.origin.id.isEmpty) continue;
-      final k = CoachSequenceService.sequenceKeyFor(line.productName, line.fahrtNr);
+      final k = CoachSequenceService.sequenceKeyFor(
+        line.productName,
+        line.fahrtNr,
+      );
       if (k == null) continue; // bus/tram — no Wagenreihung exists
       targets.add((
         key: CoachSequenceService.cacheKeyFor(
-            category: k.category,
-            number: k.number,
-            stationEva: leg.origin.id,
-            departureTime: time),
+          category: k.category,
+          number: k.number,
+          stationEva: leg.origin.id,
+          departureTime: time,
+        ),
         cat: k.category,
         number: k.number,
         eva: leg.origin.id,
@@ -213,8 +233,11 @@ class OfflinePackageService {
     String? note;
     for (var i = 0; i < targets.length; i++) {
       if (stopped()) break;
-      onProgress?.call(
-          (kind: OfflinePartKind.wagenreihung, done: i, total: targets.length));
+      onProgress?.call((
+        kind: OfflinePartKind.wagenreihung,
+        done: i,
+        total: targets.length,
+      ));
       final t = targets[i];
       try {
         final raw = await _coach.getCoachSequenceRaw(
@@ -224,8 +247,11 @@ class OfflinePackageService {
           date: t.time,
           time: t.time,
         );
-        bytes +=
-            await _store.writeJson(journeyKey, OfflineStore.coachName(t.key), raw);
+        bytes += await _store.writeJson(
+          journeyKey,
+          OfflineStore.coachName(t.key),
+          raw,
+        );
         stored++;
       } catch (_) {
         // Common and not alarming: DB serves no sequence for plenty of trains,
@@ -236,7 +262,7 @@ class OfflinePackageService {
     onProgress?.call((
       kind: OfflinePartKind.wagenreihung,
       done: targets.length,
-      total: targets.length
+      total: targets.length,
     ));
 
     return OfflinePart(
@@ -269,20 +295,29 @@ class OfflinePackageService {
     String? note;
     for (var i = 0; i < list.length; i++) {
       if (stopped()) break;
-      onProgress?.call(
-          (kind: OfflinePartKind.stationMap, done: i, total: list.length));
+      onProgress?.call((
+        kind: OfflinePartKind.stationMap,
+        done: i,
+        total: list.length,
+      ));
       try {
         final res = await _stationMap.fetchRawBySlug(list[i], background: true);
         bytes += await _store.writeText(
-            journeyKey, OfflineStore.stationName(list[i]), res.body);
+          journeyKey,
+          OfflineStore.stationName(list[i]),
+          res.body,
+        );
         stored++;
       } catch (_) {
         // Plenty of small halts genuinely have no bahnhof.de map.
         note ??= 'Nicht jeder Halt hat eine Bahnhofskarte';
       }
     }
-    onProgress?.call(
-        (kind: OfflinePartKind.stationMap, done: list.length, total: list.length));
+    onProgress?.call((
+      kind: OfflinePartKind.stationMap,
+      done: list.length,
+      total: list.length,
+    ));
 
     return OfflinePart(
       kind: OfflinePartKind.stationMap,
@@ -329,8 +364,11 @@ class OfflinePackageService {
     final res = await TileCache.prefetchVectorTiles(
       tiles,
       cancelled: stopped,
-      onProgress: (done, total) => onProgress
-          ?.call((kind: OfflinePartKind.tiles, done: done, total: total)),
+      onProgress: (done, total) => onProgress?.call((
+        kind: OfflinePartKind.tiles,
+        done: done,
+        total: total,
+      )),
     );
     await _store.writeTileList(journeyKey, res.files);
 
@@ -345,7 +383,7 @@ class OfflinePackageService {
       bytes: res.bytes,
       note: capped
           ? 'Lange Strecke — Karte (Zoom $kOfflineTileMinZoom–$kOfflineTileMaxZoom) '
-              'auf ${offlineSizeLabel(kOfflineMaxTileBytes)} begrenzt'
+                'auf ${offlineSizeLabel(kOfflineMaxTileBytes)} begrenzt'
           : null,
     );
   }
@@ -354,7 +392,9 @@ class OfflinePackageService {
   /// follows the rails); a leg's stop coordinates are the fallback for a run we
   /// couldn't fetch or that carried no geometry.
   List<({double lat, double lng})> _routePoints(
-      Journey journey, List<Trip> trips) {
+    Journey journey,
+    List<Trip> trips,
+  ) {
     final points = <({double lat, double lng})>[];
     for (final trip in trips) {
       final poly = trip.polyline;

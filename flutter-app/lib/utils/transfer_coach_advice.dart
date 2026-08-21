@@ -197,9 +197,11 @@ TransferCoachAdvice? transferCoachAdvice({
 
   // The part of the arriving train that stands alongside the departing train.
   final alongside = arrCoaches
-      .where((c) =>
-          c.platformPosition!.start < depEnd &&
-          c.platformPosition!.end > depStart)
+      .where(
+        (c) =>
+            c.platformPosition!.start < depEnd &&
+            c.platformPosition!.end > depStart,
+      )
       .toList();
 
   List<Coach> chosen;
@@ -223,8 +225,7 @@ TransferCoachAdvice? transferCoachAdvice({
     final sector = nearestCoach.platformPosition!.sector.trim().toUpperCase();
     if (sector.isEmpty) return null;
     chosen = arrCoaches
-        .where((c) =>
-            c.platformPosition!.sector.trim().toUpperCase() == sector)
+        .where((c) => c.platformPosition!.sector.trim().toUpperCase() == sector)
         .toList();
     reason = TransferAdviceReason.nearest;
   }
@@ -243,10 +244,7 @@ TransferCoachAdvice? transferCoachAdvice({
   final depSectors = _sectorsOf(depCoaches);
   if (depSectors.isEmpty) return null;
 
-  final coaches = chosen
-      .map((c) => c.wagonNumber)
-      .where((n) => n > 0)
-      .toList()
+  final coaches = chosen.map((c) => c.wagonNumber).where((n) => n > 0).toList()
     ..sort();
 
   return TransferCoachAdvice(

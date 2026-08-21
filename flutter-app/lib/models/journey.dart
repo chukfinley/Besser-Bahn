@@ -6,17 +6,15 @@ class JourneyResult {
   final String? earlierRef;
   final String? laterRef;
 
-  const JourneyResult({
-    required this.journeys,
-    this.earlierRef,
-    this.laterRef,
-  });
+  const JourneyResult({required this.journeys, this.earlierRef, this.laterRef});
 
   factory JourneyResult.fromHafas(Map<String, dynamic> json) {
     final list = json['journeys'] as List<dynamic>? ?? [];
     return JourneyResult(
-      journeys:
-          list.whereType<Map<String, dynamic>>().map(Journey.fromHafas).toList(),
+      journeys: list
+          .whereType<Map<String, dynamic>>()
+          .map(Journey.fromHafas)
+          .toList(),
       earlierRef: json['earlierRef'] as String?,
       laterRef: json['laterRef'] as String?,
     );
@@ -83,27 +81,27 @@ class Journey {
   }
 
   Map<String, dynamic> toJson() => {
-        'legs': legs.map((l) => l.toJson()).toList(),
-        'refreshToken': refreshToken,
-        'price': price?.toJson(),
-        'disruptions': disruptions,
-        'serviceDaysNote': serviceDaysNote,
-      };
+    'legs': legs.map((l) => l.toJson()).toList(),
+    'refreshToken': refreshToken,
+    'price': price?.toJson(),
+    'disruptions': disruptions,
+    'serviceDaysNote': serviceDaysNote,
+  };
 
   factory Journey.fromJson(Map<String, dynamic> json) => Journey(
-        legs: (json['legs'] as List<dynamic>? ?? [])
-            .whereType<Map<String, dynamic>>()
-            .map(JourneyLeg.fromJson)
-            .toList(),
-        refreshToken: json['refreshToken'] as String?,
-        disruptions: (json['disruptions'] as List<dynamic>? ?? const [])
-            .whereType<String>()
-            .toList(),
-        serviceDaysNote: json['serviceDaysNote'] as String?,
-        price: json['price'] is Map<String, dynamic>
-            ? JourneyPrice.fromJson(json['price'] as Map<String, dynamic>)
-            : null,
-      );
+    legs: (json['legs'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(JourneyLeg.fromJson)
+        .toList(),
+    refreshToken: json['refreshToken'] as String?,
+    disruptions: (json['disruptions'] as List<dynamic>? ?? const [])
+        .whereType<String>()
+        .toList(),
+    serviceDaysNote: json['serviceDaysNote'] as String?,
+    price: json['price'] is Map<String, dynamic>
+        ? JourneyPrice.fromJson(json['price'] as Map<String, dynamic>)
+        : null,
+  );
 
   Station? get origin => legs.firstOrNull?.origin;
   Station? get destination => legs.lastOrNull?.destination;
@@ -130,9 +128,11 @@ class Journey {
     return '${minutes}min';
   }
 
-  bool get hasDelay => legs.any((l) =>
-      (l.departureDelay != null && l.departureDelay! > 0) ||
-      (l.arrivalDelay != null && l.arrivalDelay! > 0));
+  bool get hasDelay => legs.any(
+    (l) =>
+        (l.departureDelay != null && l.departureDelay! > 0) ||
+        (l.arrivalDelay != null && l.arrivalDelay! > 0),
+  );
 
   /// At least one transit leg of this connection is fully cancelled — the
   /// connection as planned cannot be travelled.
@@ -141,8 +141,7 @@ class Journey {
   /// A leg runs but drops one of its intermediate stops (Teilausfall), without
   /// the whole leg being cancelled.
   bool get hasPartialCancellation =>
-      !hasCancelledLeg &&
-      legs.any((l) => !l.isWalking && l.partiallyCancelled);
+      !hasCancelledLeg && legs.any((l) => !l.isWalking && l.partiallyCancelled);
 
   /// Whether the change into [leg] stays on one platform, as DB says
   /// (`weiterfahrtAmGleichenBahnsteig`, #20 point 6).
@@ -287,8 +286,7 @@ class JourneyLeg {
 
   int get departureDelayMinutes =>
       departureDelay != null ? departureDelay! ~/ 60 : 0;
-  int get arrivalDelayMinutes =>
-      arrivalDelay != null ? arrivalDelay! ~/ 60 : 0;
+  int get arrivalDelayMinutes => arrivalDelay != null ? arrivalDelay! ~/ 60 : 0;
 
   /// The leg runs but at least one of its intermediate stops is dropped
   /// ("Halt entfällt"), while the leg itself isn't fully cancelled.
@@ -332,79 +330,80 @@ class JourneyLeg {
   }
 
   Map<String, dynamic> toJson() => {
-        'tripId': tripId,
-        'origin': origin.toJson(),
-        'destination': destination.toJson(),
-        'departure': departure?.toIso8601String(),
-        'plannedDeparture': plannedDeparture?.toIso8601String(),
-        'departureDelay': departureDelay,
-        'departurePlatform': departurePlatform,
-        'plannedDeparturePlatform': plannedDeparturePlatform,
-        'arrival': arrival?.toIso8601String(),
-        'plannedArrival': plannedArrival?.toIso8601String(),
-        'arrivalDelay': arrivalDelay,
-        'arrivalPlatform': arrivalPlatform,
-        'plannedArrivalPlatform': plannedArrivalPlatform,
-        'line': line?.toJson(),
-        'direction': direction,
-        'walking': isWalking,
-        'distance': walkingDistance,
-        'walkingSeconds': walkingDuration?.inSeconds,
-        'transferAvailableSeconds': transferAvailable?.inSeconds,
-        'samePlatformTransfer': samePlatformTransfer,
-        'cancelled': cancelled,
-        'stopovers': stopovers.map((s) => s.toJson()).toList(),
-        'occupancy': occupancy?.level.name,
-        'disruptions': disruptions,
-        'replacementDestination': replacementDestination?.toJson(),
-        'replacementArrival': replacementArrival?.toIso8601String(),
-        'replacementArrivalPlatform': replacementArrivalPlatform,
-      };
+    'tripId': tripId,
+    'origin': origin.toJson(),
+    'destination': destination.toJson(),
+    'departure': departure?.toIso8601String(),
+    'plannedDeparture': plannedDeparture?.toIso8601String(),
+    'departureDelay': departureDelay,
+    'departurePlatform': departurePlatform,
+    'plannedDeparturePlatform': plannedDeparturePlatform,
+    'arrival': arrival?.toIso8601String(),
+    'plannedArrival': plannedArrival?.toIso8601String(),
+    'arrivalDelay': arrivalDelay,
+    'arrivalPlatform': arrivalPlatform,
+    'plannedArrivalPlatform': plannedArrivalPlatform,
+    'line': line?.toJson(),
+    'direction': direction,
+    'walking': isWalking,
+    'distance': walkingDistance,
+    'walkingSeconds': walkingDuration?.inSeconds,
+    'transferAvailableSeconds': transferAvailable?.inSeconds,
+    'samePlatformTransfer': samePlatformTransfer,
+    'cancelled': cancelled,
+    'stopovers': stopovers.map((s) => s.toJson()).toList(),
+    'occupancy': occupancy?.level.name,
+    'disruptions': disruptions,
+    'replacementDestination': replacementDestination?.toJson(),
+    'replacementArrival': replacementArrival?.toIso8601String(),
+    'replacementArrivalPlatform': replacementArrivalPlatform,
+  };
 
   factory JourneyLeg.fromJson(Map<String, dynamic> json) => JourneyLeg(
-        tripId: json['tripId'] as String?,
-        origin: Station.fromJson(json['origin'] as Map<String, dynamic>? ?? {}),
-        destination:
-            Station.fromJson(json['destination'] as Map<String, dynamic>? ?? {}),
-        departure: _parse(json['departure']),
-        plannedDeparture: _parse(json['plannedDeparture']),
-        departureDelay: json['departureDelay'] as int?,
-        departurePlatform: json['departurePlatform'] as String?,
-        plannedDeparturePlatform: json['plannedDeparturePlatform'] as String?,
-        arrival: _parse(json['arrival']),
-        plannedArrival: _parse(json['plannedArrival']),
-        arrivalDelay: json['arrivalDelay'] as int?,
-        arrivalPlatform: json['arrivalPlatform'] as String?,
-        plannedArrivalPlatform: json['plannedArrivalPlatform'] as String?,
-        line: json['line'] is Map<String, dynamic>
-            ? TransitLine.fromJson(json['line'] as Map<String, dynamic>)
-            : null,
-        direction: json['direction'] as String?,
-        isWalking: json['walking'] as bool? ?? false,
-        walkingDistance: json['distance'] as int?,
-        walkingDuration: _seconds(json['walkingSeconds']),
-        transferAvailable: _seconds(json['transferAvailableSeconds']),
-        samePlatformTransfer: json['samePlatformTransfer'] as bool? ?? false,
-        cancelled: json['cancelled'] as bool? ?? false,
-        stopovers: (json['stopovers'] as List<dynamic>? ?? [])
-            .whereType<Map<String, dynamic>>()
-            .map(LegStopover.fromJson)
-            .toList(),
-        occupancy: json['occupancy'] is String
-            ? OccupancyInfo(level: _levelByName(json['occupancy'] as String))
-            : null,
-        disruptions: (json['disruptions'] as List<dynamic>? ?? [])
-            .whereType<String>()
-            .toList(),
-        replacementDestination:
-            json['replacementDestination'] is Map<String, dynamic>
-                ? Station.fromJson(
-                    json['replacementDestination'] as Map<String, dynamic>)
-                : null,
-        replacementArrival: _parse(json['replacementArrival']),
-        replacementArrivalPlatform:
-            json['replacementArrivalPlatform'] as String?,
-      );
+    tripId: json['tripId'] as String?,
+    origin: Station.fromJson(json['origin'] as Map<String, dynamic>? ?? {}),
+    destination: Station.fromJson(
+      json['destination'] as Map<String, dynamic>? ?? {},
+    ),
+    departure: _parse(json['departure']),
+    plannedDeparture: _parse(json['plannedDeparture']),
+    departureDelay: json['departureDelay'] as int?,
+    departurePlatform: json['departurePlatform'] as String?,
+    plannedDeparturePlatform: json['plannedDeparturePlatform'] as String?,
+    arrival: _parse(json['arrival']),
+    plannedArrival: _parse(json['plannedArrival']),
+    arrivalDelay: json['arrivalDelay'] as int?,
+    arrivalPlatform: json['arrivalPlatform'] as String?,
+    plannedArrivalPlatform: json['plannedArrivalPlatform'] as String?,
+    line: json['line'] is Map<String, dynamic>
+        ? TransitLine.fromJson(json['line'] as Map<String, dynamic>)
+        : null,
+    direction: json['direction'] as String?,
+    isWalking: json['walking'] as bool? ?? false,
+    walkingDistance: json['distance'] as int?,
+    walkingDuration: _seconds(json['walkingSeconds']),
+    transferAvailable: _seconds(json['transferAvailableSeconds']),
+    samePlatformTransfer: json['samePlatformTransfer'] as bool? ?? false,
+    cancelled: json['cancelled'] as bool? ?? false,
+    stopovers: (json['stopovers'] as List<dynamic>? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(LegStopover.fromJson)
+        .toList(),
+    occupancy: json['occupancy'] is String
+        ? OccupancyInfo(level: _levelByName(json['occupancy'] as String))
+        : null,
+    disruptions: (json['disruptions'] as List<dynamic>? ?? [])
+        .whereType<String>()
+        .toList(),
+    replacementDestination:
+        json['replacementDestination'] is Map<String, dynamic>
+        ? Station.fromJson(
+            json['replacementDestination'] as Map<String, dynamic>,
+          )
+        : null,
+    replacementArrival: _parse(json['replacementArrival']),
+    replacementArrivalPlatform: json['replacementArrivalPlatform'] as String?,
+  );
 }
 
 class LegStopover {
@@ -454,28 +453,28 @@ class LegStopover {
   }
 
   Map<String, dynamic> toJson() => {
-        'stop': stop.toJson(),
-        'arrival': arrival?.toIso8601String(),
-        'departure': departure?.toIso8601String(),
-        'arrivalDelay': arrivalDelay,
-        'departureDelay': departureDelay,
-        'cancelled': cancelled,
-        'noBoarding': noBoarding,
-        'noAlighting': noAlighting,
-        'serviceNote': serviceNote,
-      };
+    'stop': stop.toJson(),
+    'arrival': arrival?.toIso8601String(),
+    'departure': departure?.toIso8601String(),
+    'arrivalDelay': arrivalDelay,
+    'departureDelay': departureDelay,
+    'cancelled': cancelled,
+    'noBoarding': noBoarding,
+    'noAlighting': noAlighting,
+    'serviceNote': serviceNote,
+  };
 
   factory LegStopover.fromJson(Map<String, dynamic> json) => LegStopover(
-        stop: Station.fromJson(json['stop'] as Map<String, dynamic>? ?? {}),
-        arrival: _parse(json['arrival']),
-        departure: _parse(json['departure']),
-        arrivalDelay: json['arrivalDelay'] as int?,
-        departureDelay: json['departureDelay'] as int?,
-        cancelled: json['cancelled'] as bool? ?? false,
-        noBoarding: json['noBoarding'] as bool? ?? false,
-        noAlighting: json['noAlighting'] as bool? ?? false,
-        serviceNote: json['serviceNote'] as String?,
-      );
+    stop: Station.fromJson(json['stop'] as Map<String, dynamic>? ?? {}),
+    arrival: _parse(json['arrival']),
+    departure: _parse(json['departure']),
+    arrivalDelay: json['arrivalDelay'] as int?,
+    departureDelay: json['departureDelay'] as int?,
+    cancelled: json['cancelled'] as bool? ?? false,
+    noBoarding: json['noBoarding'] as bool? ?? false,
+    noAlighting: json['noAlighting'] as bool? ?? false,
+    serviceNote: json['serviceNote'] as String?,
+  );
 }
 
 class JourneyPrice {
@@ -553,9 +552,9 @@ enum OccupancyLevel {
 
 /// Round-trips [OccupancyLevel] through its enum name.
 OccupancyLevel _levelByName(String name) => OccupancyLevel.values.firstWhere(
-      (l) => l.name == name,
-      orElse: () => OccupancyLevel.unknown,
-    );
+  (l) => l.name == name,
+  orElse: () => OccupancyLevel.unknown,
+);
 
 OccupancyLevel _parseLoadFactor(String factor) {
   switch (factor) {
@@ -632,7 +631,6 @@ class BikeCarriage {
     );
   }
 }
-
 
 Duration? _seconds(dynamic value) =>
     value is num ? Duration(seconds: value.toInt()) : null;

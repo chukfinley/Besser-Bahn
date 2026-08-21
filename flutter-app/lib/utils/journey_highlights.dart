@@ -41,22 +41,28 @@ Map<JourneyHighlight, Journey> journeyHighlights(
   final withScore = journeys.where((j) => scoreOf(j) != null).toList();
 
   // "Cheapest" only means something if fares actually differ.
-  bool varies<T extends Comparable>(List<Journey> list, T? Function(Journey) f) {
+  bool varies<T extends Comparable>(
+    List<Journey> list,
+    T? Function(Journey) f,
+  ) {
     final vals = list.map(f).whereType<T>().toSet();
     return vals.length > 1;
   }
 
   if (withDuration.length > 1 && varies(withDuration, (j) => dur(j))) {
-    out[JourneyHighlight.fastest] =
-        withDuration.reduce((a, b) => dur(a)! <= dur(b)! ? a : b);
+    out[JourneyHighlight.fastest] = withDuration.reduce(
+      (a, b) => dur(a)! <= dur(b)! ? a : b,
+    );
   }
   if (withPrice.length > 1 && varies(withPrice, (j) => price(j))) {
-    out[JourneyHighlight.cheapest] =
-        withPrice.reduce((a, b) => price(a)! <= price(b)! ? a : b);
+    out[JourneyHighlight.cheapest] = withPrice.reduce(
+      (a, b) => price(a)! <= price(b)! ? a : b,
+    );
   }
   if (withScore.length > 1 && varies(withScore, (j) => scoreOf(j))) {
-    out[JourneyHighlight.safest] =
-        withScore.reduce((a, b) => scoreOf(a)! >= scoreOf(b)! ? a : b);
+    out[JourneyHighlight.safest] = withScore.reduce(
+      (a, b) => scoreOf(a)! >= scoreOf(b)! ? a : b,
+    );
   }
 
   // The compromise: normalise each axis to 0..1 (best = 1) and take the best
@@ -69,10 +75,12 @@ Map<JourneyHighlight, Journey> journeyHighlights(
   if (axes.length < 2) return out;
 
   final candidates = journeys
-      .where((j) =>
-          (!axes.contains('d') || dur(j) != null) &&
-          (!axes.contains('p') || (price(j) ?? 0) > 0) &&
-          (!axes.contains('s') || scoreOf(j) != null))
+      .where(
+        (j) =>
+            (!axes.contains('d') || dur(j) != null) &&
+            (!axes.contains('p') || (price(j) ?? 0) > 0) &&
+            (!axes.contains('s') || scoreOf(j) != null),
+      )
       .toList();
   if (candidates.length < 3) return out;
 
@@ -95,16 +103,28 @@ Map<JourneyHighlight, Journey> journeyHighlights(
   for (final j in candidates) {
     var total = 0.0;
     if (axes.contains('d')) {
-      total += norm(dur(j)!.inSeconds.toDouble(), durs.reduce((a, b) => a < b ? a : b),
-          durs.reduce((a, b) => a > b ? a : b), lowerIsBetter: true);
+      total += norm(
+        dur(j)!.inSeconds.toDouble(),
+        durs.reduce((a, b) => a < b ? a : b),
+        durs.reduce((a, b) => a > b ? a : b),
+        lowerIsBetter: true,
+      );
     }
     if (axes.contains('p')) {
-      total += norm(price(j)!, prices.reduce((a, b) => a < b ? a : b),
-          prices.reduce((a, b) => a > b ? a : b), lowerIsBetter: true);
+      total += norm(
+        price(j)!,
+        prices.reduce((a, b) => a < b ? a : b),
+        prices.reduce((a, b) => a > b ? a : b),
+        lowerIsBetter: true,
+      );
     }
     if (axes.contains('s')) {
-      total += norm(scoreOf(j)!, scores.reduce((a, b) => a < b ? a : b),
-          scores.reduce((a, b) => a > b ? a : b), lowerIsBetter: false);
+      total += norm(
+        scoreOf(j)!,
+        scores.reduce((a, b) => a < b ? a : b),
+        scores.reduce((a, b) => a > b ? a : b),
+        lowerIsBetter: false,
+      );
     }
     if (total > best) {
       best = total;

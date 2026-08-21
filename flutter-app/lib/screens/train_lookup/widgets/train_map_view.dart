@@ -25,15 +25,22 @@ import '../../../widgets/app_map.dart';
 /// [coachSequence] when known so the live train is drawn to its real length,
 /// and [boardingId]/[alightingId] on a journey leg so the parked train at the
 /// boarding stop dims its non-boarding portion (standalone lookup → no dimming).
-void openTrainMap(BuildContext context, Trip trip,
-    {CoachSequence? coachSequence, String? boardingId, String? alightingId}) {
+void openTrainMap(
+  BuildContext context,
+  Trip trip, {
+  CoachSequence? coachSequence,
+  String? boardingId,
+  String? alightingId,
+}) {
   Navigator.of(context).push(
     MaterialPageRoute(
-        builder: (_) => TrainMapView(
-            trip: trip,
-            coachSequence: coachSequence,
-            boardingId: boardingId,
-            alightingId: alightingId)),
+      builder: (_) => TrainMapView(
+        trip: trip,
+        coachSequence: coachSequence,
+        boardingId: boardingId,
+        alightingId: alightingId,
+      ),
+    ),
   );
 }
 
@@ -48,12 +55,13 @@ class TrainMapView extends ConsumerStatefulWidget {
   final String? boardingId;
   final String? alightingId;
 
-  const TrainMapView(
-      {super.key,
-      required this.trip,
-      this.coachSequence,
-      this.boardingId,
-      this.alightingId});
+  const TrainMapView({
+    super.key,
+    required this.trip,
+    this.coachSequence,
+    this.boardingId,
+    this.alightingId,
+  });
 
   @override
   ConsumerState<TrainMapView> createState() => _TrainMapViewState();
@@ -86,16 +94,22 @@ class _TrainMapViewState extends ConsumerState<TrainMapView> {
     if (_trip.polyline != null && _trip.polyline!.isNotEmpty) return;
     final sw = Stopwatch()..start();
     try {
-      final poly =
-          await ref.read(hafasServiceProvider).fetchRoutePolyline(_trip);
-      AppLog.log('route polyline ${poly?.length ?? 0} pts in '
-          '${sw.elapsedMilliseconds}ms', tag: 'route');
+      final poly = await ref
+          .read(hafasServiceProvider)
+          .fetchRoutePolyline(_trip);
+      AppLog.log(
+        'route polyline ${poly?.length ?? 0} pts in '
+        '${sw.elapsedMilliseconds}ms',
+        tag: 'route',
+      );
       if (poly != null && poly.isNotEmpty && mounted) {
         setState(() => _trip = _trip.copyWith(polyline: poly));
       }
     } catch (e) {
-      AppLog.log('route polyline FAILED after ${sw.elapsedMilliseconds}ms ($e)',
-          tag: 'route');
+      AppLog.log(
+        'route polyline FAILED after ${sw.elapsedMilliseconds}ms ($e)',
+        tag: 'route',
+      );
     }
   }
 
@@ -110,7 +124,8 @@ class _TrainMapViewState extends ConsumerState<TrainMapView> {
               coachSequence: widget.coachSequence,
               boardingId: widget.boardingId,
               alightingId: widget.alightingId,
-              interactive: true)
+              interactive: true,
+            )
           : const Center(child: Text('Keine Streckendaten verfügbar.')),
     );
   }
@@ -240,7 +255,8 @@ class _TrainMapState extends ConsumerState<TrainMap> {
           _queue.add(i);
           added = true;
         }
-        final d = (p.latitude - cam.center.latitude).abs() +
+        final d =
+            (p.latitude - cam.center.latitude).abs() +
             (p.longitude - cam.center.longitude).abs();
         if (d < best) {
           best = d;
@@ -326,9 +342,10 @@ class _TrainMapState extends ConsumerState<TrainMap> {
       }
       if (!mounted) break;
       AppLog.log(
-          '${failed ? (permanent ? "∅" : "✗") : "✓"} ${s.stop.name} '
-          '${sw.elapsedMilliseconds}ms',
-          tag: 'route');
+        '${failed ? (permanent ? "∅" : "✗") : "✓"} ${s.stop.name} '
+        '${sw.elapsedMilliseconds}ms',
+        tag: 'route',
+      );
       if (!failed) {
         _buildParked(i);
       } else if (permanent) {
@@ -394,13 +411,15 @@ class _TrainMapState extends ConsumerState<TrainMap> {
       // the rider's own leg — same train, real car order + lengths — and place
       // it on THIS stop's OSM rail, centred on the platform. The car order is
       // exact; the absolute spot is best-effort (DB gave none here).
-      cars.addAll(pt.platformTrainFromComposition(
-        map,
-        gleis: gleis,
-        section: section,
-        cs: widget.coachSequence!,
-        osmRail: osmRail,
-      ));
+      cars.addAll(
+        pt.platformTrainFromComposition(
+          map,
+          gleis: gleis,
+          section: section,
+          cs: widget.coachSequence!,
+          osmRail: osmRail,
+        ),
+      );
     }
     if (cars.isEmpty) {
       // No Wagenreihung at all (e.g. erixx isn't covered by the vehicle-sequence
@@ -433,8 +452,11 @@ class _TrainMapState extends ConsumerState<TrainMap> {
   /// station's Overpass geometry is warm; the first miss kicks off the fetch and
   /// rebuilds [rebuildStop] once it lands. Soft-fails: a station with no usable
   /// OSM geometry just stays on the cube placement.
-  List<LatLng>? _osmRailFor(StationMap map, String gleis,
-      {required int rebuildStop}) {
+  List<LatLng>? _osmRailFor(
+    StationMap map,
+    String gleis, {
+    required int rebuildStop,
+  }) {
     final svc = OsmPlatformService.instance;
     final geom = svc.cached(map.slug);
     if (geom == null) {
@@ -530,8 +552,9 @@ class _TrainMapState extends ConsumerState<TrainMap> {
     // never rides.
     List<LatLng> routePoints;
     if (trip.polyline != null && trip.polyline!.isNotEmpty) {
-      final full =
-          trip.polyline!.map((p) => LatLng(p['lat']!, p['lng']!)).toList();
+      final full = trip.polyline!
+          .map((p) => LatLng(p['lat']!, p['lng']!))
+          .toList();
       final path = RoutePath.build(full);
       if (path != null && points.length >= 2) {
         final a = path.locate(points.first);
@@ -549,7 +572,8 @@ class _TrainMapState extends ConsumerState<TrainMap> {
     // to scale, so they only become visible (more than a speck) once the rider
     // zooms into a stop — intended.
     final parkedPolygons = <Polygon>[];
-    final parkedCars = <({List<LatLng> outline, Coach? coach, bool boarding})>[];
+    final parkedCars =
+        <({List<LatLng> outline, Coach? coach, bool boarding})>[];
     // Centre of each ESTIMATED stop's train, for the "ca." (Position geschätzt)
     // badge — so the rider clearly sees where we're sure vs. just guessing.
     final estimatedCenters = <LatLng>[];
@@ -582,17 +606,19 @@ class _TrainMapState extends ConsumerState<TrainMap> {
         // unsure — more transparent, dashed white-ish border — so it never
         // reads as a precise "the train stands exactly here".
         if (!stop.exact) fill = fill.withValues(alpha: 0.28);
-        parkedPolygons.add(Polygon(
-          points: car.outline,
-          color: fill,
-          borderColor: stop.exact
-              ? Colors.white.withValues(alpha: 0.9)
-              : const Color(0xFFCC8800).withValues(alpha: 0.95),
-          borderStrokeWidth: stop.exact ? 1.2 : 1.4,
-          pattern: stop.exact
-              ? const StrokePattern.solid()
-              : StrokePattern.dashed(segments: const [6, 4]),
-        ));
+        parkedPolygons.add(
+          Polygon(
+            points: car.outline,
+            color: fill,
+            borderColor: stop.exact
+                ? Colors.white.withValues(alpha: 0.9)
+                : const Color(0xFFCC8800).withValues(alpha: 0.95),
+            borderStrokeWidth: stop.exact ? 1.2 : 1.4,
+            pattern: stop.exact
+                ? const StrokePattern.solid()
+                : StrokePattern.dashed(segments: const [6, 4]),
+          ),
+        );
       }
     }
 
@@ -661,14 +687,14 @@ class _TrainMapState extends ConsumerState<TrainMap> {
         // platform, it hides — the parked train IS the train there, so the two
         // don't stack/flicker on the same spot.
         _LiveTrain(
-            trip: trip,
-            route: routePoints,
-            coachSequence: widget.coachSequence,
-            parkedStops: _parked.keys.toSet()),
+          trip: trip,
+          route: routePoints,
+          coachSequence: widget.coachSequence,
+          parkedStops: _parked.keys.toSet(),
+        ),
       ],
     );
   }
-
 }
 
 /// Wagon-number labels for the parked trains, drawn inside the map so it can
@@ -700,8 +726,13 @@ class _ParkedNumbers extends StatelessWidget {
       final a = cam.latLngToScreenOffset(ring.first);
       final b = cam.latLngToScreenOffset(ring[ring.length ~/ 2]);
       if ((a - b).distance < 22) continue;
-      markers.add(_numberMarker(
-          _centroid(car.outline), coach.wagonNumber, coachColor(coach)));
+      markers.add(
+        _numberMarker(
+          _centroid(car.outline),
+          coach.wagonNumber,
+          coachColor(coach),
+        ),
+      );
     }
     if (markers.isEmpty) return const SizedBox.shrink();
     return MarkerLayer(markers: markers);
@@ -717,21 +748,21 @@ class _ParkedNumbers extends StatelessWidget {
   }
 
   static Marker _numberMarker(LatLng at, int number, Color carColor) => Marker(
-        point: at,
-        width: 22,
-        height: 16,
-        child: Center(
-          child: Text(
-            '$number',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onClass(carColor),
-              shadows: const [Shadow(color: Colors.black26, blurRadius: 1)],
-            ),
-          ),
+    point: at,
+    width: 22,
+    height: 16,
+    child: Center(
+      child: Text(
+        '$number',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: AppColors.onClass(carColor),
+          shadows: const [Shadow(color: Colors.black26, blurRadius: 1)],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// A small "ca." chip centred on a train that was placed WITHOUT an exact DB
@@ -879,11 +910,12 @@ class _LiveTrain extends StatefulWidget {
   /// doesn't stack on top of the identical parked train.
   final Set<int> parkedStops;
 
-  const _LiveTrain(
-      {required this.trip,
-      required this.route,
-      this.coachSequence,
-      this.parkedStops = const {}});
+  const _LiveTrain({
+    required this.trip,
+    required this.route,
+    this.coachSequence,
+    this.parkedStops = const {},
+  });
 
   @override
   State<_LiveTrain> createState() => _LiveTrainState();
@@ -974,7 +1006,8 @@ class _LiveTrainState extends State<_LiveTrain>
         }
       }
     }
-    if (at != null && !widget.parkedStops.contains(atIndex) &&
+    if (at != null &&
+        !widget.parkedStops.contains(atIndex) &&
         at.stop.hasLocation) {
       return LatLng(at.stop.latitude!, at.stop.longitude!);
     }
@@ -995,9 +1028,12 @@ class _LiveTrainState extends State<_LiveTrain>
     var lenM = dims.totalLengthM;
     var halfWM = dims.halfWidthM;
     final cs = widget.coachSequence;
-    final cars = cs?.allCoaches
-            .where((c) =>
-                c.platformPosition != null && c.platformPosition!.length > 0)
+    final cars =
+        cs?.allCoaches
+            .where(
+              (c) =>
+                  c.platformPosition != null && c.platformPosition!.length > 0,
+            )
             .toList() ??
         const [];
     final highSpeed = cs != null && isHighSpeedCoach(cs);
@@ -1034,14 +1070,15 @@ class _LiveTrainState extends State<_LiveTrain>
 
     if (cars.isEmpty) {
       // No Wagenreihung → one neutral body, rounded both ends.
-      final outline = TrainGeometry.body(spine,
-          halfWidthM: effHalfW,
-          noseStart: true,
-          noseEnd: true,
-          noseLenM: effNose);
+      final outline = TrainGeometry.body(
+        spine,
+        halfWidthM: effHalfW,
+        noseStart: true,
+        noseEnd: true,
+        noseLenM: effNose,
+      );
       if (outline.length >= 3) {
-        polygons.add(
-            _carPolygon(outline, AppColors.locomotive, Colors.white));
+        polygons.add(_carPolygon(outline, AppColors.locomotive, Colors.white));
       }
     } else {
       // One polygon per Wagen, class-coloured, so the cars/compartments read as
@@ -1063,8 +1100,13 @@ class _LiveTrainState extends State<_LiveTrain>
           noseLenM: effNose,
         );
         if (outline.length >= 3) {
-          polygons.add(_carPolygon(
-              outline, coachColor(cars[i]), Colors.white.withValues(alpha: 0.9)));
+          polygons.add(
+            _carPolygon(
+              outline,
+              coachColor(cars[i]),
+              Colors.white.withValues(alpha: 0.9),
+            ),
+          );
         }
       }
     }
@@ -1099,7 +1141,8 @@ class _LiveTrainState extends State<_LiveTrain>
     );
   }
 
-  Polygon _carPolygon(List<LatLng> outline, Color fill, Color border) => Polygon(
+  Polygon _carPolygon(List<LatLng> outline, Color fill, Color border) =>
+      Polygon(
         points: outline,
         color: fill,
         borderColor: border,
@@ -1108,21 +1151,21 @@ class _LiveTrainState extends State<_LiveTrain>
 
   /// A wagon number centred on a car, in the colour that reads on its class.
   static Marker _numberMarker(LatLng at, int number, Color carColor) => Marker(
-        point: at,
-        width: 22,
-        height: 16,
-        child: Center(
-          child: Text(
-            '$number',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onClass(carColor),
-              shadows: const [Shadow(color: Colors.black26, blurRadius: 1)],
-            ),
-          ),
+    point: at,
+    width: 22,
+    height: 16,
+    child: Center(
+      child: Text(
+        '$number',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: AppColors.onClass(carColor),
+          shadows: const [Shadow(color: Colors.black26, blurRadius: 1)],
         ),
-      );
+      ),
+    ),
+  );
 
   /// Ground metres per screen pixel near [at] — for flooring the on-screen size.
   double _metersPerPixel(MapCamera cam, LatLng at) {

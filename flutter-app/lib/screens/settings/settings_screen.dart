@@ -31,9 +31,7 @@ class SettingsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Einstellungen'),
-      ),
+      appBar: AppBar(title: const Text('Einstellungen')),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
@@ -51,18 +49,25 @@ class SettingsScreen extends ConsumerWidget {
                       color: theme.colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.train,
-                        color: theme.colorScheme.onPrimaryContainer),
+                    child: Icon(
+                      Icons.train,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(AppConstants.appName,
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
-                      Text('Version ${AppConstants.appVersion}',
-                          style: theme.textTheme.bodySmall),
+                      Text(
+                        AppConstants.appName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Version ${AppConstants.appVersion}',
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ],
@@ -80,8 +85,9 @@ class SettingsScreen extends ConsumerWidget {
                   secondary: const Icon(Icons.notifications_active_outlined),
                   title: const Text('Reise-Erinnerungen'),
                   subtitle: const Text(
-                      'Vor Abfahrt & Umstieg erinnern — offline geplant, '
-                      'für deine gespeicherten Reisen.'),
+                    'Vor Abfahrt & Umstieg erinnern — offline geplant, '
+                    'für deine gespeicherten Reisen.',
+                  ),
                   value: settings.remindersEnabled,
                   onChanged: (v) {
                     notifier.setRemindersEnabled(v);
@@ -98,10 +104,12 @@ class SettingsScreen extends ConsumerWidget {
                       value: settings.reminderLeadMinutes,
                       underline: const SizedBox.shrink(),
                       items: const [10, 15, 20, 30, 45, 60]
-                          .map((m) => DropdownMenuItem(
-                                value: m,
-                                child: Text('$m Min'),
-                              ))
+                          .map(
+                            (m) => DropdownMenuItem(
+                              value: m,
+                              child: Text('$m Min'),
+                            ),
+                          )
                           .toList(),
                       onChanged: (m) {
                         if (m != null) notifier.setReminderLeadMinutes(m);
@@ -113,7 +121,8 @@ class SettingsScreen extends ConsumerWidget {
                     secondary: const Icon(Icons.transfer_within_a_station),
                     title: const Text('Umstiegs-Hinweise'),
                     subtitle: const Text(
-                        'Kurz bevor dein Anschluss abfährt — mit Gleis & Übergang.'),
+                      'Kurz bevor dein Anschluss abfährt — mit Gleis & Übergang.',
+                    ),
                     value: settings.transferAlerts,
                     onChanged: (v) => notifier.setTransferAlerts(v),
                   ),
@@ -123,8 +132,9 @@ class SettingsScreen extends ConsumerWidget {
                   secondary: const Icon(Icons.pin_drop_outlined),
                   title: const Text('Ankunfts-Wecker'),
                   subtitle: const Text(
-                      '10 Min und 5 Min vor Ankunft erinnern (vibriert) — '
-                      'damit du deinen Halt nicht verschläfst.'),
+                    '10 Min und 5 Min vor Ankunft erinnern (vibriert) — '
+                    'damit du deinen Halt nicht verschläfst.',
+                  ),
                   value: settings.arrivalAlertEnabled,
                   onChanged: (v) {
                     notifier.setArrivalAlertEnabled(v);
@@ -138,8 +148,9 @@ class SettingsScreen extends ConsumerWidget {
                     secondary: const Icon(Icons.alarm),
                     title: const Text('Laut klingeln'),
                     subtitle: const Text(
-                        'Ankunfts- und GPS-Hinweis als echten Wecker klingeln '
-                        'lassen, bis du ihn stoppst.'),
+                      'Ankunfts- und GPS-Hinweis als echten Wecker klingeln '
+                      'lassen, bis du ihn stoppst.',
+                    ),
                     value: settings.arrivalAlarmSound,
                     onChanged: (v) {
                       notifier.setArrivalAlarmSound(v);
@@ -152,8 +163,9 @@ class SettingsScreen extends ConsumerWidget {
                   secondary: const Icon(Icons.my_location),
                   title: const Text('GPS-Ausstiegsalarm'),
                   subtitle: const Text(
-                      'Läuft im Hintergrund: warnt am Ziel und erkennt per '
-                      'Fahrplan + Position mögliche ungemeldete Verspätung.'),
+                    'Läuft im Hintergrund: warnt am Ziel und erkennt per '
+                    'Fahrplan + Position mögliche ungemeldete Verspätung.',
+                  ),
                   value: settings.exitAlarmEnabled,
                   onChanged: (v) async {
                     if (!v) {
@@ -173,19 +185,21 @@ class SettingsScreen extends ConsumerWidget {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text(
-                                  'Ohne Benachrichtigungen kann der Ausstiegsalarm '
-                                  'dich nicht warnen — bitte in den Systemeinstellungen '
-                                  'erlauben.')),
+                            content: Text(
+                              'Ohne Benachrichtigungen kann der Ausstiegsalarm '
+                              'dich nicht warnen — bitte in den Systemeinstellungen '
+                              'erlauben.',
+                            ),
+                          ),
                         );
                         return;
                       }
                       notifier.setExitAlarmEnabled(true);
                     } catch (e) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.toString())),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(e.toString())));
                     }
                   },
                 ),
@@ -194,8 +208,9 @@ class SettingsScreen extends ConsumerWidget {
                   secondary: const Icon(Icons.tag),
                   title: const Text('Live-Chip: Stationen statt Zeit'),
                   subtitle: const Text(
-                      'Der kleine Status-Indikator (auch Samsung Now Bar) zeigt '
-                      'die Anzahl Halte bis zum Ausstieg statt der Restzeit.'),
+                    'Der kleine Status-Indikator (auch Samsung Now Bar) zeigt '
+                    'die Anzahl Halte bis zum Ausstieg statt der Restzeit.',
+                  ),
                   value: settings.liveChipStops,
                   onChanged: (v) => notifier.setLiveChipStops(v),
                 ),
@@ -204,9 +219,10 @@ class SettingsScreen extends ConsumerWidget {
                   leading: const Icon(Icons.directions_walk),
                   title: const Text('Umsteigeprofil'),
                   subtitle: Text(
-                      '${settings.transferProfile.emoji} '
-                      '${settings.transferProfile.label} — '
-                      '${settings.transferProfile.hint}'),
+                    '${settings.transferProfile.emoji} '
+                    '${settings.transferProfile.label} — '
+                    '${settings.transferProfile.hint}',
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _pickTransferProfile(context, ref, settings),
                 ),
@@ -218,65 +234,76 @@ class SettingsScreen extends ConsumerWidget {
 
           // Träwelling login/account — moved here from the tab AppBars so it
           // lives in one place: log in/out and reach the hub from Settings.
-          Builder(builder: (context) {
-            final auth = ref.watch(traewellingAuthProvider);
-            final user = auth.user;
-            final loggedIn = user != null;
-            final hasPic = user?.profilePicture?.isNotEmpty ?? false;
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: hasPic
-                        ? CircleAvatar(
-                            radius: 16,
-                            backgroundImage: NetworkImage(user!.profilePicture!),
-                          )
-                        // Official Träwelling logo when not signed in.
-                        : const TraewellingLogo(size: 32),
-                    title: Text(loggedIn ? user.displayName : 'Träwelling'),
-                    subtitle: Text(loggedIn
-                        ? '@${user.username} · angemeldet'
-                        : 'Nicht angemeldet · zum Einloggen tippen'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/trawelling'),
-                  ),
-                  // Check-in preferences only make sense once connected.
-                  if (loggedIn) ...[
-                    const Divider(height: 1),
-                    SwitchListTile(
-                      secondary: const Icon(Icons.bolt),
-                      title: const Text('Automatisch einchecken'),
-                      subtitle: const Text(
-                          'Ein Tipp auf das Träwelling-Symbol im Zug checkt '
-                          'sofort ein – ohne Nachfrage.'),
-                      value: settings.trwlAutoCheckin,
-                      onChanged: notifier.setTrwlAutoCheckin,
-                    ),
-                    const Divider(height: 1),
+          Builder(
+            builder: (context) {
+              final auth = ref.watch(traewellingAuthProvider);
+              final user = auth.user;
+              final loggedIn = user != null;
+              final hasPic = user?.profilePicture?.isNotEmpty ?? false;
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
                     ListTile(
-                      leading: const Icon(Icons.visibility_outlined),
-                      title: const Text('Sichtbarkeit'),
-                      subtitle: const Text('Standard für App-Check-ins'),
-                      trailing: DropdownButton<int>(
-                        value: settings.trwlVisibility,
-                        underline: const SizedBox(),
-                        onChanged: (v) => notifier.setTrwlVisibility(v!),
-                        items: TrwlVisibility.values
-                            .map((v) => DropdownMenuItem(
-                                  value: v.value,
-                                  child: Text(v.label,
-                                      style: const TextStyle(fontSize: 14)),
-                                ))
-                            .toList(),
+                      leading: hasPic
+                          ? CircleAvatar(
+                              radius: 16,
+                              backgroundImage: NetworkImage(
+                                user!.profilePicture!,
+                              ),
+                            )
+                          // Official Träwelling logo when not signed in.
+                          : const TraewellingLogo(size: 32),
+                      title: Text(loggedIn ? user.displayName : 'Träwelling'),
+                      subtitle: Text(
+                        loggedIn
+                            ? '@${user.username} · angemeldet'
+                            : 'Nicht angemeldet · zum Einloggen tippen',
                       ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/trawelling'),
                     ),
+                    // Check-in preferences only make sense once connected.
+                    if (loggedIn) ...[
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        secondary: const Icon(Icons.bolt),
+                        title: const Text('Automatisch einchecken'),
+                        subtitle: const Text(
+                          'Ein Tipp auf das Träwelling-Symbol im Zug checkt '
+                          'sofort ein – ohne Nachfrage.',
+                        ),
+                        value: settings.trwlAutoCheckin,
+                        onChanged: notifier.setTrwlAutoCheckin,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.visibility_outlined),
+                        title: const Text('Sichtbarkeit'),
+                        subtitle: const Text('Standard für App-Check-ins'),
+                        trailing: DropdownButton<int>(
+                          value: settings.trwlVisibility,
+                          underline: const SizedBox(),
+                          onChanged: (v) => notifier.setTrwlVisibility(v!),
+                          items: TrwlVisibility.values
+                              .map(
+                                (v) => DropdownMenuItem(
+                                  value: v.value,
+                                  child: Text(
+                                    v.label,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            );
-          }),
+                ),
+              );
+            },
+          ),
 
           _sectionHeader(context, 'Profil'),
 
@@ -295,7 +322,10 @@ class SettingsScreen extends ConsumerWidget {
                     items: BahnCardType.values.map((bc) {
                       return DropdownMenuItem(
                         value: bc,
-                        child: Text(bc.label, style: const TextStyle(fontSize: 14)),
+                        child: Text(
+                          bc.label,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       );
                     }).toList(),
                   ),
@@ -303,31 +333,39 @@ class SettingsScreen extends ConsumerWidget {
                 const Divider(height: 1),
 
                 // Weitere Ermäßigungen (Halbtax, Vorteilscard, etc.)
-                Builder(builder: (context) {
-                  final primaryTraveler = settings.searchParty.travelers
-                      .firstWhere((t) => t.typ.isPerson,
-                          orElse: () => const Traveler(typ: TravelerType.erwachsener));
-                  return ListTile(
-                    leading: const Icon(Icons.discount_outlined),
-                    title: const Text('Weitere Ermäßigung'),
-                    subtitle: const Text('Halbtax, Vorteilscard, NL-40 etc.'),
-                    trailing: DropdownButton<Reduction>(
-                      value: primaryTraveler.weitere,
-                      underline: const SizedBox(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          notifier.setWeitereReduction(v);
-                        }
-                      },
-                      items: Reduction.weitereOptions.map((r) {
-                        return DropdownMenuItem(
-                          value: r,
-                          child: Text(r.label, style: const TextStyle(fontSize: 14)),
+                Builder(
+                  builder: (context) {
+                    final primaryTraveler = settings.searchParty.travelers
+                        .firstWhere(
+                          (t) => t.typ.isPerson,
+                          orElse: () =>
+                              const Traveler(typ: TravelerType.erwachsener),
                         );
-                      }).toList(),
-                    ),
-                  );
-                }),
+                    return ListTile(
+                      leading: const Icon(Icons.discount_outlined),
+                      title: const Text('Weitere Ermäßigung'),
+                      subtitle: const Text('Halbtax, Vorteilscard, NL-40 etc.'),
+                      trailing: DropdownButton<Reduction>(
+                        value: primaryTraveler.weitere,
+                        underline: const SizedBox(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            notifier.setWeitereReduction(v);
+                          }
+                        },
+                        items: Reduction.weitereOptions.map((r) {
+                          return DropdownMenuItem(
+                            value: r,
+                            child: Text(
+                              r.label,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
+                ),
                 const Divider(height: 1),
 
                 // Deutschland-Ticket
@@ -350,7 +388,8 @@ class SettingsScreen extends ConsumerWidget {
               secondary: const Icon(Icons.subject),
               title: const Text('Einfache Sprache'),
               subtitle: const Text(
-                  'Störungshinweise in einfacheren Worten anzeigen'),
+                'Störungshinweise in einfacheren Worten anzeigen',
+              ),
               value: settings.plainLanguage,
               onChanged: (v) => notifier.setPlainLanguage(v),
             ),
@@ -517,7 +556,10 @@ class SettingsScreen extends ConsumerWidget {
   /// option needs its one-line "why", or the labels alone ("Normal" vs "Mehr
   /// Zeit") don't say what actually changes.
   void _pickTransferProfile(
-      BuildContext context, WidgetRef ref, AppSettings settings) {
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -528,8 +570,10 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-              child: Text('Umsteigeprofil',
-                  style: Theme.of(ctx).textTheme.titleLarge),
+              child: Text(
+                'Umsteigeprofil',
+                style: Theme.of(ctx).textTheme.titleLarge,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -538,7 +582,8 @@ class SettingsScreen extends ConsumerWidget {
                 'Anschluss als knapp warnt — die Fahrplanzeiten selbst ändert '
                 'es nicht. Bleibt auf dem Gerät.',
                 style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             // The group value and the handler live on the RadioGroup ancestor
@@ -575,9 +620,9 @@ class SettingsScreen extends ConsumerWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -606,10 +651,12 @@ class _OfflineStorageCard extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.offline_pin_outlined),
             title: const Text('Offline-Reisepakete'),
-            subtitle: Text(count == 0
-                ? 'Nichts gespeichert. In „Reisen" pro Reise speichern.'
-                : '$count ${count == 1 ? 'Reise' : 'Reisen'} · '
-                    '${offlineSizeLabel(bytes)}'),
+            subtitle: Text(
+              count == 0
+                  ? 'Nichts gespeichert. In „Reisen" pro Reise speichern.'
+                  : '$count ${count == 1 ? 'Reise' : 'Reisen'} · '
+                        '${offlineSizeLabel(bytes)}',
+            ),
             trailing: count == 0
                 ? null
                 : TextButton(
@@ -623,14 +670,19 @@ class _OfflineStorageCard extends ConsumerWidget {
   }
 
   Future<void> _confirmClear(
-      BuildContext context, WidgetRef ref, int count) async {
+    BuildContext context,
+    WidgetRef ref,
+    int count,
+  ) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Alle Offline-Pakete löschen?'),
-        content: Text('$count gespeicherte ${count == 1 ? 'Reise' : 'Reisen'} '
-            'werden entfernt. Die Reisen selbst bleiben — nur die offline '
-            'verfügbaren Daten sind dann weg.'),
+        content: Text(
+          '$count gespeicherte ${count == 1 ? 'Reise' : 'Reisen'} '
+          'werden entfernt. Die Reisen selbst bleiben — nur die offline '
+          'verfügbaren Daten sind dann weg.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -680,8 +732,10 @@ Future<String?> _askPassword(BuildContext context, {required bool confirm}) {
               ),
             if (error != null) ...[
               const SizedBox(height: 8),
-              Text(error!,
-                  style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
+              Text(
+                error!,
+                style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+              ),
             ],
             if (confirm) ...[
               const SizedBox(height: 12),
@@ -725,15 +779,15 @@ Future<void> _createBackup(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
   try {
     final file = await BackupService().writeBackup(password);
-    await SharePlus.instance.share(ShareParams(
-      files: [XFile(file.path)],
-      subject: 'Besser-Bahn Sicherung',
-    ));
+    await SharePlus.instance.share(
+      ShareParams(files: [XFile(file.path)], subject: 'Besser-Bahn Sicherung'),
+    );
   } on BackupError catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
   } catch (e) {
     messenger.showSnackBar(
-        SnackBar(content: Text('Sicherung fehlgeschlagen: $e')));
+      SnackBar(content: Text('Sicherung fehlgeschlagen: $e')),
+    );
   }
 }
 
@@ -753,16 +807,21 @@ Future<void> _restoreBackup(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
   try {
     final n = await BackupService().restore(bytes, password);
-    messenger.showSnackBar(SnackBar(
-      content: Text('$n Einträge wiederhergestellt — bitte die App neu '
-          'starten, damit alles geladen wird.'),
-      duration: const Duration(seconds: 6),
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          '$n Einträge wiederhergestellt — bitte die App neu '
+          'starten, damit alles geladen wird.',
+        ),
+        duration: const Duration(seconds: 6),
+      ),
+    );
   } on BackupError catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
   } catch (e) {
     messenger.showSnackBar(
-        SnackBar(content: Text('Wiederherstellen fehlgeschlagen: $e')));
+      SnackBar(content: Text('Wiederherstellen fehlgeschlagen: $e')),
+    );
   }
 }
 

@@ -11,28 +11,31 @@ Map<String, dynamic> _row(
   String gattung, {
   List<String> notizen = const [],
   String mitteltext = 'ICE 100',
-}) =>
-    {
-      'zuglaufId': '2|#VN#1#ST#1',
-      'abfrageOrt': {'evaNr': '8000207', 'name': 'Köln Hbf'},
-      'abgangsDatum': '2026-07-16T09:02:00+02:00',
-      'gleis': '4',
-      'richtung': 'Berlin Hbf',
-      'produktGattung': gattung,
-      'kurztext': gattung,
-      'mitteltext': mitteltext,
-      'zugnummer': '100',
-      'wagenreihung': false,
-      'echtzeitNotizen': [
-        for (final n in notizen) {'prio': 'HOCH', 'text': n}
-      ],
-    };
+}) => {
+  'zuglaufId': '2|#VN#1#ST#1',
+  'abfrageOrt': {'evaNr': '8000207', 'name': 'Köln Hbf'},
+  'abgangsDatum': '2026-07-16T09:02:00+02:00',
+  'gleis': '4',
+  'richtung': 'Berlin Hbf',
+  'produktGattung': gattung,
+  'kurztext': gattung,
+  'mitteltext': mitteltext,
+  'zugnummer': '100',
+  'wagenreihung': false,
+  'echtzeitNotizen': [
+    for (final n in notizen) {'prio': 'HOCH', 'text': n},
+  ],
+};
 
 Future<List<dynamic>> _board(List<Map<String, dynamic>> rows) {
   final svc = VendoService(
-      client: MockClient((_) async => http.Response.bytes(
-          utf8.encode(json.encode({'bahnhofstafelAbfahrtPositionen': rows})),
-          200)));
+    client: MockClient(
+      (_) async => http.Response.bytes(
+        utf8.encode(json.encode({'bahnhofstafelAbfahrtPositionen': rows})),
+        200,
+      ),
+    ),
+  );
   return svc.getDepartures('8000207');
 }
 
@@ -49,14 +52,17 @@ void main() {
       ]);
 
       expect(deps[0].cancelled, isTrue);
-      expect(deps[1].cancelled, isFalse,
-          reason: 'a delay note is not a cancellation');
+      expect(
+        deps[1].cancelled,
+        isFalse,
+        reason: 'a delay note is not a cancellation',
+      );
       expect(deps[2].cancelled, isFalse);
     });
 
     test('the note still shows up as a remark', () async {
       final deps = await _board([
-        _row('ICE', notizen: ['Halt entfällt'])
+        _row('ICE', notizen: ['Halt entfällt']),
       ]);
       expect(deps[0].remarks, contains('Halt entfällt'));
     });

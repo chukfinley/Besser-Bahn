@@ -72,12 +72,13 @@ double _distanceToPath(LatLng p, List<LatLng> path) {
 /// call without one: two failed outright, and the third passed vacuously
 /// because it skipped every empty body.
 List<LatLng> _railFor(StationMap map, String fixture, String gleis) {
-  final osm = json.decode(File('test/fixtures/$fixture').readAsStringSync())
-      as Map<String, dynamic>;
+  final osm =
+      json.decode(File('test/fixtures/$fixture').readAsStringSync())
+          as Map<String, dynamic>;
   List<LatLng> pts(dynamic list) => [
-        for (final q in (list as List))
-          LatLng((q['lat'] as num).toDouble(), (q['lng'] as num).toDouble()),
-      ];
+    for (final q in (list as List))
+      LatLng((q['lat'] as num).toDouble(), (q['lng'] as num).toDouble()),
+  ];
   return osmRailForGleis(
     platforms: [
       for (final p in (osm['platforms'] as List))
@@ -91,8 +92,7 @@ List<LatLng> _railFor(StationMap map, String fixture, String gleis) {
 
 void main() {
   test('parses Kiel Hbf RSC fixture: platforms, sector cubes, levels', () {
-    final body =
-        File('test/fixtures/kiel-hbf.rsc.txt').readAsStringSync();
+    final body = File('test/fixtures/kiel-hbf.rsc.txt').readAsStringSync();
     final map = parseStationMapBody('kiel-hbf', body);
 
     final cubes = map.pois.where((p) => p.isPlatformSector).length;
@@ -106,29 +106,41 @@ void main() {
     expect(map.pois, isNotEmpty);
   });
 
-  test('platformGenericBody draws a closed train body when no Wagenreihung', () {
-    final body = File('test/fixtures/kiel-hbf.rsc.txt').readAsStringSync();
-    final map = parseStationMapBody('kiel-hbf', body);
+  test(
+    'platformGenericBody draws a closed train body when no Wagenreihung',
+    () {
+      final body = File('test/fixtures/kiel-hbf.rsc.txt').readAsStringSync();
+      final map = parseStationMapBody('kiel-hbf', body);
 
-    // A Gleis that actually carries sector cubes on its platform island.
-    final gleis = map.platforms
-        .map((p) => pt.normalizeGleis(p.name))
-        .firstWhere(
-          (g) => pt.platformSectors(map, g).length >= 2,
-          orElse: () => '',
-        );
-    expect(gleis, isNotEmpty, reason: 'expected a Gleis with ≥2 sector cubes');
+      // A Gleis that actually carries sector cubes on its platform island.
+      final gleis = map.platforms
+          .map((p) => pt.normalizeGleis(p.name))
+          .firstWhere(
+            (g) => pt.platformSectors(map, g).length >= 2,
+            orElse: () => '',
+          );
+      expect(
+        gleis,
+        isNotEmpty,
+        reason: 'expected a Gleis with ≥2 sector cubes',
+      );
 
-    // Without a Wagenreihung we still get a single closed polygon (a train
-    // body), curved along the platform, sized to a realistic length — not a
-    // bare line nor the whole platform.
-    final outline = pt.platformGenericBody(map,
+      // Without a Wagenreihung we still get a single closed polygon (a train
+      // body), curved along the platform, sized to a realistic length — not a
+      // bare line nor the whole platform.
+      final outline = pt.platformGenericBody(
+        map,
         gleis: gleis,
         lengthM: 140,
-        osmRail: _railFor(map, 'kiel-osm.json', gleis));
-    expect(outline.length, greaterThanOrEqualTo(3),
-        reason: 'generic body is a closed ring');
-  });
+        osmRail: _railFor(map, 'kiel-osm.json', gleis),
+      );
+      expect(
+        outline.length,
+        greaterThanOrEqualTo(3),
+        reason: 'generic body is a closed ring',
+      );
+    },
+  );
 
   test('Kiel Hbf generic body centreline is essentially straight', () {
     final body = File('test/fixtures/kiel-hbf.rsc.txt').readAsStringSync();
@@ -145,10 +157,12 @@ void main() {
         );
     expect(gleis, isNotEmpty, reason: 'expected a Gleis with ≥2 sector cubes');
 
-    final outline = pt.platformGenericBody(map,
-        gleis: gleis,
-        lengthM: 140,
-        osmRail: _railFor(map, 'kiel-osm.json', gleis));
+    final outline = pt.platformGenericBody(
+      map,
+      gleis: gleis,
+      lengthM: 140,
+      osmRail: _railFor(map, 'kiel-osm.json', gleis),
+    );
     expect(outline.length, greaterThanOrEqualTo(3));
 
     // Chord between the two most-distant vertices (the body's long axis). On a
@@ -173,8 +187,11 @@ void main() {
     for (final p in outline) {
       maxDev = math.max(maxDev, _perpMetres(p, a, b));
     }
-    expect(maxDev, lessThan(4.0),
-        reason: 'Kiel platform is straight; body deviates $maxDev m from chord');
+    expect(
+      maxDev,
+      lessThan(4.0),
+      reason: 'Kiel platform is straight; body deviates $maxDev m from chord',
+    );
   });
 
   test('Hamburg Hbf body rides the rail despite mis-assigned cubes', () {
@@ -199,8 +216,12 @@ void main() {
     var checked = 0;
     for (final g in dirty) {
       final rail = _railFor(map, 'hamburg-osm.json', g);
-      final outline =
-          pt.platformGenericBody(map, gleis: g, lengthM: 200, osmRail: rail);
+      final outline = pt.platformGenericBody(
+        map,
+        gleis: g,
+        lengthM: 200,
+        osmRail: rail,
+      );
       // Not every Gleis in the fixture has a recoverable rail; those draw no
       // train at all, which is intended and nothing to assert.
       if (outline.length < 3) continue;
@@ -209,15 +230,22 @@ void main() {
       for (final p in outline) {
         maxOff = math.max(maxOff, _distanceToPath(p, rail));
       }
-      expect(maxOff, lessThan(4.0),
-          reason: 'Gleis $g body strays $maxOff m from its rail — the '
-              'mis-assigned cubes are deforming it');
+      expect(
+        maxOff,
+        lessThan(4.0),
+        reason:
+            'Gleis $g body strays $maxOff m from its rail — the '
+            'mis-assigned cubes are deforming it',
+      );
     }
     // Without this the test passes by checking nothing — which is exactly how
     // it survived losing its rail: every body came back empty and the loop
     // skipped them all.
-    expect(checked, greaterThan(0),
-        reason: 'no Gleis produced a body — nothing was actually asserted');
+    expect(
+      checked,
+      greaterThan(0),
+      reason: 'no Gleis produced a body — nothing was actually asserted',
+    );
   });
 
   test('a Wagenreihung without a sector table still draws its cars (#33)', () {
@@ -232,9 +260,13 @@ void main() {
     // admitting S-Bahnen buys three of four networks nothing.
     final body = File('test/fixtures/hamburg-hbf.rsc.txt').readAsStringSync();
     final map = parseStationMapBody('hamburg-hbf', body);
-    final raw = json.decode(
-        File('test/fixtures/hamburg-wagenreihung.json').readAsStringSync())
-        as Map<String, dynamic>;
+    final raw =
+        json.decode(
+              File(
+                'test/fixtures/hamburg-wagenreihung.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
 
     // Strip it down to what an Essen/Nürnberg/Dresden S-Bahn actually returns.
     final sectorless = <String, dynamic>{
@@ -268,14 +300,20 @@ void main() {
       markTestSkipped('Gleis $gleis has no recoverable rail in the fixture');
       return;
     }
-    final cars = pt.platformTrainCars(map,
-        gleis: gleis, cs: cs, osmRail: rail);
-    expect(cars, isNotEmpty,
-        reason: 'sectorless Wagenreihung drew no cars — S-Bahnen would be '
-            'fetched and then rendered as nothing');
+    final cars = pt.platformTrainCars(map, gleis: gleis, cs: cs, osmRail: rail);
+    expect(
+      cars,
+      isNotEmpty,
+      reason:
+          'sectorless Wagenreihung drew no cars — S-Bahnen would be '
+          'fetched and then rendered as nothing',
+    );
     for (final c in cars) {
-      expect(c.outline.length, greaterThanOrEqualTo(3),
-          reason: 'each car is a closed ring');
+      expect(
+        c.outline.length,
+        greaterThanOrEqualTo(3),
+        reason: 'each car is a closed ring',
+      );
     }
   });
 }

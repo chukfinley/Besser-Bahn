@@ -12,10 +12,16 @@ import 'package:flutter_test/flutter_test.dart';
 /// of slack can empty the window while the connections that qualify sit one
 /// "Früher" away. Doing that by hand is the work the feature removes.
 
-const _selent =
-    Station(id: '8005292', name: 'Selent', locationId: 'A=1@L=8005292@');
-const _kiel =
-    Station(id: '8000199', name: 'Kiel Hbf', locationId: 'A=1@L=8000199@');
+const _selent = Station(
+  id: '8005292',
+  name: 'Selent',
+  locationId: 'A=1@L=8005292@',
+);
+const _kiel = Station(
+  id: '8000199',
+  name: 'Kiel Hbf',
+  locationId: 'A=1@L=8000199@',
+);
 
 final _deadline = DateTime(2026, 7, 27, 9, 48);
 
@@ -43,16 +49,15 @@ JourneySearchState _state({
   int? minBufferMinutes,
   JourneySortMode sortMode = JourneySortMode.departure,
   String? earlierRef,
-}) =>
-    JourneySearchState(
-      from: _selent,
-      to: _kiel,
-      dateTime: _deadline,
-      isArrival: isArrival,
-      minBufferMinutes: minBufferMinutes,
-      sortMode: sortMode,
-      result: JourneyResult(journeys: journeys, earlierRef: earlierRef),
-    );
+}) => JourneySearchState(
+  from: _selent,
+  to: _kiel,
+  dateTime: _deadline,
+  isArrival: isArrival,
+  minBufferMinutes: minBufferMinutes,
+  sortMode: sortMode,
+  result: JourneyResult(journeys: journeys, earlierRef: earlierRef),
+);
 
 /// A notifier whose "Früher" hands back one window earlier each time, so the
 /// real [JourneySearchNotifier.setMinBufferMinutes] loop can be driven without
@@ -85,8 +90,9 @@ class _PagingSearch extends JourneySearchNotifier {
     state = state.copyWith(
       result: JourneyResult(
         journeys: [...page, ...state.result!.journeys],
-        earlierRef:
-            pages.length > loadEarlierCalls ? 'ctx$loadEarlierCalls' : null,
+        earlierRef: pages.length > loadEarlierCalls
+            ? 'ctx$loadEarlierCalls'
+            : null,
       ),
     );
   }
@@ -164,15 +170,18 @@ void main() {
       );
     });
 
-    test('filter and sort compose — the mode does not re-admit hidden ones', () {
-      final state = _state(
-        journeys: [_arrivesAt(9, 39), _arrivesAt(7, 39), _arrivesAt(9, 18)],
-        sortMode: JourneySortMode.buffer,
-        minBufferMinutes: 30,
-      );
-      expect(state.sortedJourneys.length, 2);
-      expect(state.sortedJourneys.first.arrival!.hour, 7);
-    });
+    test(
+      'filter and sort compose — the mode does not re-admit hidden ones',
+      () {
+        final state = _state(
+          journeys: [_arrivesAt(9, 39), _arrivesAt(7, 39), _arrivesAt(9, 18)],
+          sortMode: JourneySortMode.buffer,
+          minBufferMinutes: 30,
+        );
+        expect(state.sortedJourneys.length, 2);
+        expect(state.sortedJourneys.first.arrival!.hour, 7);
+      },
+    );
 
     test('without a deadline it falls back to departure order instead of '
         'ranking slack that does not exist', () {
@@ -186,28 +195,35 @@ void main() {
   });
 
   group('setMinBufferMinutes pages backwards when the window has nothing', () {
-    test('one page is enough: the qualifying connection is pulled in', () async {
-      final h = _harness(
-        _state(journeys: [_arrivesAt(9, 39)], earlierRef: 'ctx0'),
-        pages: [[_arrivesAt(8, 39)]],
-      );
-      await h.container
-          .read(journeySearchProvider.notifier)
-          .setMinBufferMinutes(60);
+    test(
+      'one page is enough: the qualifying connection is pulled in',
+      () async {
+        final h = _harness(
+          _state(journeys: [_arrivesAt(9, 39)], earlierRef: 'ctx0'),
+          pages: [
+            [_arrivesAt(8, 39)],
+          ],
+        );
+        await h.container
+            .read(journeySearchProvider.notifier)
+            .setMinBufferMinutes(60);
 
-      expect(h.notifier.loadEarlierCalls, 1);
-      final state = h.container.read(journeySearchProvider);
-      expect(state.sortedJourneys.length, 1);
-      expect(state.sortedJourneys.single.arrival!.hour, 8);
-      // The tight one is still there, just filtered out — not lost.
-      expect(state.result!.journeys.length, 2);
-      expect(state.hiddenByBufferCount, 1);
-    });
+        expect(h.notifier.loadEarlierCalls, 1);
+        final state = h.container.read(journeySearchProvider);
+        expect(state.sortedJourneys.length, 1);
+        expect(state.sortedJourneys.single.arrival!.hour, 8);
+        // The tight one is still there, just filtered out — not lost.
+        expect(state.result!.journeys.length, 2);
+        expect(state.hiddenByBufferCount, 1);
+      },
+    );
 
     test('does not page when the current window already qualifies', () async {
       final h = _harness(
         _state(journeys: [_arrivesAt(8, 39)], earlierRef: 'ctx0'),
-        pages: [[_arrivesAt(7, 39)]],
+        pages: [
+          [_arrivesAt(7, 39)],
+        ],
       );
       await h.container
           .read(journeySearchProvider.notifier)
@@ -216,38 +232,45 @@ void main() {
       expect(h.notifier.loadEarlierCalls, 0);
     });
 
-    test('gives up after maxBufferPages instead of walking the timetable',
-        () async {
-      final h = _harness(
-        _state(journeys: [_arrivesAt(9, 39)], earlierRef: 'ctx0'),
-        // Four pages available, none of which ever qualifies for 8 hours.
-        pages: [
-          [_arrivesAt(9, 30)],
-          [_arrivesAt(9, 20)],
-          [_arrivesAt(9, 10)],
-          [_arrivesAt(9, 0)],
-        ],
-      );
-      await h.container
-          .read(journeySearchProvider.notifier)
-          .setMinBufferMinutes(480);
+    test(
+      'gives up after maxBufferPages instead of walking the timetable',
+      () async {
+        final h = _harness(
+          _state(journeys: [_arrivesAt(9, 39)], earlierRef: 'ctx0'),
+          // Four pages available, none of which ever qualifies for 8 hours.
+          pages: [
+            [_arrivesAt(9, 30)],
+            [_arrivesAt(9, 20)],
+            [_arrivesAt(9, 10)],
+            [_arrivesAt(9, 0)],
+          ],
+        );
+        await h.container
+            .read(journeySearchProvider.notifier)
+            .setMinBufferMinutes(480);
 
-      expect(h.notifier.loadEarlierCalls, JourneySearchNotifier.maxBufferPages);
-      expect(h.container.read(journeySearchProvider).sortedJourneys, isEmpty);
-    });
+        expect(
+          h.notifier.loadEarlierCalls,
+          JourneySearchNotifier.maxBufferPages,
+        );
+        expect(h.container.read(journeySearchProvider).sortedJourneys, isEmpty);
+      },
+    );
 
-    test('stops at the end of the timetable rather than repeating a request',
-        () async {
-      final h = _harness(
-        _state(journeys: [_arrivesAt(9, 39)], earlierRef: 'ctx0'),
-        pages: const [], // token set, but the page comes back empty
-      );
-      await h.container
-          .read(journeySearchProvider.notifier)
-          .setMinBufferMinutes(60);
+    test(
+      'stops at the end of the timetable rather than repeating a request',
+      () async {
+        final h = _harness(
+          _state(journeys: [_arrivesAt(9, 39)], earlierRef: 'ctx0'),
+          pages: const [], // token set, but the page comes back empty
+        );
+        await h.container
+            .read(journeySearchProvider.notifier)
+            .setMinBufferMinutes(60);
 
-      expect(h.notifier.loadEarlierCalls, 1);
-    });
+        expect(h.notifier.loadEarlierCalls, 1);
+      },
+    );
 
     test('no token, no paging', () async {
       final h = _harness(_state(journeys: [_arrivesAt(9, 39)]));
@@ -265,7 +288,9 @@ void main() {
           minBufferMinutes: 60,
           earlierRef: 'ctx0',
         ),
-        pages: [[_arrivesAt(8, 39)]],
+        pages: [
+          [_arrivesAt(8, 39)],
+        ],
       );
       await h.container
           .read(journeySearchProvider.notifier)

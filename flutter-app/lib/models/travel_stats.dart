@@ -142,36 +142,36 @@ class TravelStats {
   }
 
   Map<String, dynamic> toJson() => {
-        'totalKm': totalKm,
-        'tripCount': tripCount,
-        'totalDelayMinutes': totalDelayMinutes,
-        'onTimeCount': onTimeCount,
-        'worstDelayMinutes': worstDelayMinutes,
-        'longestTripKm': longestTripKm,
-        'firstTripMs': firstTripMs,
-        'routeCounts': routeCounts,
-        'lineCounts': lineCounts,
-        'connectionsTotal': connectionsTotal,
-        'connectionsMissed': connectionsMissed,
-        'routeOnTime': routeOnTime,
-      };
+    'totalKm': totalKm,
+    'tripCount': tripCount,
+    'totalDelayMinutes': totalDelayMinutes,
+    'onTimeCount': onTimeCount,
+    'worstDelayMinutes': worstDelayMinutes,
+    'longestTripKm': longestTripKm,
+    'firstTripMs': firstTripMs,
+    'routeCounts': routeCounts,
+    'lineCounts': lineCounts,
+    'connectionsTotal': connectionsTotal,
+    'connectionsMissed': connectionsMissed,
+    'routeOnTime': routeOnTime,
+  };
 
   factory TravelStats.fromJson(Map<String, dynamic> json) => TravelStats(
-        totalKm: (json['totalKm'] as num?)?.toDouble() ?? 0,
-        tripCount: json['tripCount'] as int? ?? 0,
-        totalDelayMinutes: json['totalDelayMinutes'] as int? ?? 0,
-        onTimeCount: json['onTimeCount'] as int? ?? 0,
-        worstDelayMinutes: json['worstDelayMinutes'] as int? ?? 0,
-        longestTripKm: (json['longestTripKm'] as num?)?.toDouble() ?? 0,
-        firstTripMs: json['firstTripMs'] as int? ?? 0,
-        routeCounts: _intMap(json['routeCounts']),
-        lineCounts: _intMap(json['lineCounts']),
-        connectionsTotal: json['connectionsTotal'] as int? ?? 0,
-        connectionsMissed: json['connectionsMissed'] as int? ?? 0,
-        // Absent in stats saved before #63 — an old install simply starts
-        // collecting from its next trip instead of losing its other numbers.
-        routeOnTime: _intMap(json['routeOnTime']),
-      );
+    totalKm: (json['totalKm'] as num?)?.toDouble() ?? 0,
+    tripCount: json['tripCount'] as int? ?? 0,
+    totalDelayMinutes: json['totalDelayMinutes'] as int? ?? 0,
+    onTimeCount: json['onTimeCount'] as int? ?? 0,
+    worstDelayMinutes: json['worstDelayMinutes'] as int? ?? 0,
+    longestTripKm: (json['longestTripKm'] as num?)?.toDouble() ?? 0,
+    firstTripMs: json['firstTripMs'] as int? ?? 0,
+    routeCounts: _intMap(json['routeCounts']),
+    lineCounts: _intMap(json['lineCounts']),
+    connectionsTotal: json['connectionsTotal'] as int? ?? 0,
+    connectionsMissed: json['connectionsMissed'] as int? ?? 0,
+    // Absent in stats saved before #63 — an old install simply starts
+    // collecting from its next trip instead of losing its other numbers.
+    routeOnTime: _intMap(json['routeOnTime']),
+  );
 
   static Map<String, int> _intMap(dynamic raw) {
     if (raw is! Map) return const {};

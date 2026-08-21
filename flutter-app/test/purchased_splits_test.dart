@@ -6,15 +6,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> _settle() => Future.delayed(const Duration(milliseconds: 10));
 
-PurchasedSplit _split(String route,
-        {double direct = 50, double split = 30, String? dep}) =>
-    PurchasedSplit(
-      routeLabel: route,
-      directPrice: direct,
-      splitPrice: split,
-      purchasedAtMs: DateTime.now().millisecondsSinceEpoch,
-      departureIso: dep,
-    );
+PurchasedSplit _split(
+  String route, {
+  double direct = 50,
+  double split = 30,
+  String? dep,
+}) => PurchasedSplit(
+  routeLabel: route,
+  directPrice: direct,
+  splitPrice: split,
+  purchasedAtMs: DateTime.now().millisecondsSinceEpoch,
+  departureIso: dep,
+);
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -54,8 +57,12 @@ void main() {
     test('same route + departure is not double-counted', () async {
       final c = ProviderContainer();
       final n = c.read(purchasedSplitsProvider.notifier);
-      await n.add(_split('A→B', direct: 50, split: 30, dep: '2026-08-01T09:00'));
-      await n.add(_split('A→B', direct: 60, split: 30, dep: '2026-08-01T09:00'));
+      await n.add(
+        _split('A→B', direct: 50, split: 30, dep: '2026-08-01T09:00'),
+      );
+      await n.add(
+        _split('A→B', direct: 60, split: 30, dep: '2026-08-01T09:00'),
+      );
       expect(c.read(purchasedSplitsProvider).length, 1);
       // The later confirmation wins.
       expect(n.totalSavings, 30);

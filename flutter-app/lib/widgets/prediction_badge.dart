@@ -23,7 +23,9 @@ class PredictionBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(journeyPredictionProvider(PredictionRequest(journey)));
+    final async = ref.watch(
+      journeyPredictionProvider(PredictionRequest(journey)),
+    );
 
     return async.when(
       loading: () => _loading(context),
@@ -54,22 +56,26 @@ class PredictionBadge extends ConsumerWidget {
   }
 
   Widget _loading(BuildContext context) => SizedBox(
-        width: axis == Axis.vertical ? 30 : 18,
-        height: 18,
-        child: Center(
-          child: SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-          ),
+    width: axis == Axis.vertical ? 30 : 18,
+    height: 18,
+    child: Center(
+      child: SizedBox(
+        width: 14,
+        height: 14,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _pill(
-      BuildContext context, IconData icon, String label, double score) {
+    BuildContext context,
+    IconData icon,
+    String label,
+    double score,
+  ) {
     final color = _scoreColor(context, score);
     final pct = '${score.round()}%';
 
@@ -82,9 +88,14 @@ class PredictionBadge extends ConsumerWidget {
           children: [
             Icon(icon, size: 16, color: color),
             const SizedBox(height: 1),
-            Text(pct,
-                style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+            Text(
+              pct,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
           ],
         ),
       );
@@ -134,9 +145,14 @@ class PredictionPill extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
-          Text('$label ${score.round()}%',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+          Text(
+            '$label ${score.round()}%',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -156,26 +172,33 @@ class LegPredictionBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final self = ref
-        .watch(journeyPredictionProvider(PredictionRequest(Journey(legs: [leg]))))
+        .watch(
+          journeyPredictionProvider(PredictionRequest(Journey(legs: [leg]))),
+        )
         .maybeWhen(data: (p) => p, orElse: () => null);
     final pair = nextLeg == null
         ? null
         : ref
-            .watch(journeyPredictionProvider(
-                PredictionRequest(Journey(legs: [leg, nextLeg!]))))
-            .maybeWhen(data: (p) => p, orElse: () => null);
+              .watch(
+                journeyPredictionProvider(
+                  PredictionRequest(Journey(legs: [leg, nextLeg!])),
+                ),
+              )
+              .maybeWhen(data: (p) => p, orElse: () => null);
 
     final pills = <Widget>[
       if (pair?.verbindungsscore != null)
         PredictionPill(
-            icon: Icons.alt_route,
-            label: 'Anschluss',
-            score: pair!.verbindungsscore!),
+          icon: Icons.alt_route,
+          label: 'Anschluss',
+          score: pair!.verbindungsscore!,
+        ),
       if (self?.puenktlichkeit != null)
         PredictionPill(
-            icon: Icons.schedule,
-            label: 'Pünktlich',
-            score: self!.puenktlichkeit!),
+          icon: Icons.schedule,
+          label: 'Pünktlich',
+          score: self!.puenktlichkeit!,
+        ),
     ];
     if (pills.isEmpty) return const SizedBox.shrink();
     return Wrap(spacing: 8, runSpacing: 4, children: pills);

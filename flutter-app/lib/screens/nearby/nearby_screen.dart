@@ -180,9 +180,6 @@ class _SnappyTabPhysics extends ScrollPhysics {
       _SnappyTabPhysics(parent: buildParent(ancestor));
 
   @override
-  SpringDescription get spring => SpringDescription.withDampingRatio(
-        mass: 0.5,
-        stiffness: 220,
-        ratio: 1.1,
-      );
+  SpringDescription get spring =>
+      SpringDescription.withDampingRatio(mass: 0.5, stiffness: 220, ratio: 1.1);
 }

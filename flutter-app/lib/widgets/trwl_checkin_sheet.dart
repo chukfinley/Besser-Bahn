@@ -26,6 +26,7 @@ Future<void> startTrwlCheckin(
   BuildContext context,
   WidgetRef ref,
   Trip trip, {
+
   /// Restrict the check-in to a segment of [trip] (a connection leg): the stop
   /// you board at / alight at. Default to the run's origin → destination.
   String? boardingName,
@@ -35,13 +36,15 @@ Future<void> startTrwlCheckin(
   final auth = ref.read(traewellingAuthProvider);
   if (!auth.isLoggedIn) {
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(SnackBar(
-      content: const Text('Mit Träwelling verbinden, um einzuchecken.'),
-      action: SnackBarAction(
-        label: 'Anmelden',
-        onPressed: () => context.push('/trawelling'),
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('Mit Träwelling verbinden, um einzuchecken.'),
+        action: SnackBarAction(
+          label: 'Anmelden',
+          onPressed: () => context.push('/trawelling'),
+        ),
       ),
-    ));
+    );
     return;
   }
 
@@ -53,7 +56,8 @@ Future<void> startTrwlCheckin(
     final boardName = boardingName ?? boarding?.stop.name ?? trip.origin.name;
     final alightName =
         alightingName ?? alighting?.stop.name ?? trip.destination.name;
-    final boardDep = boardingDeparture ??
+    final boardDep =
+        boardingDeparture ??
         boarding?.departure ??
         boarding?.plannedDeparture ??
         DateTime.now();
@@ -86,20 +90,27 @@ Future<void> startTrwlCheckin(
 /// setting is off or the user isn't connected — saving still works either way.
 /// Reports one summary SnackBar so the user sees the trip reached Träwelling.
 Future<void> autoCheckinSavedJourney(
-    BuildContext context, WidgetRef ref, Journey journey) async {
+  BuildContext context,
+  WidgetRef ref,
+  Journey journey,
+) async {
   final settings = ref.read(settingsProvider);
   if (!settings.trwlAutoCheckin) return;
   if (!ref.read(traewellingAuthProvider).isLoggedIn) return;
 
-  final legs =
-      journey.legs.where((l) => !l.isWalking && l.line != null).toList();
+  final legs = journey.legs
+      .where((l) => !l.isWalking && l.line != null)
+      .toList();
   if (legs.isEmpty) return;
 
   final messenger = ScaffoldMessenger.of(context);
   final service = ref.read(traewellingServiceProvider);
-  messenger.showSnackBar(const SnackBar(
+  messenger.showSnackBar(
+    const SnackBar(
       duration: Duration(seconds: 2),
-      content: Text('Checke auf Träwelling ein…')));
+      content: Text('Checke auf Träwelling ein…'),
+    ),
+  );
 
   var ok = 0;
   String? lastErr;
@@ -126,12 +137,16 @@ Future<void> autoCheckinSavedJourney(
   ref.invalidate(trwlDashboardProvider);
   await ref.read(traewellingAuthProvider.notifier).refreshUser();
   if (!context.mounted) return;
-  messenger.showSnackBar(SnackBar(
-    content: Text(ok > 0
-        ? 'Auf Träwelling eingecheckt ($ok/${legs.length} Fahrten).'
-        : 'Träwelling-Einchecken fehlgeschlagen'
-            '${lastErr != null ? ': $lastErr' : ''}.'),
-  ));
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(
+        ok > 0
+            ? 'Auf Träwelling eingecheckt ($ok/${legs.length} Fahrten).'
+            : 'Träwelling-Einchecken fehlgeschlagen'
+                  '${lastErr != null ? ': $lastErr' : ''}.',
+      ),
+    ),
+  );
 }
 
 /// Runs the actual check-in and reports the outcome via SnackBars. Handles the
@@ -162,9 +177,7 @@ Future<bool> runTrwlCheckin(
     );
     ref.invalidate(trwlDashboardProvider);
     await ref.read(traewellingAuthProvider.notifier).refreshUser();
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Eingecheckt! 🎉')),
-    );
+    messenger.showSnackBar(const SnackBar(content: Text('Eingecheckt! 🎉')));
     return true;
   } on CheckinCollisionException {
     if (!context.mounted) return false;
@@ -173,15 +186,18 @@ Future<bool> runTrwlCheckin(
       builder: (c) => AlertDialog(
         title: const Text('Überschneidung'),
         content: const Text(
-            'Du bist bereits für eine überlappende Fahrt eingecheckt. '
-            'Trotzdem einchecken?'),
+          'Du bist bereits für eine überlappende Fahrt eingecheckt. '
+          'Trotzdem einchecken?',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Abbrechen')),
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Abbrechen'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Trotzdem')),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Trotzdem'),
+          ),
         ],
       ),
     );
@@ -204,7 +220,8 @@ Future<bool> runTrwlCheckin(
     return false;
   } catch (e) {
     messenger.showSnackBar(
-        SnackBar(content: Text('Check-in fehlgeschlagen: $e')));
+      SnackBar(content: Text('Check-in fehlgeschlagen: $e')),
+    );
     return false;
   }
 }
@@ -238,7 +255,8 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
   Stopover get _boarding => widget.trip.stopovers[_boardIdx];
 
   /// Valid destinations: every stop after the boarding stop.
-  List<Stopover> get _destOptions => widget.trip.stopovers.length > _boardIdx + 1
+  List<Stopover> get _destOptions =>
+      widget.trip.stopovers.length > _boardIdx + 1
       ? widget.trip.stopovers.sublist(_boardIdx + 1)
       : [];
 
@@ -261,8 +279,10 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
         : (_destOptions.isNotEmpty ? _destOptions.last : stops.first);
 
     final v = ref.read(settingsProvider).trwlVisibility;
-    _visibility = TrwlVisibility.values.firstWhere((e) => e.value == v,
-        orElse: () => TrwlVisibility.private);
+    _visibility = TrwlVisibility.values.firstWhere(
+      (e) => e.value == v,
+      orElse: () => TrwlVisibility.private,
+    );
   }
 
   @override
@@ -306,7 +326,11 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
     final navBar = AppNavBar.insetOf(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          20, 4, 20, (keyboard > navBar ? keyboard : navBar) + 20),
+        20,
+        4,
+        20,
+        (keyboard > navBar ? keyboard : navBar) + 20,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,15 +339,20 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
             children: [
               const TraewellingLogo(size: 28),
               const SizedBox(width: 10),
-              Text('In Träwelling einchecken',
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'In Träwelling einchecken',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          Text('${trip.line.displayName} · ab ${_boarding.stop.name}'
-              '${boardDep != null ? ' ${_timeFmt.format(boardDep.toLocal())}' : ''}',
-              style: theme.textTheme.bodyMedium),
+          Text(
+            '${trip.line.displayName} · ab ${_boarding.stop.name}'
+            '${boardDep != null ? ' ${_timeFmt.format(boardDep.toLocal())}' : ''}',
+            style: theme.textTheme.bodyMedium,
+          ),
           const SizedBox(height: 16),
           DropdownButtonFormField<Stopover>(
             initialValue: _destination,
@@ -333,14 +362,16 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
               border: OutlineInputBorder(),
             ),
             items: _destOptions
-                .map((s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(
-                        '${s.stop.name}'
-                        '${(s.arrival ?? s.plannedArrival) != null ? '  ${_timeFmt.format((s.arrival ?? s.plannedArrival)!.toLocal())}' : ''}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ))
+                .map(
+                  (s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(
+                      '${s.stop.name}'
+                      '${(s.arrival ?? s.plannedArrival) != null ? '  ${_timeFmt.format((s.arrival ?? s.plannedArrival)!.toLocal())}' : ''}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (v) => setState(() => _destination = v ?? _destination),
           ),
@@ -379,7 +410,10 @@ class _CheckinSheetState extends ConsumerState<_CheckinSheet> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Icon(Icons.check),
               label: Text(_submitting ? 'Checke ein…' : 'Einchecken'),
             ),

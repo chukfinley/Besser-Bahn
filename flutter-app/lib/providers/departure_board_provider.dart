@@ -50,9 +50,7 @@ class DepartureBoardState {
 
   List<Departure> get filteredDepartures {
     if (filterProduct == null) return departures;
-    return departures
-        .where((d) => d.line.product == filterProduct)
-        .toList();
+    return departures.where((d) => d.line.product == filterProduct).toList();
   }
 }
 
@@ -121,4 +119,5 @@ class DepartureBoardNotifier extends Notifier<DepartureBoardState> {
 
 final departureBoardProvider =
     NotifierProvider<DepartureBoardNotifier, DepartureBoardState>(
-        DepartureBoardNotifier.new);
+      DepartureBoardNotifier.new,
+    );

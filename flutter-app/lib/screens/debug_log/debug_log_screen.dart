@@ -41,10 +41,11 @@ class DebugLogScreen extends ConsumerWidget {
             icon: const Icon(Icons.copy),
             onPressed: () {
               Clipboard.setData(
-                  ClipboardData(text: AppLog.messages.value.join('\n')));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Log kopiert')),
+                ClipboardData(text: AppLog.messages.value.join('\n')),
               );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Log kopiert')));
             },
           ),
           IconButton(
@@ -74,7 +75,8 @@ class DebugLogScreen extends ConsumerWidget {
             itemCount: lines.length,
             itemBuilder: (context, i) {
               final line = lines[lines.length - 1 - i]; // newest first
-              final isError = line.contains('FAILED') ||
+              final isError =
+                  line.contains('FAILED') ||
                   line.contains('failed') ||
                   line.contains('HTTP 5') ||
                   line.contains('HTTP 4');
@@ -115,30 +117,39 @@ Future<void> _testLiveUpdate(BuildContext context) async {
   Station st(String name, double lat, double lon) =>
       Station(id: name, name: name, latitude: lat, longitude: lon);
   TransitLine line() => const TransitLine(
-      name: 'RE7', fahrtNr: '0', productName: 'RE', product: 'regional');
-  final journey = Journey(legs: [
-    JourneyLeg(
-      origin: st('Kiel Hbf', 54.3143, 10.1324),
-      destination: st('Neumünster', 54.0719, 9.9819),
-      line: line(),
-      plannedDeparture: now.subtract(const Duration(minutes: 2)),
-      departure: now.subtract(const Duration(minutes: 2)),
-      plannedArrival: now.add(const Duration(minutes: 15)),
-      arrival: now.add(const Duration(minutes: 18)), // +3 min delay
-    ),
-    JourneyLeg(
-      origin: st('Neumünster', 54.0719, 9.9819),
-      destination: st('Hamburg Hbf', 53.5528, 10.0067),
-      line: line(),
-      plannedDeparture: now.add(const Duration(minutes: 22)),
-      departure: now.add(const Duration(minutes: 22)),
-      plannedArrival: now.add(const Duration(minutes: 45)),
-      arrival: now.add(const Duration(minutes: 45)),
-    ),
-  ]);
+    name: 'RE7',
+    fahrtNr: '0',
+    productName: 'RE',
+    product: 'regional',
+  );
+  final journey = Journey(
+    legs: [
+      JourneyLeg(
+        origin: st('Kiel Hbf', 54.3143, 10.1324),
+        destination: st('Neumünster', 54.0719, 9.9819),
+        line: line(),
+        plannedDeparture: now.subtract(const Duration(minutes: 2)),
+        departure: now.subtract(const Duration(minutes: 2)),
+        plannedArrival: now.add(const Duration(minutes: 15)),
+        arrival: now.add(const Duration(minutes: 18)), // +3 min delay
+      ),
+      JourneyLeg(
+        origin: st('Neumünster', 54.0719, 9.9819),
+        destination: st('Hamburg Hbf', 53.5528, 10.0067),
+        line: line(),
+        plannedDeparture: now.add(const Duration(minutes: 22)),
+        departure: now.add(const Duration(minutes: 22)),
+        plannedArrival: now.add(const Duration(minutes: 45)),
+        arrival: now.add(const Duration(minutes: 45)),
+      ),
+    ],
+  );
 
-  AppLog.log('live update: TEST-Knopf gedrückt — synthetische Reise '
-      'Kiel→Hamburg, +3 Min', tag: 'notify');
+  AppLog.log(
+    'live update: TEST-Knopf gedrückt — synthetische Reise '
+    'Kiel→Hamburg, +3 Min',
+    tag: 'notify',
+  );
   LiveUpdateService.reset(); // clear any earlier "dismissed" state
   LiveUpdateService.invalidateSupport(); // re-ask the platform (toggle may have changed)
   final supported = await LiveUpdateService.isSupported();
@@ -147,11 +158,13 @@ Future<void> _testLiveUpdate(BuildContext context) async {
   final msg = posted
       ? 'Live-Update gepostet — schau in die Statusleiste.'
       : supported
-          ? 'Gerät unterstützt es, aber Post abgelehnt (Reise evtl. schon vorbei).'
-          : 'Dein Gerät promotet es nicht: Android 16 QPR1+/17 nötig und '
-              '„Live Updates" für die App in den Benachrichtigungs-'
-              'einstellungen aktivieren.';
-  messenger.showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 6)));
+      ? 'Gerät unterstützt es, aber Post abgelehnt (Reise evtl. schon vorbei).'
+      : 'Dein Gerät promotet es nicht: Android 16 QPR1+/17 nötig und '
+            '„Live Updates" für die App in den Benachrichtigungs-'
+            'einstellungen aktivieren.';
+  messenger.showSnackBar(
+    SnackBar(content: Text(msg), duration: const Duration(seconds: 6)),
+  );
 }
 
 Future<void> _exportBahnCardHtml(BuildContext context, WidgetRef ref) async {
@@ -159,8 +172,11 @@ Future<void> _exportBahnCardHtml(BuildContext context, WidgetRef ref) async {
   try {
     final cards = ref.read(bahncardsProvider).value;
     if (cards == null || cards.isEmpty) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text('Keine BahnCard geladen — erst Profil öffnen.')));
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Keine BahnCard geladen — erst Profil öffnen.'),
+        ),
+      );
       return;
     }
 
@@ -175,10 +191,12 @@ Future<void> _exportBahnCardHtml(BuildContext context, WidgetRef ref) async {
       buf
         ..writeln('## Karte ${i + 1}: ${card.typ} / ${card.klasse}')
         ..writeln('# bildSicht: ${card.bildSichtHtml?.length ?? 0} Zeichen')
-        ..writeln('# Parser: ${art == null ? 'FALLBACK (nicht erkannt)' : 'OK — '
-            '${art.texts.length} Textfeld(er), '
-            '${art.imageBytes.length}B ${art.mimeType}, '
-            'ratio ${art.aspectRatio.toStringAsFixed(3)}'}')
+        ..writeln(
+          '# Parser: ${art == null ? 'FALLBACK (nicht erkannt)' : 'OK — '
+                    '${art.texts.length} Textfeld(er), '
+                    '${art.imageBytes.length}B ${art.mimeType}, '
+                    'ratio ${art.aspectRatio.toStringAsFixed(3)}'}',
+        )
         ..writeln()
         ..writeln('### bildSicht')
         ..writeln(redactBahnCardHtml(card.bildSichtHtml ?? '(leer)'))
@@ -199,6 +217,8 @@ Future<void> _exportBahnCardHtml(BuildContext context, WidgetRef ref) async {
       ),
     );
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text('Export fehlgeschlagen: $e')));
+    messenger.showSnackBar(
+      SnackBar(content: Text('Export fehlgeschlagen: $e')),
+    );
   }
 }

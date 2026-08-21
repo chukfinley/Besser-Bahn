@@ -31,7 +31,12 @@ enum TravelerType {
   final int? defaultAge;
   final bool discountable;
   const TravelerType(
-      this.vendoKey, this.label, this.ageBand, this.defaultAge, this.discountable);
+    this.vendoKey,
+    this.label,
+    this.ageBand,
+    this.defaultAge,
+    this.discountable,
+  );
 
   /// A real person (has an age band) vs. a bike/dog slot.
   bool get isPerson => defaultAge != null;
@@ -63,10 +68,26 @@ enum Reduction {
   bc50_1('BAHNCARD50 KLASSE_1', 'BahnCard 50 · 1. Kl.', true),
   bc100_2('BAHNCARD100 KLASSE_2', 'BahnCard 100 · 2. Kl.', true),
   bc100_1('BAHNCARD100 KLASSE_1', 'BahnCard 100 · 1. Kl.', true),
-  bcBiz25_2('BAHNCARDBUSINESS25 KLASSE_2', 'BahnCard Business 25 · 2. Kl.', true),
-  bcBiz25_1('BAHNCARDBUSINESS25 KLASSE_1', 'BahnCard Business 25 · 1. Kl.', true),
-  bcBiz50_2('BAHNCARDBUSINESS50 KLASSE_2', 'BahnCard Business 50 · 2. Kl.', true),
-  bcBiz50_1('BAHNCARDBUSINESS50 KLASSE_1', 'BahnCard Business 50 · 1. Kl.', true),
+  bcBiz25_2(
+    'BAHNCARDBUSINESS25 KLASSE_2',
+    'BahnCard Business 25 · 2. Kl.',
+    true,
+  ),
+  bcBiz25_1(
+    'BAHNCARDBUSINESS25 KLASSE_1',
+    'BahnCard Business 25 · 1. Kl.',
+    true,
+  ),
+  bcBiz50_2(
+    'BAHNCARDBUSINESS50 KLASSE_2',
+    'BahnCard Business 50 · 2. Kl.',
+    true,
+  ),
+  bcBiz50_1(
+    'BAHNCARDBUSINESS50 KLASSE_1',
+    'BahnCard Business 50 · 1. Kl.',
+    true,
+  ),
   chGa2('CH-GENERAL-ABONNEMENT KLASSE_2', 'CH-General-Abo · 2. Kl.', false),
   chGa1('CH-GENERAL-ABONNEMENT KLASSE_1', 'CH-General-Abo · 1. Kl.', false),
   chHalbtax('CH-HALBTAXABO_OHNE_RAILPLUS KLASSENLOS', 'HalbtaxAbo (CH)', false),
@@ -87,12 +108,16 @@ enum Reduction {
       values.firstWhere((r) => r.vendoKey == key, orElse: () => none);
 
   /// "Keine" + the BahnCards, for the BahnCard selector.
-  static List<Reduction> get bahnCardOptions =>
-      [none, ...values.where((r) => r.isBahnCard)];
+  static List<Reduction> get bahnCardOptions => [
+    none,
+    ...values.where((r) => r.isBahnCard),
+  ];
 
   /// "Keine" + the foreign railcards, for the "Weitere Ermäßigungen" selector.
-  static List<Reduction> get weitereOptions =>
-      [none, ...values.where((r) => r != none && !r.isBahnCard)];
+  static List<Reduction> get weitereOptions => [
+    none,
+    ...values.where((r) => r != none && !r.isBahnCard),
+  ];
 }
 
 /// Schwerbehindertenausweis options — the 2×2 matrix DB exposes
@@ -109,17 +134,21 @@ enum Reduction {
 enum SbaOption {
   none('', 'Keiner'),
   beeintrOhneRolli(
-      'SBA_BEEINTRAECHTIGUNGEN_KEIN_ROLLSTUHL KLASSENLOS',
-      'Schwerbehinderung, ohne Rollstuhlplatz'),
+    'SBA_BEEINTRAECHTIGUNGEN_KEIN_ROLLSTUHL KLASSENLOS',
+    'Schwerbehinderung, ohne Rollstuhlplatz',
+  ),
   beeintrMitRolli(
-      'SBA_BEEINTRAECHTIGUNGEN_MIT_ROLLSTUHL KLASSENLOS',
-      'Schwerbehinderung, mit Rollstuhlplatz'),
+    'SBA_BEEINTRAECHTIGUNGEN_MIT_ROLLSTUHL KLASSENLOS',
+    'Schwerbehinderung, mit Rollstuhlplatz',
+  ),
   begleiterOhneRolli(
-      'SBA_BEGLEITPERSON_KEIN_ROLLSTUHL KLASSENLOS',
-      'Begleitperson, ohne Rollstuhlplatz'),
+    'SBA_BEGLEITPERSON_KEIN_ROLLSTUHL KLASSENLOS',
+    'Begleitperson, ohne Rollstuhlplatz',
+  ),
   begleiterMitRolli(
-      'SBA_BEGLEITPERSON_MIT_ROLLSTUHL KLASSENLOS',
-      'Begleitperson, mit Rollstuhlplatz');
+    'SBA_BEGLEITPERSON_MIT_ROLLSTUHL KLASSENLOS',
+    'Begleitperson, mit Rollstuhlplatz',
+  );
 
   final String vendoKey;
   final String label;
@@ -186,12 +215,12 @@ class Traveler {
   }
 
   Map<String, dynamic> toStorageJson() => {
-        'typ': typ.vendoKey,
-        if (alter != null) 'alter': alter,
-        'bahnCard': bahnCard.vendoKey,
-        'weitere': weitere.vendoKey,
-        'sba': sba.vendoKey,
-      };
+    'typ': typ.vendoKey,
+    if (alter != null) 'alter': alter,
+    'bahnCard': bahnCard.vendoKey,
+    'weitere': weitere.vendoKey,
+    'sba': sba.vendoKey,
+  };
 
   factory Traveler.fromStorageJson(Map<String, dynamic> j) {
     // Back-compat: an earlier build stored a single 'reduction' slot — route it
@@ -200,12 +229,15 @@ class Traveler {
     return Traveler(
       typ: TravelerType.byKey(j['typ'] as String? ?? 'ERWACHSENER'),
       alter: (j['alter'] as num?)?.toInt(),
-      bahnCard: Reduction.byKey(j['bahnCard'] as String? ??
-          (legacy.isBahnCard ? legacy.vendoKey : '')),
-      weitere: Reduction.byKey(j['weitere'] as String? ??
-          (legacy != Reduction.none && !legacy.isBahnCard
-              ? legacy.vendoKey
-              : '')),
+      bahnCard: Reduction.byKey(
+        j['bahnCard'] as String? ?? (legacy.isBahnCard ? legacy.vendoKey : ''),
+      ),
+      weitere: Reduction.byKey(
+        j['weitere'] as String? ??
+            (legacy != Reduction.none && !legacy.isBahnCard
+                ? legacy.vendoKey
+                : ''),
+      ),
       sba: SbaOption.byKey(j['sba'] as String? ?? ''),
     );
   }
@@ -271,8 +303,7 @@ class SearchParty {
   /// Seed a sensible default from the persisted single-card settings: a single
   /// adult holding the configured BahnCard, in the matching class, plus the
   /// Deutschland-Ticket flag.
-  factory SearchParty.fromSettings(
-      BahnCardType card, bool deutschlandTicket) {
+  factory SearchParty.fromSettings(BahnCardType card, bool deutschlandTicket) {
     return SearchParty(
       firstClass: card.isFirstClass,
       deutschlandTicket: deutschlandTicket,
@@ -286,10 +317,10 @@ class SearchParty {
   }
 
   Map<String, dynamic> toStorageJson() => {
-        'firstClass': firstClass,
-        'deutschlandTicket': deutschlandTicket,
-        'travelers': travelers.map((t) => t.toStorageJson()).toList(),
-      };
+    'firstClass': firstClass,
+    'deutschlandTicket': deutschlandTicket,
+    'travelers': travelers.map((t) => t.toStorageJson()).toList(),
+  };
 
   factory SearchParty.fromStorageJson(Map<String, dynamic> j) {
     final list = (j['travelers'] as List<dynamic>? ?? [])
@@ -310,7 +341,8 @@ class SearchParty {
     if (raw == null || raw.isEmpty) return null;
     try {
       return SearchParty.fromStorageJson(
-          json.decode(raw) as Map<String, dynamic>);
+        json.decode(raw) as Map<String, dynamic>,
+      );
     } catch (_) {
       return null;
     }

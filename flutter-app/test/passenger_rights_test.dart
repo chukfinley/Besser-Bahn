@@ -14,17 +14,16 @@ JourneyLeg _leg({
   int? actualArrMin,
   int? arrivalDelaySec,
   bool walking = false,
-}) =>
-    JourneyLeg(
-      origin: _st('A'),
-      destination: _st('B'),
-      plannedDeparture: _base.add(Duration(minutes: depMin)),
-      departure: _base.add(Duration(minutes: depMin)),
-      plannedArrival: _base.add(Duration(minutes: plannedArrMin)),
-      arrival: _base.add(Duration(minutes: actualArrMin ?? plannedArrMin)),
-      arrivalDelay: arrivalDelaySec,
-      isWalking: walking,
-    );
+}) => JourneyLeg(
+  origin: _st('A'),
+  destination: _st('B'),
+  plannedDeparture: _base.add(Duration(minutes: depMin)),
+  departure: _base.add(Duration(minutes: depMin)),
+  plannedArrival: _base.add(Duration(minutes: plannedArrMin)),
+  arrival: _base.add(Duration(minutes: actualArrMin ?? plannedArrMin)),
+  arrivalDelay: arrivalDelaySec,
+  isWalking: walking,
+);
 
 Journey _journey(List<JourneyLeg> legs, {JourneyPrice? price}) =>
     Journey(legs: legs, price: price);
@@ -32,7 +31,9 @@ Journey _journey(List<JourneyLeg> legs, {JourneyPrice? price}) =>
 void main() {
   group('delay thresholds (#60)', () {
     test('under 60 min is not eligible', () {
-      final j = _journey([_leg(depMin: 0, plannedArrMin: 60, actualArrMin: 119)]);
+      final j = _journey([
+        _leg(depMin: 0, plannedArrMin: 60, actualArrMin: 119),
+      ]);
       final r = PassengerRights.evaluate(j);
       expect(r.delayMinutes, 59);
       expect(r.isEligible, isFalse);
@@ -40,29 +41,38 @@ void main() {
     });
 
     test('60 min → 25 %', () {
-      final j = _journey([_leg(depMin: 0, plannedArrMin: 60, actualArrMin: 120)]);
+      final j = _journey([
+        _leg(depMin: 0, plannedArrMin: 60, actualArrMin: 120),
+      ]);
       final r = PassengerRights.evaluate(j);
       expect(r.delayMinutes, 60);
       expect(r.percent, 25);
     });
 
     test('120 min → 50 %', () {
-      final j = _journey([_leg(depMin: 0, plannedArrMin: 60, actualArrMin: 180)]);
+      final j = _journey([
+        _leg(depMin: 0, plannedArrMin: 60, actualArrMin: 180),
+      ]);
       expect(PassengerRights.evaluate(j).percent, 50);
     });
 
-    test('the delay is the larger of the live leg delay and planned-vs-actual',
-        () {
-      // Leg carries no live delay, but the re-planned arrival is 90 min late —
-      // the difference is the safety net for a missed-connection re-plan.
-      final j = _journey([_leg(depMin: 0, plannedArrMin: 60, actualArrMin: 150)]);
-      expect(PassengerRights.evaluate(j).delayMinutes, 90);
+    test(
+      'the delay is the larger of the live leg delay and planned-vs-actual',
+      () {
+        // Leg carries no live delay, but the re-planned arrival is 90 min late —
+        // the difference is the safety net for a missed-connection re-plan.
+        final j = _journey([
+          _leg(depMin: 0, plannedArrMin: 60, actualArrMin: 150),
+        ]);
+        expect(PassengerRights.evaluate(j).delayMinutes, 90);
 
-      // And the other way: a live leg delay larger than the naive difference.
-      final j2 = _journey(
-          [_leg(depMin: 0, plannedArrMin: 60, arrivalDelaySec: 75 * 60)]);
-      expect(PassengerRights.evaluate(j2).delayMinutes, 75);
-    });
+        // And the other way: a live leg delay larger than the naive difference.
+        final j2 = _journey([
+          _leg(depMin: 0, plannedArrMin: 60, arrivalDelaySec: 75 * 60),
+        ]);
+        expect(PassengerRights.evaluate(j2).delayMinutes, 75);
+      },
+    );
 
     test('a hand-corrected delay drives the same tiers', () {
       expect(PassengerRights.fromDelay(59).isEligible, isFalse);
@@ -85,8 +95,11 @@ void main() {
 
     test('return ticket: only the affected direction (half) counts', () {
       final e = r50.estimate(FareKind.hinUndRueck, fareEuros: 40);
-      expect(e.amount, closeTo(10, 0.001),
-          reason: '50 % of half of 40 € = 10 €');
+      expect(
+        e.amount,
+        closeTo(10, 0.001),
+        reason: '50 % of half of 40 € = 10 €',
+      );
     });
 
     test('under the €4 minimum: computed but not payable', () {
@@ -104,10 +117,14 @@ void main() {
     });
 
     test('other season ticket: 1st vs 2nd class pauschale', () {
-      expect(r25.estimate(FareKind.zeitkarte).amount,
-          PassengerRights.pauschaleSecondClassEuros);
-      expect(r25.estimate(FareKind.zeitkarte, firstClass: true).amount,
-          PassengerRights.pauschaleFirstClassEuros);
+      expect(
+        r25.estimate(FareKind.zeitkarte).amount,
+        PassengerRights.pauschaleSecondClassEuros,
+      );
+      expect(
+        r25.estimate(FareKind.zeitkarte, firstClass: true).amount,
+        PassengerRights.pauschaleFirstClassEuros,
+      );
     });
 
     test('unknown fare or fare kind: no amount', () {

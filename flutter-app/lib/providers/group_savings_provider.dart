@@ -45,8 +45,9 @@ class GroupSaving {
 ///
 /// Returns an empty list on any failure: a missing comparison is a missing
 /// hint, never an error in the rider's face.
-final groupSavingsProvider =
-    FutureProvider.autoDispose<List<GroupSaving>>((ref) async {
+final groupSavingsProvider = FutureProvider.autoDispose<List<GroupSaving>>((
+  ref,
+) async {
   final settings = ref.watch(settingsProvider);
   final party = settings.searchParty;
   final state = ref.watch(journeySearchProvider);
@@ -65,7 +66,9 @@ final groupSavingsProvider =
   if (groupPrices.isEmpty) return const [];
 
   try {
-    final singles = await ref.read(vendoServiceProvider).searchJourneys(
+    final singles = await ref
+        .read(vendoServiceProvider)
+        .searchJourneys(
           fromLocationId: from.vendoLocationId,
           toLocationId: to.vendoLocationId,
           dateTime: state.dateTime ?? DateTime.now(),
@@ -90,11 +93,13 @@ final groupSavingsProvider =
       if (dep == null || single == null || group == null || single <= 0) {
         continue;
       }
-      out.add(GroupSaving(
-        departure: dep,
-        groupTotal: group,
-        singlesTotal: single * party.personCount,
-      ));
+      out.add(
+        GroupSaving(
+          departure: dep,
+          groupTotal: group,
+          singlesTotal: single * party.personCount,
+        ),
+      );
     }
     return out;
   } catch (e) {

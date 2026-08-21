@@ -10,8 +10,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// Semantics wrapper is invisible on screen and total silence in TalkBack.
 
 Future<void> _pump(WidgetTester tester, Widget child) => tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: Center(child: child))),
-    );
+  MaterialApp(
+    home: Scaffold(body: Center(child: child)),
+  ),
+);
 
 void main() {
   testWidgets('delay badge says minutes, not "+5"', (tester) async {
@@ -25,12 +27,8 @@ void main() {
   });
 
   testWidgets('occupancy is spoken, not just coloured', (tester) async {
-    await _pump(tester,
-        const OccupancyIndicator(level: OccupancyLevel.high));
-    expect(
-      find.bySemanticsLabel(RegExp('^Auslastung: ')),
-      findsOneWidget,
-    );
+    await _pump(tester, const OccupancyIndicator(level: OccupancyLevel.high));
+    expect(find.bySemanticsLabel(RegExp('^Auslastung: ')), findsOneWidget);
   });
 
   testWidgets('platform chip names the track', (tester) async {
@@ -40,16 +38,25 @@ void main() {
 
   testWidgets('a moved platform says where it moved from', (tester) async {
     await _pump(
-        tester, const PlatformChip(platform: '5', plannedPlatform: '7'));
-    expect(find.bySemanticsLabel('Gleis 5, geändert von Gleis 7'),
-        findsOneWidget);
+      tester,
+      const PlatformChip(platform: '5', plannedPlatform: '7'),
+    );
+    expect(
+      find.bySemanticsLabel('Gleis 5, geändert von Gleis 7'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('platform badge speaks the same sentence as the chip',
-      (tester) async {
+  testWidgets('platform badge speaks the same sentence as the chip', (
+    tester,
+  ) async {
     await _pump(
-        tester, const PlatformBadge(platform: '5', plannedPlatform: '7'));
-    expect(find.bySemanticsLabel('Gleis 5, geändert von Gleis 7'),
-        findsOneWidget);
+      tester,
+      const PlatformBadge(platform: '5', plannedPlatform: '7'),
+    );
+    expect(
+      find.bySemanticsLabel('Gleis 5, geändert von Gleis 7'),
+      findsOneWidget,
+    );
   });
 }

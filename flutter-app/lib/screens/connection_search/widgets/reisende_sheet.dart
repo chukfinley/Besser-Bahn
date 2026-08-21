@@ -8,7 +8,9 @@ import '../../../models/reisende.dart';
 ///
 /// Returns the edited [SearchParty] via `Navigator.pop`, or null if dismissed.
 Future<SearchParty?> showReisendeSheet(
-    BuildContext context, SearchParty party) {
+  BuildContext context,
+  SearchParty party,
+) {
   return showModalBottomSheet<SearchParty>(
     context: context,
     isScrollControlled: true,
@@ -26,13 +28,13 @@ const _personTypes = [
 ];
 
 (int, int) _ageBounds(TravelerType t) => switch (t) {
-      TravelerType.erwachsener => (27, 64),
-      TravelerType.senior => (65, 120),
-      TravelerType.jugendlicher => (15, 26),
-      TravelerType.familienkind => (6, 14),
-      TravelerType.kleinkind => (0, 5),
-      _ => (0, 120),
-    };
+  TravelerType.erwachsener => (27, 64),
+  TravelerType.senior => (65, 120),
+  TravelerType.jugendlicher => (15, 26),
+  TravelerType.familienkind => (6, 14),
+  TravelerType.kleinkind => (0, 5),
+  _ => (0, 120),
+};
 
 class _ReisendeSheet extends StatefulWidget {
   final SearchParty initial;
@@ -50,15 +52,18 @@ class _ReisendeSheetState extends State<_ReisendeSheet> {
   int get _personCount => _travelers.where((t) => t.typ.isPerson).length;
 
   void _apply() {
-    Navigator.of(context).pop(SearchParty(
-      firstClass: _firstClass,
-      deutschlandTicket: _dTicket,
-      travelers: _travelers,
-    ));
+    Navigator.of(context).pop(
+      SearchParty(
+        firstClass: _firstClass,
+        deutschlandTicket: _dTicket,
+        travelers: _travelers,
+      ),
+    );
   }
 
-  void _addPerson() => setState(() =>
-      _travelers.add(const Traveler(typ: TravelerType.erwachsener)));
+  void _addPerson() => setState(
+    () => _travelers.add(const Traveler(typ: TravelerType.erwachsener)),
+  );
   void _addBike() =>
       setState(() => _travelers.add(const Traveler(typ: TravelerType.fahrrad)));
   void _addDog() =>
@@ -123,8 +128,8 @@ class _ReisendeSheetState extends State<_ReisendeSheet> {
                       key: ValueKey(i),
                       traveler: _travelers[i],
                       // Keep at least one person in the party.
-                      canRemove: !(_travelers[i].typ.isPerson &&
-                          _personCount == 1),
+                      canRemove:
+                          !(_travelers[i].typ.isPerson && _personCount == 1),
                       onChanged: (t) => _update(i, t),
                       onRemove: () => _remove(i),
                     ),
@@ -227,21 +232,25 @@ class _TravelerTile extends StatelessWidget {
                       for (final pt in _personTypes)
                         DropdownMenuItem(
                           value: pt,
-                          child: Text(pt.fullLabel,
-                              style: const TextStyle(fontSize: 14)),
+                          child: Text(
+                            pt.fullLabel,
+                            style: const TextStyle(fontSize: 14),
+                          ),
                         ),
                     ],
                     onChanged: (pt) {
                       if (pt == null) return;
                       // New band → reset the explicit age to the band default
                       // and drop reductions the type can't hold.
-                      onChanged(t.copyWith(
-                        typ: pt,
-                        alter: pt.defaultAge,
-                        bahnCard: pt.discountable ? null : Reduction.none,
-                        weitere: pt.discountable ? null : Reduction.none,
-                        sba: pt.discountable ? null : SbaOption.none,
-                      ));
+                      onChanged(
+                        t.copyWith(
+                          typ: pt,
+                          alter: pt.defaultAge,
+                          bahnCard: pt.discountable ? null : Reduction.none,
+                          weitere: pt.discountable ? null : Reduction.none,
+                          sba: pt.discountable ? null : SbaOption.none,
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -268,9 +277,11 @@ class _TravelerTile extends StatelessWidget {
                 ),
                 SizedBox(
                   width: 32,
-                  child: Text('$age',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    '$age',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 IconButton(
                   tooltip: 'Alter erhöhen',
@@ -292,9 +303,12 @@ class _TravelerTile extends StatelessWidget {
                 items: [
                   for (final r in Reduction.bahnCardOptions)
                     DropdownMenuItem(
-                        value: r,
-                        child: Text(r.label,
-                            style: const TextStyle(fontSize: 14))),
+                      value: r,
+                      child: Text(
+                        r.label,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
                 ],
                 onChanged: (r) =>
                     onChanged(t.copyWith(bahnCard: r ?? Reduction.none)),
@@ -308,9 +322,12 @@ class _TravelerTile extends StatelessWidget {
                 items: [
                   for (final s in SbaOption.values)
                     DropdownMenuItem(
-                        value: s,
-                        child: Text(s.label,
-                            style: const TextStyle(fontSize: 14))),
+                      value: s,
+                      child: Text(
+                        s.label,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
                 ],
                 onChanged: (s) =>
                     onChanged(t.copyWith(sba: s ?? SbaOption.none)),
@@ -324,9 +341,12 @@ class _TravelerTile extends StatelessWidget {
                 items: [
                   for (final r in Reduction.weitereOptions)
                     DropdownMenuItem(
-                        value: r,
-                        child: Text(r.label,
-                            style: const TextStyle(fontSize: 14))),
+                      value: r,
+                      child: Text(
+                        r.label,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
                 ],
                 onChanged: (r) =>
                     onChanged(t.copyWith(weitere: r ?? Reduction.none)),
@@ -370,9 +390,12 @@ class _LabeledDropdown<T> extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.colorScheme.outline)),
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
               DropdownButton<T>(
                 value: value,
                 isExpanded: true,

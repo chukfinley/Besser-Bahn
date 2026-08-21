@@ -8,18 +8,19 @@ import 'package:flutter_test/flutter_test.dart';
 /// FS "Sperrzeiten beachten" — verified live on Kiel→Berlin.
 
 JourneyLeg _leg(BikeCarriage bike, {bool walking = false}) => JourneyLeg(
-      origin: Station(id: 'a', name: 'A'),
-      destination: Station(id: 'b', name: 'B'),
-      line: walking
-          ? null
-          : TransitLine(
-              name: 'RE1',
-              fahrtNr: '1',
-              productName: 'RE1',
-              product: 'regional'),
-      isWalking: walking,
-      bike: bike,
-    );
+  origin: Station(id: 'a', name: 'A'),
+  destination: Station(id: 'b', name: 'B'),
+  line: walking
+      ? null
+      : TransitLine(
+          name: 'RE1',
+          fahrtNr: '1',
+          productName: 'RE1',
+          product: 'regional',
+        ),
+  isWalking: walking,
+  bike: bike,
+);
 
 void main() {
   group('BikeCarriage.fromKeys', () {
@@ -54,11 +55,13 @@ void main() {
 
   group('Journey.bike', () {
     test('takes the strictest rule across all trains', () {
-      final j = Journey(legs: [
-        _leg(const BikeCarriage(limited: true)),
-        _leg(BikeCarriage.none, walking: true),
-        _leg(const BikeCarriage(reservationRequired: true)),
-      ]);
+      final j = Journey(
+        legs: [
+          _leg(const BikeCarriage(limited: true)),
+          _leg(BikeCarriage.none, walking: true),
+          _leg(const BikeCarriage(reservationRequired: true)),
+        ],
+      );
       expect(j.bike.reservationRequired, isTrue);
       expect(j.bike.limited, isTrue);
       expect(j.bike.label, 'Rad: Reservierung nötig');

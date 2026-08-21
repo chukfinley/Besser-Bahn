@@ -24,7 +24,11 @@ const _items = [
     activeIcon: Icons.departure_board,
     label: 'Abfahrten',
   ),
-  GlassSwitcherItem(icon: Icons.map_outlined, activeIcon: Icons.map, label: 'Karte'),
+  GlassSwitcherItem(
+    icon: Icons.map_outlined,
+    activeIcon: Icons.map,
+    label: 'Karte',
+  ),
 ];
 
 /// Pumps the switcher the way `NearbyScreen` does: floating in a Stack over a
@@ -45,7 +49,9 @@ Future<double> _pump(
   late double inset;
   await tester.pumpWidget(
     MaterialApp(
-      theme: brightness == Brightness.light ? AppTheme.light() : AppTheme.dark(),
+      theme: brightness == Brightness.light
+          ? AppTheme.light()
+          : AppTheme.dark(),
       home: Builder(
         builder: (context) => MediaQuery(
           // copyWith, not a fresh MediaQueryData: keep the test surface's size
@@ -110,8 +116,9 @@ void main() {
       );
     });
 
-    testWidgets('the whole pill is far slimmer than the bar it replaced',
-        (tester) async {
+    testWidgets('the whole pill is far slimmer than the bar it replaced', (
+      tester,
+    ) async {
       final inset = await _pump(tester);
       // What was there: kToolbarHeight (56) + an icon-and-text TabBar (72) =
       // 128 px of chrome before the first departure. The number is the entire
@@ -137,8 +144,9 @@ void main() {
       expect(find.byIcon(Icons.map_outlined), findsOneWidget);
     });
 
-    testWidgets('a screen reader still gets every segment by name',
-        (tester) async {
+    testWidgets('a screen reader still gets every segment by name', (
+      tester,
+    ) async {
       final handle = tester.ensureSemantics();
       await _pump(tester, index: 1);
 
@@ -156,8 +164,9 @@ void main() {
     });
   });
 
-  testWidgets('tapping a segment reports it — anywhere in the slot',
-      (tester) async {
+  testWidgets('tapping a segment reports it — anywhere in the slot', (
+    tester,
+  ) async {
     final taps = <int>[];
     await _pump(tester, index: 0, onChanged: taps.add);
 
@@ -169,8 +178,9 @@ void main() {
     expect(taps, [2]);
   });
 
-  testWidgets('the trailing action sits outside the pill and works',
-      (tester) async {
+  testWidgets('the trailing action sits outside the pill and works', (
+    tester,
+  ) async {
     var pressed = false;
     await _pump(
       tester,
@@ -189,8 +199,14 @@ void main() {
   group('the glass is glass', () {
     testWidgets('translucent and blurred, in both themes', (tester) async {
       for (final brightness in Brightness.values) {
-        await _pump(tester, brightness: brightness, trailing: const Icon(Icons.more_vert));
-        for (final pane in tester.widgetList<ChukGlass>(find.byType(ChukGlass))) {
+        await _pump(
+          tester,
+          brightness: brightness,
+          trailing: const Icon(Icons.more_vert),
+        );
+        for (final pane in tester.widgetList<ChukGlass>(
+          find.byType(ChukGlass),
+        )) {
           // An opaque tint is the massive block again, only shorter.
           expect(pane.fill.a, lessThan(1.0), reason: '$brightness');
           expect(pane.blurSigma, greaterThan(0), reason: '$brightness');
@@ -199,8 +215,9 @@ void main() {
     });
   });
 
-  testWidgets('no overflow on a narrow screen, labels and action and all',
-      (tester) async {
+  testWidgets('no overflow on a narrow screen, labels and action and all', (
+    tester,
+  ) async {
     // 320 px with the longest label selected and the menu next to it — the
     // shape that would find the "3 px overflow" if the pill had one.
     await _pump(

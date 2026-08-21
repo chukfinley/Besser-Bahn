@@ -48,7 +48,10 @@ class BasemapStyleCache {
 
   /// Read the style from the network and persist it for later offline use.
   /// Throws on any network failure — the caller falls back to [fromDisk].
-  static Future<Style> fetchAndPersist(String styleUri, http.Client client) async {
+  static Future<Style> fetchAndPersist(
+    String styleUri,
+    http.Client client,
+  ) async {
     final bundle = await _fetchBundle(styleUri, client);
     // Persist first; a style we can't rebuild offline is only half the point.
     await _persist(bundle);
@@ -108,7 +111,10 @@ class BasemapStyleCache {
 
   // --- fetching -------------------------------------------------------------
 
-  static Future<_Bundle> _fetchBundle(String styleUri, http.Client client) async {
+  static Future<_Bundle> _fetchBundle(
+    String styleUri,
+    http.Client client,
+  ) async {
     final styleJson = await _getJson(client, styleUri);
 
     final sources = <String, _SourceSpec>{};
@@ -136,8 +142,10 @@ class BasemapStyleCache {
         spriteJson = await _getJson(client, '$spriteBase.json');
         spriteImage = await _getBytes(client, '$spriteBase.png');
       } catch (e) {
-        AppLog.log('basemap sprites unavailable ($e) — style without icons',
-            tag: 'map');
+        AppLog.log(
+          'basemap sprites unavailable ($e) — style without icons',
+          tag: 'map',
+        );
         spriteJson = null;
         spriteImage = null;
       }
@@ -154,7 +162,10 @@ class BasemapStyleCache {
   /// A source either points at a TileJSON (`url`) that carries the real tile
   /// template, or inlines `tiles` directly. Both shapes appear in the wild.
   static Future<_SourceSpec?> _resolveSource(
-      http.Client client, String styleUri, Map<dynamic, dynamic> source) async {
+    http.Client client,
+    String styleUri,
+    Map<dynamic, dynamic> source,
+  ) async {
     Map<String, dynamic> spec;
     final url = source['url'];
     if (url is String && url.isNotEmpty) {
@@ -174,7 +185,9 @@ class BasemapStyleCache {
   }
 
   static Future<Map<String, dynamic>> _getJson(
-      http.Client client, String url) async {
+    http.Client client,
+    String url,
+  ) async {
     final res = await client
         .get(Uri.parse(url))
         .timeout(const Duration(seconds: 12));
@@ -203,14 +216,16 @@ class BasemapStyleCache {
   static Future<void> _persist(_Bundle bundle) async {
     try {
       final dir = await _dir();
-      await File('${dir.path}/$_bundleFile').writeAsString(json.encode({
-        'v': _diskVersion,
-        'style': bundle.styleJson,
-        'sources': {
-          for (final e in bundle.sources.entries) e.key: e.value.toJson(),
-        },
-        if (bundle.spriteJson != null) 'sprite': bundle.spriteJson,
-      }));
+      await File('${dir.path}/$_bundleFile').writeAsString(
+        json.encode({
+          'v': _diskVersion,
+          'style': bundle.styleJson,
+          'sources': {
+            for (final e in bundle.sources.entries) e.key: e.value.toJson(),
+          },
+          if (bundle.spriteJson != null) 'sprite': bundle.spriteJson,
+        }),
+      );
       final img = bundle.spriteImage;
       if (img != null) {
         await File('${dir.path}/$_spriteFile').writeAsBytes(img);
@@ -306,10 +321,10 @@ class _SourceSpec {
   });
 
   Map<String, dynamic> toJson() => {
-        'urlTemplate': urlTemplate,
-        'minZoom': minZoom,
-        'maxZoom': maxZoom,
-      };
+    'urlTemplate': urlTemplate,
+    'minZoom': minZoom,
+    'maxZoom': maxZoom,
+  };
 
   static _SourceSpec? fromJson(Map<String, dynamic> json) {
     final t = json['urlTemplate'] as String?;

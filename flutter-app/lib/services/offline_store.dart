@@ -57,7 +57,10 @@ class OfflineStore {
   /// but hashing removes any doubt about path traversal or length limits.
   static String _hash(String s) => sha1.convert(utf8.encode(s)).toString();
 
-  Future<Directory> _packageDir(String journeyKey, {bool create = false}) async {
+  Future<Directory> _packageDir(
+    String journeyKey, {
+    bool create = false,
+  }) async {
     final root = await _root();
     final dir = Directory('${root.path}/${_hash(journeyKey)}');
     if (create && !await dir.exists()) await dir.create(recursive: true);
@@ -106,7 +109,10 @@ class OfflineStore {
   /// lie that makes an offline feature worthless. Counting the files instead
   /// turns eviction into an honest "Unvollständig".
   OfflineManifest _reconcileTiles(
-      OfflineManifest m, Directory dir, Map<String, int> tileIndex) {
+    OfflineManifest m,
+    Directory dir,
+    Map<String, int> tileIndex,
+  ) {
     final part = m.partFor(OfflinePartKind.tiles);
     if (part == null || part.expected == 0) return m;
 
@@ -125,15 +131,17 @@ class OfflineStore {
     if (present == part.stored && bytes == part.bytes) return m;
 
     final evicted = part.stored - present;
-    return m.withPart(OfflinePart(
-      kind: OfflinePartKind.tiles,
-      expected: part.expected,
-      stored: present,
-      bytes: bytes,
-      note: evicted > 0
-          ? '$evicted Kachel(n) aus dem Kartencache verdrängt — neu laden'
-          : part.note,
-    ));
+    return m.withPart(
+      OfflinePart(
+        kind: OfflinePartKind.tiles,
+        expected: part.expected,
+        stored: present,
+        bytes: bytes,
+        note: evicted > 0
+            ? '$evicted Kachel(n) aus dem Kartencache verdrängt — neu laden'
+            : part.note,
+      ),
+    );
   }
 
   List<String> _tileListSync(Directory packageDir) {
@@ -153,8 +161,9 @@ class OfflineStore {
 
   Future<void> writeManifest(OfflineManifest manifest) async {
     final dir = await _packageDir(manifest.journeyKey, create: true);
-    await File('${dir.path}/$_manifestFile')
-        .writeAsString(json.encode(manifest.toJson()));
+    await File(
+      '${dir.path}/$_manifestFile',
+    ).writeAsString(json.encode(manifest.toJson()));
   }
 
   /// Every package we hold. Used for the storage overview and for the
@@ -196,7 +205,10 @@ class OfflineStore {
   // --- writing parts --------------------------------------------------------
 
   Future<int> writeJson(
-      String journeyKey, String name, Map<String, dynamic> raw) async {
+    String journeyKey,
+    String name,
+    Map<String, dynamic> raw,
+  ) async {
     final dir = await _packageDir(journeyKey, create: true);
     final body = json.encode(raw);
     await File('${dir.path}/$name').writeAsString(body);
@@ -318,13 +330,16 @@ class OfflineStore {
             try {
               final f = File('${tileDir.path}/$name');
               if (await f.exists()) await f.delete();
-            } catch (_) {/* raced or already gone */}
+            } catch (_) {
+              /* raced or already gone */
+            }
           }
         }
         AppLog.log(
-            'offline package deleted: ${mine.length} tiles claimed, '
-            '${mine.difference(keep).length} freed',
-            tag: 'offline');
+          'offline package deleted: ${mine.length} tiles claimed, '
+          '${mine.difference(keep).length} freed',
+          tag: 'offline',
+        );
       }
 
       await dir.delete(recursive: true);

@@ -25,19 +25,22 @@ JourneyLeg _train({
   String product = 'nationalExpress',
   String name = 'ICE 599',
   List<LegStopover> stops = const [],
-}) =>
-    JourneyLeg(
-      tripId: tripId,
-      origin: from,
-      destination: to,
-      departure: dep,
-      plannedDeparture: dep,
-      arrival: arr,
-      plannedArrival: arr,
-      line: TransitLine(
-          name: name, fahrtNr: '599', productName: 'ICE', product: product),
-      stopovers: stops,
-    );
+}) => JourneyLeg(
+  tripId: tripId,
+  origin: from,
+  destination: to,
+  departure: dep,
+  plannedDeparture: dep,
+  arrival: arr,
+  plannedArrival: arr,
+  line: TransitLine(
+    name: name,
+    fahrtNr: '599',
+    productName: 'ICE',
+    product: product,
+  ),
+  stopovers: stops,
+);
 
 Journey _journeyOf(List<JourneyLeg> legs) => Journey(legs: legs);
 
@@ -50,17 +53,19 @@ void main() {
 
   /// The ridden ICE's stops: boarded Hamburg, change planned in Frankfurt.
   List<AlightStop> ride({DateTime? kasselAt, DateTime? fuldaAt}) => [
-        AlightStop(station: hamburg, arrival: _at(9, 0)),
-        AlightStop(station: kassel, arrival: kasselAt ?? _at(11, 0)),
-        AlightStop(station: fulda, arrival: fuldaAt ?? _at(11, 40)),
-        AlightStop(station: frankfurt, arrival: _at(12, 30)),
-      ];
+    AlightStop(station: hamburg, arrival: _at(9, 0)),
+    AlightStop(station: kassel, arrival: kasselAt ?? _at(11, 0)),
+    AlightStop(station: fulda, arrival: fuldaAt ?? _at(11, 40)),
+    AlightStop(station: frankfurt, arrival: _at(12, 30)),
+  ];
 
   group('pickEarlierAlightStops — which stops are worth a search', () {
     test('drops the boarding stop and the planned change station', () {
       final picked = pickEarlierAlightStops(stops: ride(), now: _at(10, 0));
-      expect(picked.map((s) => s.station.name),
-          ['Kassel-Wilhelmshöhe', 'Fulda']);
+      expect(picked.map((s) => s.station.name), [
+        'Kassel-Wilhelmshöhe',
+        'Fulda',
+      ]);
     });
 
     test('a stop the train already passed is not an option', () {
@@ -83,8 +88,10 @@ void main() {
         stops: ride(kasselAt: _at(12, 30), fuldaAt: _at(13, 10)),
         now: _at(11, 30),
       );
-      expect(picked.map((s) => s.station.name),
-          ['Kassel-Wilhelmshöhe', 'Fulda']);
+      expect(picked.map((s) => s.station.name), [
+        'Kassel-Wilhelmshöhe',
+        'Fulda',
+      ]);
     });
 
     test("a stop you can't get out at is no rescue", () {
@@ -100,13 +107,19 @@ void main() {
     test('a stop with no live time is skipped, not guessed', () {
       final stops = [
         AlightStop(station: hamburg, arrival: _at(9, 0)),
-        const AlightStop(station: Station(id: '1', name: 'Göttingen')),
+        const AlightStop(
+          station: Station(id: '1', name: 'Göttingen'),
+        ),
         AlightStop(station: fulda, arrival: _at(11, 40)),
         AlightStop(station: frankfurt, arrival: _at(12, 30)),
       ];
-      expect(pickEarlierAlightStops(stops: stops, now: _at(10, 0))
-          .map((s) => s.station.name),
-          ['Fulda']);
+      expect(
+        pickEarlierAlightStops(
+          stops: stops,
+          now: _at(10, 0),
+        ).map((s) => s.station.name),
+        ['Fulda'],
+      );
     });
 
     test('the cap keeps the stops nearest the change, and caps the load', () {
@@ -116,8 +129,11 @@ void main() {
           AlightStop(station: _st('s$i', 'Halt $i'), arrival: _at(10, i * 5)),
         AlightStop(station: frankfurt, arrival: _at(12, 30)),
       ];
-      final picked =
-          pickEarlierAlightStops(stops: stops, now: _at(9, 30), cap: 3);
+      final picked = pickEarlierAlightStops(
+        stops: stops,
+        now: _at(9, 30),
+        cap: 3,
+      );
       expect(picked.length, 3);
       expect(picked.map((s) => s.station.name), ['Halt 5', 'Halt 6', 'Halt 7']);
     });
@@ -133,11 +149,12 @@ void main() {
 
   group('pickFallbackJourney — what "doing nothing" costs', () {
     final onward = _train(
-        from: frankfurt,
-        to: stuttgart,
-        dep: _at(12, 35),
-        arr: _at(14, 0),
-        tripId: 'planned-onward');
+      from: frankfurt,
+      to: stuttgart,
+      dep: _at(12, 35),
+      arr: _at(14, 0),
+      tripId: 'planned-onward',
+    );
 
     test('the train you were going to miss can never BE the fallback', () {
       // Otherwise the baseline becomes "you caught it after all" and nothing
@@ -147,11 +164,12 @@ void main() {
           _journeyOf([onward]),
           _journeyOf([
             _train(
-                from: frankfurt,
-                to: stuttgart,
-                dep: _at(13, 5),
-                arr: _at(14, 30),
-                tripId: 'next-one')
+              from: frankfurt,
+              to: stuttgart,
+              dep: _at(13, 5),
+              arr: _at(14, 30),
+              tripId: 'next-one',
+            ),
           ]),
         ],
         readyAt: _at(12, 33),
@@ -165,13 +183,21 @@ void main() {
         journeys: [
           _journeyOf([
             _train(
-                from: frankfurt, to: stuttgart, dep: _at(12, 40), arr: _at(14, 5),
-                tripId: 'gone')
+              from: frankfurt,
+              to: stuttgart,
+              dep: _at(12, 40),
+              arr: _at(14, 5),
+              tripId: 'gone',
+            ),
           ]),
           _journeyOf([
             _train(
-                from: frankfurt, to: stuttgart, dep: _at(13, 5), arr: _at(14, 30),
-                tripId: 'catchable')
+              from: frankfurt,
+              to: stuttgart,
+              dep: _at(13, 5),
+              arr: _at(14, 30),
+              tripId: 'catchable',
+            ),
           ]),
         ],
         readyAt: _at(13, 0),
@@ -182,7 +208,9 @@ void main() {
 
     test('nothing reachable → no baseline', () {
       expect(
-          pickFallbackJourney(journeys: const [], readyAt: _at(13, 0)), isNull);
+        pickFallbackJourney(journeys: const [], readyAt: _at(13, 0)),
+        isNull,
+      );
     });
   });
 
@@ -190,11 +218,12 @@ void main() {
     final booked = _journeyOf([
       _train(from: hamburg, to: frankfurt, dep: _at(9, 0), arr: _at(12, 30)),
       _train(
-          from: frankfurt,
-          to: stuttgart,
-          dep: _at(12, 35),
-          arr: _at(14, 0),
-          tripId: 'planned-onward'),
+        from: frankfurt,
+        to: stuttgart,
+        dep: _at(12, 35),
+        arr: _at(14, 0),
+        tripId: 'planned-onward',
+      ),
     ]);
 
     final fuldaStop = AlightStop(station: fulda, arrival: _at(11, 40));
@@ -204,16 +233,16 @@ void main() {
       DateTime? arr,
       String tripId = 'via-wuerzburg',
       String product = 'nationalExpress',
-    }) =>
-        _journeyOf([
-          _train(
-              from: fulda,
-              to: stuttgart,
-              dep: dep ?? _at(11, 55),
-              arr: arr ?? _at(13, 45),
-              tripId: tripId,
-              product: product)
-        ]);
+    }) => _journeyOf([
+      _train(
+        from: fulda,
+        to: stuttgart,
+        dep: dep ?? _at(11, 55),
+        arr: arr ?? _at(13, 45),
+        tripId: tripId,
+        product: product,
+      ),
+    ]);
 
     test('the happy path: beats the fallback, so it is offered', () {
       final o = evaluateAlightCandidate(
@@ -273,20 +302,22 @@ void main() {
       );
     });
 
-    test('a connection that leaves before you are off the train is rejected',
-        () {
-      expect(
-        evaluateAlightCandidate(
-          stop: fuldaStop,
-          onward: onwardFromFulda(dep: _at(11, 35)),
-          original: booked,
-          fallbackArrival: _at(14, 30),
-          profile: TransferProfile.normal,
-          hasDeutschlandTicket: false,
-        ),
-        isNull,
-      );
-    });
+    test(
+      'a connection that leaves before you are off the train is rejected',
+      () {
+        expect(
+          evaluateAlightCandidate(
+            stop: fuldaStop,
+            onward: onwardFromFulda(dep: _at(11, 35)),
+            original: booked,
+            fallbackArrival: _at(14, 30),
+            profile: TransferProfile.normal,
+            hasDeutschlandTicket: false,
+          ),
+          isNull,
+        );
+      },
+    );
 
     test('the rescue must be a change THIS rider can make (#11.7)', () {
       // 4 minutes: fine for "Normal", but "Barrierearm" (factor 1.8, floor 15)
@@ -333,14 +364,19 @@ void main() {
 
   group('Zugbindung — the warning that must never be missing (#26)', () {
     final ice = _train(
-        from: hamburg, to: frankfurt, dep: _at(9, 0), arr: _at(12, 30));
+      from: hamburg,
+      to: frankfurt,
+      dep: _at(9, 0),
+      arr: _at(12, 30),
+    );
     final re = _train(
-        from: hamburg,
-        to: frankfurt,
-        dep: _at(9, 0),
-        arr: _at(12, 30),
-        product: 'regional',
-        name: 'RE 1');
+      from: hamburg,
+      to: frankfurt,
+      dep: _at(9, 0),
+      arr: _at(12, 30),
+      product: 'regional',
+      name: 'RE 1',
+    );
 
     test('unknown fare → say it may be bound, do not stay silent', () {
       expect(
@@ -401,11 +437,12 @@ void main() {
         stop: AlightStop(station: fulda, arrival: _at(11, 40)),
         onward: _journeyOf([
           _train(
-              from: fulda,
-              to: stuttgart,
-              dep: _at(11, 55),
-              arr: _at(13, 45),
-              tripId: 'x')
+            from: fulda,
+            to: stuttgart,
+            dep: _at(11, 55),
+            arr: _at(13, 45),
+            tripId: 'x',
+          ),
         ]),
         original: _journeyOf([ice]),
         fallbackArrival: _at(14, 30),
@@ -417,37 +454,48 @@ void main() {
   });
 
   group('rankEarlierAlightOptions', () {
-    EarlierAlightOption opt(DateTime arrival,
-            {int transfers = 0, DateTime? alightAt}) =>
-        EarlierAlightOption(
-          stop: AlightStop(station: fulda, arrival: alightAt ?? _at(11, 40)),
-          onward: _journeyOf([
-            _train(from: fulda, to: stuttgart, dep: _at(11, 55), arr: arrival),
-            if (transfers > 0)
-              _train(
-                  from: stuttgart,
-                  to: stuttgart,
-                  dep: arrival,
-                  arr: arrival,
-                  tripId: 't2'),
-          ]),
-          alightArrival: alightAt ?? _at(11, 40),
-          waitMinutes: 15,
-          arrival: arrival,
-          gainMinutes: 30,
-          ticketNote: AlightTicketNote.mayBeTrainBound,
-        );
+    EarlierAlightOption opt(
+      DateTime arrival, {
+      int transfers = 0,
+      DateTime? alightAt,
+    }) => EarlierAlightOption(
+      stop: AlightStop(station: fulda, arrival: alightAt ?? _at(11, 40)),
+      onward: _journeyOf([
+        _train(from: fulda, to: stuttgart, dep: _at(11, 55), arr: arrival),
+        if (transfers > 0)
+          _train(
+            from: stuttgart,
+            to: stuttgart,
+            dep: arrival,
+            arr: arrival,
+            tripId: 't2',
+          ),
+      ]),
+      alightArrival: alightAt ?? _at(11, 40),
+      waitMinutes: 15,
+      arrival: arrival,
+      gainMinutes: 30,
+      ticketNote: AlightTicketNote.mayBeTrainBound,
+    );
 
     test('earliest at the destination wins', () {
-      final ranked = rankEarlierAlightOptions(
-          [opt(_at(14, 0)), opt(_at(13, 30)), opt(_at(13, 45))]);
-      expect(ranked.map((o) => o.arrival),
-          [_at(13, 30), _at(13, 45), _at(14, 0)]);
+      final ranked = rankEarlierAlightOptions([
+        opt(_at(14, 0)),
+        opt(_at(13, 30)),
+        opt(_at(13, 45)),
+      ]);
+      expect(ranked.map((o) => o.arrival), [
+        _at(13, 30),
+        _at(13, 45),
+        _at(14, 0),
+      ]);
     });
 
     test('same arrival → fewer changes wins', () {
-      final ranked = rankEarlierAlightOptions(
-          [opt(_at(13, 30), transfers: 1), opt(_at(13, 30))]);
+      final ranked = rankEarlierAlightOptions([
+        opt(_at(13, 30), transfers: 1),
+        opt(_at(13, 30)),
+      ]);
       expect(ranked.first.onward.transfers, 0);
     });
 
@@ -468,23 +516,26 @@ void main() {
       LegStopover(stop: frankfurt, arrival: _at(12, 30)),
     ];
     final ridden = _train(
-        from: hamburg,
-        to: frankfurt,
-        dep: _at(9, 0),
-        arr: _at(12, 30),
-        stops: stops);
+      from: hamburg,
+      to: frankfurt,
+      dep: _at(9, 0),
+      arr: _at(12, 30),
+      stops: stops,
+    );
     final plannedOnward = _train(
-        from: frankfurt,
-        to: stuttgart,
-        dep: _at(12, 35),
-        arr: _at(14, 0),
-        tripId: 'planned-onward');
+      from: frankfurt,
+      to: stuttgart,
+      dep: _at(12, 35),
+      arr: _at(14, 0),
+      tripId: 'planned-onward',
+    );
     final rescueLeg = _train(
-        from: fulda,
-        to: stuttgart,
-        dep: _at(11, 55),
-        arr: _at(13, 45),
-        tripId: 'rescue');
+      from: fulda,
+      to: stuttgart,
+      dep: _at(11, 55),
+      arr: _at(13, 45),
+      tripId: 'rescue',
+    );
 
     final option = EarlierAlightOption(
       stop: AlightStop(station: fulda, arrival: _at(11, 40)),
@@ -509,8 +560,11 @@ void main() {
       expect(legs[0].arrival, _at(11, 40));
       expect(legs[0].tripId, 'trip-1'); // same physical train
       // Its timeline stops where the rider does — no Frankfurt.
-      expect(legs[0].stopovers.map((s) => s.stop.name),
-          ['Hamburg Hbf', 'Kassel-Wilhelmshöhe', 'Fulda']);
+      expect(legs[0].stopovers.map((s) => s.stop.name), [
+        'Hamburg Hbf',
+        'Kassel-Wilhelmshöhe',
+        'Fulda',
+      ]);
       // The connection we were going to miss is gone, the rescue took over.
       expect(legs[1].tripId, 'rescue');
       expect(legs[1].destination.name, 'Stuttgart Hbf');
@@ -519,11 +573,12 @@ void main() {
 
     test('legs before the ridden train are untouched', () {
       final feeder = _train(
-          from: kassel,
-          to: hamburg,
-          dep: _at(8, 0),
-          arr: _at(8, 50),
-          tripId: 'feeder');
+        from: kassel,
+        to: hamburg,
+        dep: _at(8, 0),
+        arr: _at(8, 50),
+        tripId: 'feeder',
+      );
       final legs = rerouteViaEarlierAlight(
         legs: [feeder, ridden, plannedOnward],
         currentLegIndex: 1,
@@ -535,8 +590,10 @@ void main() {
 
     test('an exit the train does not call at is refused, not invented', () {
       final bogus = EarlierAlightOption(
-        stop: AlightStop(station: _st('9999', 'Hintertupfing'),
-            arrival: _at(11, 40)),
+        stop: AlightStop(
+          station: _st('9999', 'Hintertupfing'),
+          arrival: _at(11, 40),
+        ),
         onward: _journeyOf([rescueLeg]),
         alightArrival: _at(11, 40),
         waitMinutes: 15,
@@ -546,7 +603,10 @@ void main() {
       );
       expect(
         rerouteViaEarlierAlight(
-            legs: [ridden, plannedOnward], currentLegIndex: 0, option: bogus),
+          legs: [ridden, plannedOnward],
+          currentLegIndex: 0,
+          option: bogus,
+        ),
         isNull,
       );
     });
@@ -554,7 +614,10 @@ void main() {
     test('an out-of-range leg index is refused', () {
       expect(
         rerouteViaEarlierAlight(
-            legs: [ridden], currentLegIndex: 5, option: option),
+          legs: [ridden],
+          currentLegIndex: 5,
+          option: option,
+        ),
         isNull,
       );
     });

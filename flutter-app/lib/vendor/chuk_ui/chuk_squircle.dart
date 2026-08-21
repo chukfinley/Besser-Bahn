@@ -82,8 +82,10 @@ _CornerParams _cornerParams(double radius, double smoothing, double budget) {
 
   // Reduce smoothing enough that the corner fits within the budget.
   final double maxSmoothing = (budget / r) - 1.0;
-  final double s =
-      smoothing.clamp(0.0, 1.0).toDouble().clamp(0.0, math.max(0.0, maxSmoothing));
+  final double s = smoothing
+      .clamp(0.0, 1.0)
+      .toDouble()
+      .clamp(0.0, math.max(0.0, maxSmoothing));
   final double p = math.min((1.0 + s) * r, budget);
 
   // The arc shrinks from 90° (s = 0) to 0° (s = 1).
@@ -180,8 +182,8 @@ class SquircleBorder extends OutlinedBorder {
     this.radius = 12.0,
     this.smoothing = kAppleCornerSmoothing,
     super.side = BorderSide.none,
-  })  : assert(radius >= 0),
-        assert(smoothing >= 0.0 && smoothing <= 1.0);
+  }) : assert(radius >= 0),
+       assert(smoothing >= 0.0 && smoothing <= 1.0);
 
   final double radius;
   final double smoothing;
@@ -191,10 +193,10 @@ class SquircleBorder extends OutlinedBorder {
 
   @override
   ShapeBorder scale(double t) => SquircleBorder(
-        radius: radius * t,
-        smoothing: smoothing,
-        side: side.scale(t),
-      );
+    radius: radius * t,
+    smoothing: smoothing,
+    side: side.scale(t),
+  );
 
   @override
   SquircleBorder copyWith({

@@ -76,25 +76,24 @@ Map<String, dynamic> _coach(
   double start,
   double end, {
   int? wagon,
-}) =>
-    {
-      'wagonIdentificationNumber': ?wagon,
-      'vehicleID': 'v$start',
-      'orientation': 'FORWARDS',
-      'status': 'OPEN',
-      'type': {
-        'category': 'PASSENGER_COACH',
-        'constructionType': 'X',
-        'hasFirstClass': false,
-        'hasEconomyClass': true,
-      },
-      'platformPosition': {
-        'start': start,
-        'end': end,
-        'sector': _sectorAt(table, (start + end) / 2),
-      },
-      'amenities': const [],
-    };
+}) => {
+  'wagonIdentificationNumber': ?wagon,
+  'vehicleID': 'v$start',
+  'orientation': 'FORWARDS',
+  'status': 'OPEN',
+  'type': {
+    'category': 'PASSENGER_COACH',
+    'constructionType': 'X',
+    'hasFirstClass': false,
+    'hasEconomyClass': true,
+  },
+  'platformPosition': {
+    'start': start,
+    'end': end,
+    'sector': _sectorAt(table, (start + end) / 2),
+  },
+  'amenities': const [],
+};
 
 /// A sequence on [gleis] whose coaches fill [start]..[end] in ~26.8 m cars.
 CoachSequence _seq({
@@ -152,7 +151,12 @@ void main() {
       final advice = transferCoachAdvice(
         arriving: _seq(gleis: '4', table: _dammtorG4, start: 0, end: 160),
         departing: _seq(
-            gleis: '4', table: _dammtorG4, start: 140, end: 364, firstWagon: 1),
+          gleis: '4',
+          table: _dammtorG4,
+          start: 140,
+          end: 364,
+          firstWagon: 1,
+        ),
         samePlatformPerDb: true,
       );
 
@@ -182,7 +186,12 @@ void main() {
     test('reports the wagon numbers standing there', () {
       final advice = transferCoachAdvice(
         arriving: _seq(
-            gleis: '4', table: _dammtorG4, start: 0, end: 160, firstWagon: 21),
+          gleis: '4',
+          table: _dammtorG4,
+          start: 0,
+          end: 160,
+          firstWagon: 21,
+        ),
         departing: _seq(gleis: '4', table: _dammtorG4, start: 140, end: 364),
         samePlatformPerDb: true,
       );
@@ -230,29 +239,48 @@ void main() {
     test('missing Wagenreihung on either side → nothing', () {
       final s = _seq(gleis: '4', table: _dammtorG4, start: 0, end: 160);
       expect(
-          transferCoachAdvice(
-              arriving: null, departing: s, samePlatformPerDb: true),
-          isNull);
-      expect(
-          transferCoachAdvice(
-              arriving: s, departing: null, samePlatformPerDb: true),
-          isNull);
-    });
-
-    test('different platforms → nothing (sector letters are unrelated there)',
-        () {
-      // Dortmund: ICE arrives Gl. 16, IC leaves Gl. 11. Which end of 16 faces
-      // 11 needs station geometry — so we say nothing.
+        transferCoachAdvice(
+          arriving: null,
+          departing: s,
+          samePlatformPerDb: true,
+        ),
+        isNull,
+      );
       expect(
         transferCoachAdvice(
-          arriving: _seq(gleis: '16', table: _dortmundG16, start: 4.5, end: 368),
-          departing:
-              _seq(gleis: '11', table: _dortmundG11, start: 181.7, end: 335.1),
-          samePlatformPerDb: false,
+          arriving: s,
+          departing: null,
+          samePlatformPerDb: true,
         ),
         isNull,
       );
     });
+
+    test(
+      'different platforms → nothing (sector letters are unrelated there)',
+      () {
+        // Dortmund: ICE arrives Gl. 16, IC leaves Gl. 11. Which end of 16 faces
+        // 11 needs station geometry — so we say nothing.
+        expect(
+          transferCoachAdvice(
+            arriving: _seq(
+              gleis: '16',
+              table: _dortmundG16,
+              start: 4.5,
+              end: 368,
+            ),
+            departing: _seq(
+              gleis: '11',
+              table: _dortmundG11,
+              start: 181.7,
+              end: 335.1,
+            ),
+            samePlatformPerDb: false,
+          ),
+          isNull,
+        );
+      },
+    );
 
     test('same-platform flag contradicted by the geometry → nothing', () {
       // Even if DB claimed one platform, Dortmund Gl. 16 and Gl. 11 put sector
@@ -260,42 +288,65 @@ void main() {
       // must refuse rather than compare two unrelated metre axes.
       expect(
         transferCoachAdvice(
-          arriving: _seq(gleis: '16', table: _dortmundG16, start: 4.5, end: 368),
-          departing:
-              _seq(gleis: '11', table: _dortmundG11, start: 181.7, end: 335.1),
+          arriving: _seq(
+            gleis: '16',
+            table: _dortmundG16,
+            start: 4.5,
+            end: 368,
+          ),
+          departing: _seq(
+            gleis: '11',
+            table: _dortmundG11,
+            start: 181.7,
+            end: 335.1,
+          ),
           samePlatformPerDb: true,
         ),
         isNull,
       );
     });
 
-    test('arriving train entirely alongside the connection → nothing to say',
-        () {
-      // The real Berlin pair: RJ 175 (171–427) inside ICE 1507 (25–426). Every
-      // door already faces the ICE — a hint here would be noise.
-      expect(
-        transferCoachAdvice(
-          arriving: _seq(gleis: '3', table: _berlinG3, start: 171.2, end: 426.9),
-          departing: _seq(gleis: '4', table: _berlinG4, start: 25.5, end: 426.1),
-          samePlatformPerDb: true,
-        ),
-        isNull,
-      );
-    });
+    test(
+      'arriving train entirely alongside the connection → nothing to say',
+      () {
+        // The real Berlin pair: RJ 175 (171–427) inside ICE 1507 (25–426). Every
+        // door already faces the ICE — a hint here would be noise.
+        expect(
+          transferCoachAdvice(
+            arriving: _seq(
+              gleis: '3',
+              table: _berlinG3,
+              start: 171.2,
+              end: 426.9,
+            ),
+            departing: _seq(
+              gleis: '4',
+              table: _berlinG4,
+              start: 25.5,
+              end: 426.1,
+            ),
+            samePlatformPerDb: true,
+          ),
+          isNull,
+        );
+      },
+    );
 
-    test('an answer naming the whole arriving train is not advice → nothing',
-        () {
-      // Erfurt Hbf, ICE 698 → ICE 604: two long trains at one island. The
-      // arriving one pokes ~15 m past the other, so it isn't "contained", but
-      // every section it occupies still faces the connection. "Be in A–G" is
-      // the train restated — say nothing instead.
-      final advice = transferCoachAdvice(
-        arriving: _seq(gleis: '10', table: _dammtorG4, start: 0, end: 400),
-        departing: _seq(gleis: '9', table: _dammtorG4, start: 20, end: 385),
-        samePlatformPerDb: true,
-      );
-      expect(advice, isNull);
-    });
+    test(
+      'an answer naming the whole arriving train is not advice → nothing',
+      () {
+        // Erfurt Hbf, ICE 698 → ICE 604: two long trains at one island. The
+        // arriving one pokes ~15 m past the other, so it isn't "contained", but
+        // every section it occupies still faces the connection. "Be in A–G" is
+        // the train restated — say nothing instead.
+        final advice = transferCoachAdvice(
+          arriving: _seq(gleis: '10', table: _dammtorG4, start: 0, end: 400),
+          departing: _seq(gleis: '9', table: _dammtorG4, start: 20, end: 385),
+          samePlatformPerDb: true,
+        );
+        expect(advice, isNull);
+      },
+    );
 
     test('no sector table (endpoint served none) → nothing', () {
       final bare = CoachSequence.fromJson({
@@ -308,7 +359,7 @@ void main() {
             'name': 'G',
             'transport': {'category': 'RE', 'number': 1, 'type': 'REGIONAL'},
             'vehicles': [_coach(_dammtorG4, 0, 26.8)],
-          }
+          },
         ],
       });
       expect(
@@ -331,7 +382,8 @@ void main() {
           'start': 0,
           'end': 420,
           'sectors': [
-            for (final (n, s, e) in _dammtorG4) {'name': n, 'start': s, 'end': e},
+            for (final (n, s, e) in _dammtorG4)
+              {'name': n, 'start': s, 'end': e},
           ],
         },
         'groups': [
@@ -346,9 +398,9 @@ void main() {
                 'status': 'OPEN',
                 'type': {'category': 'PASSENGER_COACH'},
                 'amenities': const [],
-              }
+              },
             ],
-          }
+          },
         ],
       });
       expect(

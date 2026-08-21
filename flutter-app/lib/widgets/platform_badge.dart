@@ -42,7 +42,10 @@ class _TrackPainter extends CustomPainter {
       final y = railTop + (railBot - railTop) * t;
       final inset = w * 0.06 * (t - 0.5).abs() * 2; // mirror the convergence
       canvas.drawLine(
-          Offset(w * 0.14 + inset, y), Offset(w * 0.86 - inset, y), p);
+        Offset(w * 0.14 + inset, y),
+        Offset(w * 0.86 - inset, y),
+        p,
+      );
     }
   }
 
@@ -63,7 +66,8 @@ class PlatformChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final display = platform ?? plannedPlatform;
     if (display == null || display.isEmpty) return const SizedBox.shrink();
-    final changed = platform != null &&
+    final changed =
+        platform != null &&
         plannedPlatform != null &&
         platform != plannedPlatform;
     final color = changed ? Colors.red : Colors.blue;
@@ -72,32 +76,39 @@ class PlatformChip extends StatelessWidget {
       label: _platformLabel(display, changed ? plannedPlatform : null),
       excludeSemantics: true,
       child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withAlpha(200)),
-        color: color.withAlpha(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TrackIcon(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withAlpha(200)),
+          color: color.withAlpha(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TrackIcon(
               size: 13,
-              color: changed ? Colors.red : theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 3),
-          if (changed && plannedPlatform != null) ...[
-            Text(plannedPlatform!,
+              color: changed ? Colors.red : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 3),
+            if (changed && plannedPlatform != null) ...[
+              Text(
+                plannedPlatform!,
                 style: TextStyle(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    decoration: TextDecoration.lineThrough)),
-            const SizedBox(width: 4),
-          ],
-          Text(display,
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              display,
               style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: changed ? Colors.red : theme.colorScheme.onSurface)),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: changed ? Colors.red : theme.colorScheme.onSurface,
+              ),
+            ),
           ],
         ),
       ),
@@ -116,7 +127,8 @@ class PlatformBadge extends StatelessWidget {
     final display = platform ?? plannedPlatform;
     if (display == null || display.isEmpty) return const SizedBox.shrink();
 
-    final changed = platform != null &&
+    final changed =
+        platform != null &&
         plannedPlatform != null &&
         platform != plannedPlatform;
 
@@ -124,34 +136,35 @@ class PlatformBadge extends StatelessWidget {
       label: _platformLabel(display, changed ? plannedPlatform : null),
       excludeSemantics: true,
       child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        TrackIcon(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TrackIcon(
             size: 14,
             color: changed
                 ? AppColors.delay
-                : Theme.of(context).colorScheme.onSurfaceVariant),
-        const SizedBox(width: 3),
-        if (changed && plannedPlatform != null) ...[
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 3),
+          if (changed && plannedPlatform != null) ...[
+            Text(
+              plannedPlatform!,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
           Text(
-            plannedPlatform!,
+            display,
             style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              decoration: TextDecoration.lineThrough,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: changed ? AppColors.delay : null,
             ),
           ),
-          const SizedBox(width: 4),
         ],
-        Text(
-          display,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: changed ? AppColors.delay : null,
-          ),
-        ),
-      ],
       ),
     );
   }
@@ -164,5 +177,5 @@ class PlatformBadge extends StatelessWidget {
 /// change out, and keep it short enough to sit in a busy departure row.
 String _platformLabel(String display, String? changedFrom) =>
     changedFrom == null || changedFrom.isEmpty
-        ? 'Gleis $display'
-        : 'Gleis $display, geändert von Gleis $changedFrom';
+    ? 'Gleis $display'
+    : 'Gleis $display, geändert von Gleis $changedFrom';

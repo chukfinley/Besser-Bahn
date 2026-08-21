@@ -77,7 +77,9 @@ class CoachSequenceService {
   /// live fetch uses — otherwise a package would report a part as missing that
   /// was never fetchable.
   static ({String category, int number})? sequenceKeyFor(
-      String category, String trainNumber) {
+    String category,
+    String trainNumber,
+  ) {
     final cat = category.toUpperCase().trim();
     final number = int.tryParse(trainNumber.trim());
     if (number == null || !_coachCategories.contains(cat)) return null;
@@ -112,7 +114,9 @@ class CoachSequenceService {
         number: seq.number,
         stationEva: stationEva,
         departureTime: departureTime,
-      )] = CoachSequence.fromJson(raw);
+      )] = CoachSequence.fromJson(
+        raw,
+      );
     } catch (_) {
       // A payload we can't parse is simply not seeded; the caller's package
       // state already reflects what's actually on disk.
@@ -143,7 +147,18 @@ class CoachSequenceService {
   ///
   /// Bus / tram / U-Bahn have no sequence → still skipped.
   static const _coachCategories = {
-    'ICE', 'IC', 'EC', 'ECE', 'RE', 'RB', 'IRE', 'RJ', 'RJX', 'EN', 'NJ', 'D',
+    'ICE',
+    'IC',
+    'EC',
+    'ECE',
+    'RE',
+    'RB',
+    'IRE',
+    'RJ',
+    'RJX',
+    'EN',
+    'NJ',
+    'D',
     'S',
   };
 
@@ -206,7 +221,9 @@ class CoachSequenceService {
           final cs = CoachSequence.fromJson(raw);
           _cache[key] = cs;
           return cs;
-        } catch (_) {/* unusable payload → same as no data */}
+        } catch (_) {
+          /* unusable payload → same as no data */
+        }
       }
       return null;
     }

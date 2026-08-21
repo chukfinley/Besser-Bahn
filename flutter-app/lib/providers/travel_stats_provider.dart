@@ -41,10 +41,14 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
     // the punctuality / distance numbers come from actual journeys, not just
     // the few the user happened to bookmark locally.
     ref.listen(reisenuebersichtProvider, (_, next) {
-      final ticketKeys = next.asData?.value.orders.map((o) {
-            if (o.kundenwunschIds.isEmpty) return null;
-            return '${o.auftragsnummer}/${o.kundenwunschIds.first}';
-          }).whereType<String>().toList() ??
+      final ticketKeys =
+          next.asData?.value.orders
+              .map((o) {
+                if (o.kundenwunschIds.isEmpty) return null;
+                return '${o.auftragsnummer}/${o.kundenwunschIds.first}';
+              })
+              .whereType<String>()
+              .toList() ??
           const <String>[];
       _reconcileTickets(ticketKeys);
     });
@@ -57,7 +61,8 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
       final rawStats = prefs.getString(_kStatsKey);
       if (rawStats != null && rawStats.isNotEmpty) {
         state = TravelStats.fromJson(
-            jsonDecode(rawStats) as Map<String, dynamic>);
+          jsonDecode(rawStats) as Map<String, dynamic>,
+        );
       }
       final rawCounted = prefs.getString(_kCountedKey);
       if (rawCounted != null && rawCounted.isNotEmpty) {
@@ -72,9 +77,9 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
         if (legacy != null && legacy.isNotEmpty) {
           _counted
             ..clear()
-            ..addAll((jsonDecode(legacy) as List)
-                .cast<String>()
-                .map((k) => 'lib:$k'));
+            ..addAll(
+              (jsonDecode(legacy) as List).cast<String>().map((k) => 'lib:$k'),
+            );
           await prefs.remove(_kLegacyCountedKey);
         }
       }
@@ -105,8 +110,11 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
       if (_counted.contains(key)) continue;
       _counted.add(key);
       changed = true;
-      next = _foldJourney(next, saved.journey,
-          endMs: saved.endTime?.millisecondsSinceEpoch ?? saved.savedAtMs);
+      next = _foldJourney(
+        next,
+        saved.journey,
+        endMs: saved.endTime?.millisecondsSinceEpoch ?? saved.savedAtMs,
+      );
     }
     if (changed) {
       state = next;
@@ -182,8 +190,9 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
       tripCount: s.tripCount + 1,
       totalDelayMinutes: s.totalDelayMinutes + delay,
       onTimeCount: s.onTimeCount + (onTime ? 1 : 0),
-      worstDelayMinutes:
-          delay > s.worstDelayMinutes ? delay : s.worstDelayMinutes,
+      worstDelayMinutes: delay > s.worstDelayMinutes
+          ? delay
+          : s.worstDelayMinutes,
       longestTripKm: km > s.longestTripKm ? km : s.longestTripKm,
       firstTripMs: s.firstTripMs == 0 || (endMs != 0 && endMs < s.firstTripMs)
           ? endMs
@@ -219,5 +228,6 @@ class TravelStatsNotifier extends Notifier<TravelStats> {
   }
 }
 
-final travelStatsProvider =
-    NotifierProvider<TravelStatsNotifier, TravelStats>(TravelStatsNotifier.new);
+final travelStatsProvider = NotifierProvider<TravelStatsNotifier, TravelStats>(
+  TravelStatsNotifier.new,
+);

@@ -54,23 +54,24 @@ class StopPole {
   }
 
   StopPole mergedWith(StopPole other) => StopPole(
-        // Keep our coordinate; the two sources agree to within a few metres.
-        latLng: latLng,
-        name: name.isNotEmpty ? name : other.name,
-        // The signed code wins over internal numbering — whichever side has one.
-        bay: bay ?? other.bay,
-        directions: [
-          ...directions,
-          ...other.directions.where((d) => !directions.contains(d)),
-        ],
-        shelter: shelter || other.shelter,
-      );
+    // Keep our coordinate; the two sources agree to within a few metres.
+    latLng: latLng,
+    name: name.isNotEmpty ? name : other.name,
+    // The signed code wins over internal numbering — whichever side has one.
+    bay: bay ?? other.bay,
+    directions: [
+      ...directions,
+      ...other.directions.where((d) => !directions.contains(d)),
+    ],
+    shelter: shelter || other.shelter,
+  );
 }
 
 /// Metres between two coordinates (equirectangular — fine at pole distances).
 double metresBetween(LatLng a, LatLng b) {
   final dy = (a.latitude - b.latitude) * 111320.0;
-  final dx = (a.longitude - b.longitude) *
+  final dx =
+      (a.longitude - b.longitude) *
       111320.0 *
       math.cos(a.latitude * math.pi / 180.0);
   return math.sqrt(dx * dx + dy * dy);
@@ -247,7 +248,8 @@ StopPole? poleForRoute(
       // A line we know about must agree; a pole that lists no line is judged
       // on the destination alone.
       if (wantedLine != null && dLine != null && dLine != wantedLine) continue;
-      if (dTo == wantedTo || dTo.startsWith(wantedTo) ||
+      if (dTo == wantedTo ||
+          dTo.startsWith(wantedTo) ||
           wantedTo.startsWith(dTo)) {
         if (!hits.contains(p)) hits.add(p);
       }

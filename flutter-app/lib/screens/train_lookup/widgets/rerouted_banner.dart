@@ -24,15 +24,12 @@ class ReroutedBanner extends StatelessWidget {
 
     // Prefer DB's own words over our guess — it names the actual cause
     // ("Streckensperrung", "Bauarbeiten"). Fall back to a generic line.
-    final cause = trip.disruptions.firstWhere(
-      (d) {
-        final t = d.toLowerCase();
-        return t.contains('umleitung') ||
-            t.contains('umgeleitet') ||
-            t.contains('laufweg');
-      },
-      orElse: () => '',
-    );
+    final cause = trip.disruptions.firstWhere((d) {
+      final t = d.toLowerCase();
+      return t.contains('umleitung') ||
+          t.contains('umgeleitet') ||
+          t.contains('laufweg');
+    }, orElse: () => '');
 
     final details = <String>[
       if (added.isNotEmpty)
@@ -60,22 +57,26 @@ class ReroutedBanner extends StatelessWidget {
               children: [
                 Text(
                   'Umleitung / geänderter Zuglauf',
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   cause.isNotEmpty
                       ? cause
                       : 'Dieser Zug weicht vom planmäßigen Laufweg ab. '
-                          'Halte und Zeiten können abweichen.',
+                            'Halte und Zeiten können abweichen.',
                   style: theme.textTheme.bodySmall,
                 ),
                 for (final d in details) ...[
                   const SizedBox(height: 3),
-                  Text(d,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    d,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ],
             ),

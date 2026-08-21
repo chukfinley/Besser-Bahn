@@ -25,11 +25,11 @@ import '../../widgets/station_search_field.dart';
 /// Highlight colour for a journey role: Einstieg green, Ausstieg red, Umstieg
 /// amber. Null = not a highlight. One source for markers + section bands.
 Color? roleColor(GleisRole role) => switch (role) {
-      GleisRole.board => const Color(0xFF2E9E5B),
-      GleisRole.alight => Colors.red,
-      GleisRole.transfer => Colors.amber.shade700,
-      GleisRole.none => null,
-    };
+  GleisRole.board => const Color(0xFF2E9E5B),
+  GleisRole.alight => Colors.red,
+  GleisRole.transfer => Colors.amber.shade700,
+  GleisRole.none => null,
+};
 
 /// Marker/legend colour per POI type, matching bahnhof.de: tracks red,
 /// sectors dark, everything else DB blue.
@@ -59,7 +59,11 @@ class StationMapScreen extends ConsumerStatefulWidget {
   /// parent screen's floating switcher is the chrome there.
   final bool embedded;
 
-  const StationMapScreen({super.key, this.dedicated = false, this.embedded = false});
+  const StationMapScreen({
+    super.key,
+    this.dedicated = false,
+    this.embedded = false,
+  });
 
   @override
   ConsumerState<StationMapScreen> createState() => _StationMapScreenState();
@@ -100,7 +104,10 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
   /// nothing to open — but it is exactly the case the rider needs: "here is the
   /// Arbeitsamt, which stop do I get off at?". Resolve the nearest stops to its
   /// coordinates and open the closest one, saying which address it belongs to.
-  Future<void> _openLocation(Station picked, StationMapNotifier notifier) async {
+  Future<void> _openLocation(
+    Station picked,
+    StationMapNotifier notifier,
+  ) async {
     if (picked.isStop) {
       notifier.loadForStation(picked);
       return;
@@ -108,7 +115,9 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
     if (!picked.hasLocation) return;
     List<Station> near = const [];
     try {
-      near = await ref.read(hafasServiceProvider).nearbyStations(
+      near = await ref
+          .read(hafasServiceProvider)
+          .nearbyStations(
             latitude: picked.latitude!,
             longitude: picked.longitude!,
             results: 5,
@@ -119,15 +128,25 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
     }
     if (!mounted) return;
     if (near.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Keine Haltestelle im Umkreis von 2 km um '
-              '„${picked.name}" gefunden.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Keine Haltestelle im Umkreis von 2 km um '
+            '„${picked.name}" gefunden.',
+          ),
+        ),
+      );
       return;
     }
     notifier.loadForStation(near.first);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Nächste Haltestelle zu „${picked.name}": '
-            '${near.first.name}')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Nächste Haltestelle zu „${picked.name}": '
+          '${near.first.name}',
+        ),
+      ),
+    );
   }
 
   /// Where the rider needs to get to: the highlighted boarding Gleis if we
@@ -144,7 +163,9 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
   /// upgrades them — a failure or a slow answer costs nothing.
   Future<void> _loadWalkingRoute(UserFix fix, LatLng target) async {
     try {
-      final route = await ref.read(vendoServiceProvider).calculateWalkingRoute(
+      final route = await ref
+          .read(vendoServiceProvider)
+          .calculateWalkingRoute(
             fromLat: fix.latLng.latitude,
             fromLon: fix.latLng.longitude,
             toLat: target.latitude,
@@ -182,14 +203,16 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
       unawaited(_loadWalkingRoute(fix, _targetFor(map)));
     } on LocationException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Standort konnte nicht ermittelt werden.')),
+          const SnackBar(
+            content: Text('Standort konnte nicht ermittelt werden.'),
+          ),
         );
       }
     } finally {
@@ -215,10 +238,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
     }
     // Boarding section known → frame the whole section range on the platform.
     if (section.isNotEmpty) {
-      final pts = [
-        ...section.map((e) => e.pos),
-        if (hl != null) hl.latLng,
-      ];
+      final pts = [...section.map((e) => e.pos), if (hl != null) hl.latLng];
       _mapController.fitCamera(
         CameraFit.bounds(
           bounds: LatLngBounds.fromPoints(pts),
@@ -295,13 +315,19 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
               // Clear the floating switcher (which sits above this view).
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                    12, GlassSwitcher.insetOf(context), 12, 0),
+                  12,
+                  GlassSwitcher.insetOf(context),
+                  12,
+                  0,
+                ),
                 child: Column(
                   children: [
                     GlassPanel(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         child: StationSearchField(
                           hint: 'Bahnhof, Adresse oder Ort…',
                           prefixIcon: Icons.location_city,
@@ -333,9 +359,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(state.station?.name ?? 'Bahnhofskarte'),
-        actions: [
-          if (!widget.dedicated) const AppMenuButton(),
-        ],
+        actions: [if (!widget.dedicated) const AppMenuButton()],
       ),
       body: Column(
         children: [
@@ -384,18 +408,24 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(role,
-                        style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600)),
-                    Text(gleis,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      role,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      gleis,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -409,16 +439,22 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
       child: Row(
         children: [
-          chip(Icons.logout, 'Ausstieg',
-              _gleisLabel(state.secondaryGleis, state.secondarySection),
-              roleColor(GleisRole.alight)!),
+          chip(
+            Icons.logout,
+            'Ausstieg',
+            _gleisLabel(state.secondaryGleis, state.secondarySection),
+            roleColor(GleisRole.alight)!,
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 6),
             child: Icon(Icons.arrow_forward, size: 18),
           ),
-          chip(Icons.login, 'Einstieg',
-              _gleisLabel(state.highlightGleis, state.highlightSection),
-              roleColor(GleisRole.board)!),
+          chip(
+            Icons.login,
+            'Einstieg',
+            _gleisLabel(state.highlightGleis, state.highlightSection),
+            roleColor(GleisRole.board)!,
+          ),
         ],
       ),
     );
@@ -456,7 +492,8 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
       return const _Message(
         icon: Icons.location_city,
         title: 'Bahnhof wählen',
-        subtitle: 'Suche einen Bahnhof, um seine Karte mit Gleisen, '
+        subtitle:
+            'Suche einen Bahnhof, um seine Karte mit Gleisen, '
             'Aufzügen und Ausgängen zu sehen.',
       );
     }
@@ -489,33 +526,46 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
             // curved body following the platform's sector cubes, NOT a bare
             // line. When the per-car train is drawn (below) these are empty.
             if (state.boardingGenericBody.length >= 3)
-              PolygonLayer(polygons: [
-                _genericBodyPolygon(state.boardingGenericBody,
-                    roleColor(state.highlightRole) ?? Colors.amber.shade700),
-              ]),
+              PolygonLayer(
+                polygons: [
+                  _genericBodyPolygon(
+                    state.boardingGenericBody,
+                    roleColor(state.highlightRole) ?? Colors.amber.shade700,
+                  ),
+                ],
+              ),
             if (state.secondaryGenericBody.length >= 3)
-              PolygonLayer(polygons: [
-                _genericBodyPolygon(state.secondaryGenericBody,
-                    roleColor(state.secondaryRole) ?? Colors.red),
-              ]),
+              PolygonLayer(
+                polygons: [
+                  _genericBodyPolygon(
+                    state.secondaryGenericBody,
+                    roleColor(state.secondaryRole) ?? Colors.red,
+                  ),
+                ],
+              ),
             // The train(s) drawn to scale, top-down, on the platform — one
             // filled car per Wagen (class colour), the rider's portion bright
             // and the rest dimmed, end cars with a rounded snout. On a transfer
             // both the Ausstieg and Einstieg trains are shown on their Gleise.
             if (state.boardingTrainCars.isNotEmpty) ...[
-              PolygonLayer(polygons: _trainCarPolygons(state.boardingTrainCars)),
+              PolygonLayer(
+                polygons: _trainCarPolygons(state.boardingTrainCars),
+              ),
               MarkerLayer(
-                  markers: _trainNumberMarkers(state.boardingTrainCars)),
+                markers: _trainNumberMarkers(state.boardingTrainCars),
+              ),
             ],
             if (state.secondaryTrainCars.isNotEmpty) ...[
               PolygonLayer(
-                  polygons: _trainCarPolygons(state.secondaryTrainCars)),
+                polygons: _trainCarPolygons(state.secondaryTrainCars),
+              ),
               MarkerLayer(
-                  markers: _trainNumberMarkers(state.secondaryTrainCars)),
+                markers: _trainNumberMarkers(state.secondaryTrainCars),
+              ),
             ],
             MarkerLayer(
-                markers:
-                    _markers(context, state.visiblePois, state.station)),
+              markers: _markers(context, state.visiblePois, state.station),
+            ),
             // "Ausstieg"/"Einstieg" labels floating above the two Gleise so
             // the map itself says which is which.
             if (state.secondaryGleis != null)
@@ -557,10 +607,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
               // "Mein Standort" — request GPS and frame you + your target. Sits
               // here with the other map controls (was pinned top-right, where it
               // rode too high and collided with the floating search/switcher).
-              MapLocateButton(
-                busy: _locating,
-                onPressed: () => _locateMe(map),
-              ),
+              MapLocateButton(busy: _locating, onPressed: () => _locateMe(map)),
               const SizedBox(height: 8),
               // Frame the station (or the Gleis this map was opened for) again.
               //
@@ -619,7 +666,10 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
   }
 
   List<Marker> _markers(
-      BuildContext context, List<MapPoi> pois, Station? station) {
+    BuildContext context,
+    List<MapPoi> pois,
+    Station? station,
+  ) {
     final mapState = ref.read(_provider);
     // Transfer mode (two Gleise highlighted) → grey out the OTHER red platform
     // pills so the red Ausstieg highlight actually stands out.
@@ -648,7 +698,8 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
               compact: compact,
               selected: identical(poi, _selectedPoi),
               highlightRole: mapState.roleForPoi(poi),
-              dimmed: transferMode &&
+              dimmed:
+                  transferMode &&
                   poi.isPlatform &&
                   mapState.roleForPoi(poi) == GleisRole.none,
             ),
@@ -660,23 +711,25 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
   /// A single filled, role-coloured train body for a Gleis we have no
   /// Wagenreihung for — same top-down look as the per-car train, one piece.
   Polygon _genericBodyPolygon(List<LatLng> outline, Color color) => Polygon(
-        points: outline,
-        color: color.withValues(alpha: 0.55),
-        borderColor: Colors.white.withValues(alpha: 0.9),
-        borderStrokeWidth: 1.2,
-      );
+    points: outline,
+    color: color.withValues(alpha: 0.55),
+    borderColor: Colors.white.withValues(alpha: 0.9),
+    borderStrokeWidth: 1.2,
+  );
 
   /// Filled, class-coloured car polygons for the to-scale platform train. The
   /// rider's portion (a wing train) is opaque; other portions are dimmed.
   List<Polygon> _trainCarPolygons(
-      List<({List<LatLng> outline, Coach coach, bool boarding})> cars) {
+    List<({List<LatLng> outline, Coach coach, bool boarding})> cars,
+  ) {
     final anyOff = cars.any((c) => !c.boarding);
     return [
       for (final car in cars)
         Polygon(
           points: car.outline,
-          color: coachColor(car.coach).withValues(
-              alpha: (anyOff && !car.boarding) ? 0.35 : 0.92),
+          color: coachColor(
+            car.coach,
+          ).withValues(alpha: (anyOff && !car.boarding) ? 0.35 : 0.92),
           borderColor: Colors.white.withValues(alpha: 0.9),
           borderStrokeWidth: 1,
         ),
@@ -686,7 +739,8 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
   /// Wagon-number labels centred on each car of the platform train, so the
   /// rider can see which Wagen stops where.
   List<Marker> _trainNumberMarkers(
-      List<({List<LatLng> outline, Coach coach, bool boarding})> cars) {
+    List<({List<LatLng> outline, Coach coach, bool boarding})> cars,
+  ) {
     final out = <Marker>[];
     for (final car in cars) {
       if (car.coach.wagonNumber <= 0 || car.outline.isEmpty) continue;
@@ -696,22 +750,25 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
         lng += p.longitude;
       }
       final c = LatLng(lat / car.outline.length, lng / car.outline.length);
-      out.add(Marker(
-        point: c,
-        width: 22,
-        height: 16,
-        child: Center(
-          child: Text(
-            '${car.coach.wagonNumber}',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onClass(coachColor(car.coach))
-                  .withValues(alpha: car.boarding ? 1 : 0.6),
+      out.add(
+        Marker(
+          point: c,
+          width: 22,
+          height: 16,
+          child: Center(
+            child: Text(
+              '${car.coach.wagonNumber}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onClass(
+                  coachColor(car.coach),
+                ).withValues(alpha: car.boarding ? 1 : 0.6),
+              ),
             ),
           ),
         ),
-      ));
+      );
     }
     return out;
   }
@@ -723,34 +780,39 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
     void add(MapPoi? poi, GleisRole role, String text) {
       final c = roleColor(role);
       if (poi == null || c == null) return;
-      out.add(Marker(
-        point: poi.latLng,
-        width: 100,
-        height: 64,
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 20),
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: c,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.white, width: 1.5),
-                boxShadow: [
-                  BoxShadow(color: c.withAlpha(120), blurRadius: 6),
-                ],
-              ),
-              child: Text(text,
+      out.add(
+        Marker(
+          point: poi.latLng,
+          width: 100,
+          height: 64,
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: c,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(color: c.withAlpha(120), blurRadius: 6),
+                  ],
+                ),
+                child: Text(
+                  text,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold)),
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
-      ));
+      );
     }
 
     add(s.secondaryHighlightPoi, s.secondaryRole, 'Ausstieg');
@@ -829,8 +891,11 @@ class _PoiCard extends StatelessWidget {
                 if (inactive)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Icon(Icons.warning_amber,
-                        color: AppColors.warning, size: 18),
+                    child: Icon(
+                      Icons.warning_amber,
+                      color: AppColors.warning,
+                      size: 18,
+                    ),
                   ),
                 IconButton(
                   tooltip: 'Schließen',
@@ -863,12 +928,13 @@ class _PoiMarker extends StatelessWidget {
   /// red Ausstieg / green Einstieg pills pop.
   final bool dimmed;
 
-  const _PoiMarker(
-      {required this.poi,
-      this.compact = false,
-      this.selected = false,
-      this.highlightRole = GleisRole.none,
-      this.dimmed = false});
+  const _PoiMarker({
+    required this.poi,
+    this.compact = false,
+    this.selected = false,
+    this.highlightRole = GleisRole.none,
+    this.dimmed = false,
+  });
 
   /// Highlight colour per role — null when this POI isn't highlighted.
   Color? get _hlColor => roleColor(highlightRole);
@@ -876,9 +942,9 @@ class _PoiMarker extends StatelessWidget {
   bool get _hl => _hlColor != null;
 
   Border get _border => Border.all(
-        color: _hlColor ?? (selected ? Colors.amberAccent : Colors.white),
-        width: _hl ? 3 : (selected ? 2.5 : 1.5),
-      );
+    color: _hlColor ?? (selected ? Colors.amberAccent : Colors.white),
+    width: _hl ? 3 : (selected ? 2.5 : 1.5),
+  );
 
   List<BoxShadow>? get _glow => _hl
       ? [BoxShadow(color: _hlColor!, blurRadius: 12, spreadRadius: 2)]
@@ -929,9 +995,10 @@ class _PoiMarker extends StatelessWidget {
         child: Text(
           poi.name,
           style: TextStyle(
-              color: Colors.white,
-              fontSize: compact ? 9 : 11,
-              fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontSize: compact ? 9 : 11,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       );
     }
@@ -967,12 +1034,13 @@ class _LevelSwitcher extends StatelessWidget {
   /// Per-floor summary: representative icon + tooltip describing contents.
   ({IconData icon, String tooltip}) _summary(String level) {
     final pois = map.poisOnLevel(level);
-    final tracks = pois
-        .where((p) => p.isPlatform)
-        .map((p) => int.tryParse(p.name))
-        .whereType<int>()
-        .toList()
-      ..sort();
+    final tracks =
+        pois
+            .where((p) => p.isPlatform)
+            .map((p) => int.tryParse(p.name))
+            .whereType<int>()
+            .toList()
+          ..sort();
     if (tracks.isNotEmpty) {
       final range = tracks.first == tracks.last
           ? 'Gleis ${tracks.first}'
@@ -1097,7 +1165,9 @@ class _IndoorToggle extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Tooltip(
-          message: on ? 'DB-Bahnsteigplan ausblenden' : 'DB-Bahnsteigplan einblenden',
+          message: on
+              ? 'DB-Bahnsteigplan ausblenden'
+              : 'DB-Bahnsteigplan einblenden',
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Row(
@@ -1105,9 +1175,14 @@ class _IndoorToggle extends StatelessWidget {
               children: [
                 Icon(on ? Icons.map : Icons.map_outlined, size: 15, color: fg),
                 const SizedBox(width: 5),
-                Text('Bahnsteigplan',
-                    style: TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+                Text(
+                  'Bahnsteigplan',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1140,8 +1215,10 @@ class _LegendState extends State<_Legend> {
   @override
   Widget build(BuildContext context) {
     final sorted = widget.categories.toList()
-      ..sort((a, b) =>
-          _CategoryMeta.of(a).label.compareTo(_CategoryMeta.of(b).label));
+      ..sort(
+        (a, b) =>
+            _CategoryMeta.of(a).label.compareTo(_CategoryMeta.of(b).label),
+      );
     if (sorted.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
@@ -1162,9 +1239,10 @@ class _LegendState extends State<_Legend> {
               children: [
                 Icon(Icons.layers, size: 15, color: theme.iconTheme.color),
                 const SizedBox(width: 5),
-                const Text('Legende',
-                    style:
-                        TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                const Text(
+                  'Legende',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),
@@ -1187,12 +1265,19 @@ class _LegendState extends State<_Legend> {
                 padding: const EdgeInsets.fromLTRB(8, 6, 6, 2),
                 child: Row(
                   children: [
-                    const Text('Legende',
-                        style: TextStyle(
-                            fontSize: 11, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Legende',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const Spacer(),
-                    Icon(Icons.close,
-                        size: 15, color: theme.colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.close,
+                      size: 15,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ],
                 ),
               ),
@@ -1259,9 +1344,11 @@ class _LegendRow extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               Flexible(
-                child: Text(meta.label,
-                    style: const TextStyle(fontSize: 11),
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  meta.label,
+                  style: const TextStyle(fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -1316,7 +1403,10 @@ class _DistanceChip extends StatelessWidget {
           Text(
             '$_label$_suffix',
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -1384,30 +1474,54 @@ class _CategoryMeta {
 
   static const _byType = {
     'PLATFORM': _CategoryMeta(Icons.train, AppColors.dbRed, 'Gleis'),
-    'PLATFORM_SECTOR_CUBE':
-        _CategoryMeta(Icons.crop_square, Colors.black54, 'Abschnitt'),
+    'PLATFORM_SECTOR_CUBE': _CategoryMeta(
+      Icons.crop_square,
+      Colors.black54,
+      'Abschnitt',
+    ),
     'ELEVATOR': _CategoryMeta(Icons.elevator, Color(0xFF2980B9), 'Aufzug'),
-    'ESCALATOR':
-        _CategoryMeta(Icons.escalator, Color(0xFF2980B9), 'Rolltreppe'),
+    'ESCALATOR': _CategoryMeta(
+      Icons.escalator,
+      Color(0xFF2980B9),
+      'Rolltreppe',
+    ),
     'STAIR': _CategoryMeta(Icons.stairs, Color(0xFF7F8C8D), 'Treppe'),
     'RAMP': _CategoryMeta(Icons.accessible_forward, Color(0xFF16A085), 'Rampe'),
     'TOILET': _CategoryMeta(Icons.wc, Color(0xFF8E44AD), 'WC'),
-    'TOILET_HANDICAPPED':
-        _CategoryMeta(Icons.accessible, Color(0xFF8E44AD), 'Barrierefreies WC'),
-    'ENTRANCE_EXIT':
-        _CategoryMeta(Icons.door_front_door, Color(0xFF27AE60), 'Ein-/Ausgang'),
+    'TOILET_HANDICAPPED': _CategoryMeta(
+      Icons.accessible,
+      Color(0xFF8E44AD),
+      'Barrierefreies WC',
+    ),
+    'ENTRANCE_EXIT': _CategoryMeta(
+      Icons.door_front_door,
+      Color(0xFF27AE60),
+      'Ein-/Ausgang',
+    ),
     'LOCKER': _CategoryMeta(Icons.lock, Color(0xFFF39C12), 'Schließfach'),
     'BUS': _CategoryMeta(Icons.directions_bus, Color(0xFFD35400), 'Bus'),
     'SUBWAY': _CategoryMeta(Icons.subway, Color(0xFF2C3E50), 'U-Bahn'),
     'CITY_TRAIN': _CategoryMeta(Icons.tram, Color(0xFF27AE60), 'S-Bahn'),
-    'PARKING_AREA':
-        _CategoryMeta(Icons.local_parking, Color(0xFF34495E), 'Parkplatz'),
-    'PARKING_DECK':
-        _CategoryMeta(Icons.local_parking, Color(0xFF34495E), 'Parkhaus'),
-    'BIKE_PARKING_AREA':
-        _CategoryMeta(Icons.pedal_bike, Color(0xFF16A085), 'Fahrradparken'),
-    'RAIL_REPLACEMENT_TRANSPORT':
-        _CategoryMeta(Icons.directions_bus, Color(0xFFE67E22), 'SEV'),
+    'PARKING_AREA': _CategoryMeta(
+      Icons.local_parking,
+      Color(0xFF34495E),
+      'Parkplatz',
+    ),
+    'PARKING_DECK': _CategoryMeta(
+      Icons.local_parking,
+      Color(0xFF34495E),
+      'Parkhaus',
+    ),
+    'BIKE_PARKING_AREA': _CategoryMeta(
+      Icons.pedal_bike,
+      Color(0xFF16A085),
+      'Fahrradparken',
+    ),
+    'RAIL_REPLACEMENT_TRANSPORT': _CategoryMeta(
+      Icons.directions_bus,
+      Color(0xFFE67E22),
+      'SEV',
+    ),
   };
 }
 
@@ -1435,8 +1549,8 @@ class _BoardingBanner extends StatelessWidget {
     final sectionText = sec == null
         ? ''
         : sec.start == sec.end
-            ? ', Abschnitt ${sec.start}'
-            : ', Abschnitt ${sec.start}–${sec.end}';
+        ? ', Abschnitt ${sec.start}'
+        : ', Abschnitt ${sec.start}–${sec.end}';
 
     // Wording, icon and colour follow what the Gleis is FOR — so the arrival
     // station reads "Ausstieg", not "Einstieg". The colour MUST match the
@@ -1472,9 +1586,10 @@ class _BoardingBanner extends StatelessWidget {
               child: Text(
                 trainLabel!,
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -1534,12 +1649,18 @@ class _FacilityWarning extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (final f in facilities.take(3))
-                Text(_line(f),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                        color: color, fontWeight: FontWeight.w600)),
+                Text(
+                  _line(f),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               if (facilities.length > 3)
-                Text('… und ${facilities.length - 3} weitere',
-                    style: theme.textTheme.bodySmall?.copyWith(color: color)),
+                Text(
+                  '… und ${facilities.length - 3} weitere',
+                  style: theme.textTheme.bodySmall?.copyWith(color: color),
+                ),
             ],
           ),
         ),
@@ -1602,13 +1723,17 @@ class _FallbackLocationMapState extends ConsumerState<_FallbackLocationMap> {
       unawaited(_loadWalkingRoute(fix));
     } on LocationException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Standort konnte nicht ermittelt werden.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Standort konnte nicht ermittelt werden.'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _locating = false);
@@ -1622,7 +1747,9 @@ class _FallbackLocationMapState extends ConsumerState<_FallbackLocationMap> {
   /// already usable, so a failure just leaves the "≈" distance standing.
   Future<void> _loadWalkingRoute(UserFix fix) async {
     try {
-      final route = await ref.read(vendoServiceProvider).calculateWalkingRoute(
+      final route = await ref
+          .read(vendoServiceProvider)
+          .calculateWalkingRoute(
             fromLat: fix.latLng.latitude,
             fromLon: fix.latLng.longitude,
             toLat: _target.latitude,
@@ -1656,12 +1783,17 @@ class _FallbackLocationMapState extends ConsumerState<_FallbackLocationMap> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on,
-                          color: AppColors.dbRed, size: 40),
+                      const Icon(
+                        Icons.location_on,
+                        color: AppColors.dbRed,
+                        size: 40,
+                      ),
                       Flexible(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(6),
@@ -1674,7 +1806,9 @@ class _FallbackLocationMapState extends ConsumerState<_FallbackLocationMap> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.bold),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -1714,9 +1848,10 @@ class _FallbackLocationMapState extends ConsumerState<_FallbackLocationMap> {
                         ? 'Kein Bahnhofsplan · Lage der Haltestelle (${widget.note})'
                         : 'Kein Bahnhofsplan · Lage der Haltestelle',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -1738,8 +1873,11 @@ class _FallbackLocationMapState extends ConsumerState<_FallbackLocationMap> {
             right: 0,
             bottom: 16,
             child: Center(
-                child: _DistanceChip(
-                    metres: _distanceToTarget, route: _walkingRoute)),
+              child: _DistanceChip(
+                metres: _distanceToTarget,
+                route: _walkingRoute,
+              ),
+            ),
           ),
       ],
     );

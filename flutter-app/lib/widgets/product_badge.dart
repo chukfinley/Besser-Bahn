@@ -21,9 +21,9 @@ class ProductBadge extends StatelessWidget {
       'TGV' => (Colors.indigo.shade700, Colors.white),
       'BUS' => (Colors.purple.shade400, Colors.white),
       _ => (
-          Theme.of(context).colorScheme.primaryContainer,
-          Theme.of(context).colorScheme.onPrimaryContainer,
-        ),
+        Theme.of(context).colorScheme.primaryContainer,
+        Theme.of(context).colorScheme.onPrimaryContainer,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

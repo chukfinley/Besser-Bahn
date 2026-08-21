@@ -80,7 +80,8 @@ class StationSearchNotifier extends AsyncNotifier<StationSearchResult> {
             : await hafas.searchStations(query, stopsOnly: stopsOnly);
         if (gen != _generation || !ref.mounted) return; // a newer query won
         state = AsyncData(
-            StationSearchResult(query: query, stations: stations, geo: geo));
+          StationSearchResult(query: query, stations: stations, geo: geo),
+        );
       } catch (e) {
         if (gen != _generation || !ref.mounted) return;
         state = AsyncError(e, StackTrace.current);
@@ -95,5 +96,8 @@ class StationSearchNotifier extends AsyncNotifier<StationSearchResult> {
   }
 }
 
-final stationSearchProvider = AsyncNotifierProvider.autoDispose<
-    StationSearchNotifier, StationSearchResult>(StationSearchNotifier.new);
+final stationSearchProvider =
+    AsyncNotifierProvider.autoDispose<
+      StationSearchNotifier,
+      StationSearchResult
+    >(StationSearchNotifier.new);

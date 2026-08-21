@@ -47,8 +47,9 @@ class TrainLookupNotifier extends Notifier<TrainLookupState> {
 
     try {
       AppLog.log(
-          'lookup "$trainNumber"${fromStationId != null ? ' @station $fromStationId' : ' (network sweep)'}',
-          tag: 'train');
+        'lookup "$trainNumber"${fromStationId != null ? ' @station $fromStationId' : ' (network sweep)'}',
+        tag: 'train',
+      );
       final hafas = ref.read(hafasServiceProvider);
       final results = await hafas.findTrainsByNumber(
         trainNumber,
@@ -227,7 +228,9 @@ class TrainLookupNotifier extends Notifier<TrainLookupState> {
       var fresh = await hafas.getTrip(trip.id);
       // Preserve the line label carried in originally (fahrt API omits it).
       final label = trip.line.name.trim();
-      if (label.isNotEmpty) fresh = fresh.copyWith(line: fresh.line.withName(label));
+      if (label.isNotEmpty) {
+        fresh = fresh.copyWith(line: fresh.line.withName(label));
+      }
       state = state.copyWith(trip: fresh);
       _enrichCoordinates(fresh);
       _loadCoachSequence(fresh);
@@ -243,4 +246,5 @@ class TrainLookupNotifier extends Notifier<TrainLookupState> {
 
 final trainLookupProvider =
     NotifierProvider<TrainLookupNotifier, TrainLookupState>(
-        TrainLookupNotifier.new);
+      TrainLookupNotifier.new,
+    );

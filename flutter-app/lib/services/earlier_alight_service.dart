@@ -107,20 +107,22 @@ class EarlierAlightService {
     required int apiDelayMs,
     DateTime? now,
   }) {
-    final run = _queue.then((_) => _findOptions(
-          currentLeg: currentLeg,
-          onwardLeg: onwardLeg,
-          original: original,
-          destination: destination,
-          stops: stops,
-          readyAt: readyAt,
-          profile: profile,
-          hasDeutschlandTicket: hasDeutschlandTicket,
-          reisende: reisende,
-          firstClass: firstClass,
-          apiDelayMs: apiDelayMs,
-          now: now,
-        ));
+    final run = _queue.then(
+      (_) => _findOptions(
+        currentLeg: currentLeg,
+        onwardLeg: onwardLeg,
+        original: original,
+        destination: destination,
+        stops: stops,
+        readyAt: readyAt,
+        profile: profile,
+        hasDeutschlandTicket: hasDeutschlandTicket,
+        reisende: reisende,
+        firstClass: firstClass,
+        apiDelayMs: apiDelayMs,
+        now: now,
+      ),
+    );
     // The queue must survive a failed run, or one error deadlocks every later
     // caller on a Future that never completes.
     _queue = run.then((_) {}, onError: (_) {});
@@ -155,16 +157,15 @@ class EarlierAlightService {
     // Nothing reachable to get off at → don't even spend the baseline request.
     if (candidates.isEmpty) return EarlierAlightResult.empty;
 
-    Future<List<Journey>?> search(String fromId, DateTime at) =>
-        _search(
-          fromId: fromId,
-          toId: toId,
-          at: at,
-          reisende: reisende,
-          firstClass: firstClass,
-          hasDeutschlandTicket: hasDeutschlandTicket,
-          apiDelayMs: apiDelayMs,
-        );
+    Future<List<Journey>?> search(String fromId, DateTime at) => _search(
+      fromId: fromId,
+      toId: toId,
+      at: at,
+      reisende: reisende,
+      firstClass: firstClass,
+      hasDeutschlandTicket: hasDeutschlandTicket,
+      apiDelayMs: apiDelayMs,
+    );
 
     // The baseline first: without it there's no "earlier than what?" and the
     // issue's whole filter ("nur was früher am Ziel ist") can't be applied.
@@ -177,8 +178,10 @@ class EarlierAlightService {
     );
     final fallbackArrival = fallback?.arrival;
     if (fallbackArrival == null) {
-      AppLog.log('no fallback from ${changeStation.name} — nothing to beat',
-          tag: 'alight');
+      AppLog.log(
+        'no fallback from ${changeStation.name} — nothing to beat',
+        tag: 'alight',
+      );
       return EarlierAlightResult.empty;
     }
 
@@ -218,9 +221,10 @@ class EarlierAlightService {
     }
 
     AppLog.log(
-        'earlier-alight: ${candidates.length} stops searched, '
-        '${options.length} beat the fallback (an ${fallbackArrival.toLocal()})',
-        tag: 'alight');
+      'earlier-alight: ${candidates.length} stops searched, '
+      '${options.length} beat the fallback (an ${fallbackArrival.toLocal()})',
+      tag: 'alight',
+    );
     return EarlierAlightResult(
       fallback: fallback,
       options: rankEarlierAlightOptions(options),
@@ -242,7 +246,8 @@ class EarlierAlightService {
   }) async {
     // Minute granularity: a live delay ticking over by seconds must not miss
     // the cache and fire the whole fan-out again.
-    final key = '$fromId|$toId|${at.toUtc().toIso8601String().substring(0, 16)}'
+    final key =
+        '$fromId|$toId|${at.toUtc().toIso8601String().substring(0, 16)}'
         '|$firstClass';
     final at0 = _cachedAt[key];
     if (at0 != null && DateTime.now().difference(at0) < cacheTtl) {
@@ -266,8 +271,10 @@ class EarlierAlightService {
     } catch (e) {
       // A 429 is never proof anything changed — it means we asked too fast.
       // Deliberately NOT cached: a retry later is allowed to succeed.
-      AppLog.log('earlier-alight search failed ($fromId → $toId): $e',
-          tag: 'alight');
+      AppLog.log(
+        'earlier-alight search failed ($fromId → $toId): $e',
+        tag: 'alight',
+      );
       return null;
     }
   }

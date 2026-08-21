@@ -31,20 +31,20 @@ class DelayBadge extends StatelessWidget {
   }
 
   Widget _cancelledBadge() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: AppColors.cancelled,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: const Text(
-          'Ausfall',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: AppColors.cancelled,
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: const Text(
+      'Ausfall',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
 
   Widget _delayBadge() {
     final minutes = delaySeconds! ~/ 60;

@@ -204,8 +204,10 @@ class DbAuthNotifier extends Notifier<DbAuthState> {
         // every single request answered 401 "Sitzung abgelaufen", so the only
         // symptom was a refresh that always failed and never updated anything
         // (BB-1). Sign out locally instead: the user gets the login CTA.
-        AppLog.log('restore · no session on disk → local sign-out',
-            tag: 'db-account');
+        AppLog.log(
+          'restore · no session on disk → local sign-out',
+          tag: 'db-account',
+        );
         await _forgetSession();
         return;
       }

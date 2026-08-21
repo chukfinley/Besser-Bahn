@@ -112,7 +112,9 @@ class BackupService {
           await prefs.setDouble(key, v);
         } else if (v is Map && v['_type'] == 'stringList') {
           await prefs.setStringList(
-              key, (v['value'] as List).map((e) => '$e').toList());
+            key,
+            (v['value'] as List).map((e) => '$e').toList(),
+          );
         } else {
           continue;
         }

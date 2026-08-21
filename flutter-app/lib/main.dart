@@ -26,9 +26,5 @@ Future<void> main() async {
   // Persist the Android headless callback before a journey starts. Once the
   // GPS companion is enabled, native updates can reach Dart without the UI.
   await BackgroundTripTracking.registerHeadlessCallback();
-  runApp(
-    const ProviderScope(
-      child: BessereBahnApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: BessereBahnApp()));
 }

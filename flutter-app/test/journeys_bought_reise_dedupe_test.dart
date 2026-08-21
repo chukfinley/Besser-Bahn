@@ -14,23 +14,23 @@ import 'package:flutter_test/flutter_test.dart';
 Station _st(String id, String name) => Station(id: id, name: name);
 
 Journey _journey(DateTime dep) => Journey(
-      legs: [
-        JourneyLeg(
-          origin: _st('8011160', 'Berlin Hbf'),
-          destination: _st('8000152', 'Hannover Hbf'),
-          plannedDeparture: dep,
-          departure: dep,
-          plannedArrival: dep.add(const Duration(hours: 2)),
-          arrival: dep.add(const Duration(hours: 2)),
-        ),
-      ],
-    );
+  legs: [
+    JourneyLeg(
+      origin: _st('8011160', 'Berlin Hbf'),
+      destination: _st('8000152', 'Hannover Hbf'),
+      plannedDeparture: dep,
+      departure: dep,
+      plannedArrival: dep.add(const Duration(hours: 2)),
+      arrival: dep.add(const Duration(hours: 2)),
+    ),
+  ],
+);
 
 DbTicketTrip _ticketTrip(Journey j) => DbTicketTrip(
-      index: const DbReiseIndex(auftragsnummer: 'A1', kundenwunschIds: ['K1']),
-      ticketKey: 'A1/K1',
-      journey: j,
-    );
+  index: const DbReiseIndex(auftragsnummer: 'A1', kundenwunschIds: ['K1']),
+  ticketKey: 'A1/K1',
+  journey: j,
+);
 
 void main() {
   final dep = DateTime(2026, 8, 20, 9, 34);
@@ -66,10 +66,7 @@ void main() {
       );
       expect(unparsed.journeyKey, isNull);
       expect(
-        boughtSavedReiseIds(
-          savedReiseIds: {key: 'rk-1'},
-          ticketKeys: const {},
-        ),
+        boughtSavedReiseIds(savedReiseIds: {key: 'rk-1'}, ticketKeys: const {}),
         isEmpty,
       );
     });

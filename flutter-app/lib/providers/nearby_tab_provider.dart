@@ -16,5 +16,6 @@ class NearbyTabNotifier extends Notifier<int> {
   void select(int index) => state = index;
 }
 
-final nearbyTabProvider =
-    NotifierProvider<NearbyTabNotifier, int>(NearbyTabNotifier.new);
+final nearbyTabProvider = NotifierProvider<NearbyTabNotifier, int>(
+  NearbyTabNotifier.new,
+);

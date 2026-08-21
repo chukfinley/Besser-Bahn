@@ -52,7 +52,10 @@ class OfflinePackageBar extends ConsumerWidget {
   }
 
   Widget _summary(
-      BuildContext context, OfflinePackageStatus status, Color color) {
+    BuildContext context,
+    OfflinePackageStatus status,
+    Color color,
+  ) {
     final theme = Theme.of(context);
     final state = status.state;
 
@@ -97,7 +100,10 @@ class OfflinePackageBar extends ConsumerWidget {
   }
 
   Widget _action(
-      BuildContext context, WidgetRef ref, OfflinePackageStatus status) {
+    BuildContext context,
+    WidgetRef ref,
+    OfflinePackageStatus status,
+  ) {
     final state = status.state;
     if (state == OfflinePackageState.downloading) {
       return const SizedBox(width: 40);
@@ -122,9 +128,11 @@ class OfflinePackageBar extends ConsumerWidget {
           .read(offlinePackagesProvider.notifier)
           .download(journeyKey, journey);
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Offline-Paket konnte nicht geladen werden.'),
-      ));
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Offline-Paket konnte nicht geladen werden.'),
+        ),
+      );
     }
   }
 
@@ -133,21 +141,19 @@ class OfflinePackageBar extends ConsumerWidget {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) => _OfflinePackageSheet(
-        journey: journey,
-        journeyKey: journeyKey,
-      ),
+      builder: (_) =>
+          _OfflinePackageSheet(journey: journey, journeyKey: journeyKey),
     );
   }
 
   static IconData _icon(OfflinePackageState state) => switch (state) {
-        OfflinePackageState.missing => Icons.cloud_download_outlined,
-        OfflinePackageState.downloading => Icons.downloading,
-        OfflinePackageState.failed => Icons.error_outline,
-        OfflinePackageState.partial => Icons.cloud_queue,
-        OfflinePackageState.stale => Icons.schedule,
-        OfflinePackageState.ready => Icons.offline_pin,
-      };
+    OfflinePackageState.missing => Icons.cloud_download_outlined,
+    OfflinePackageState.downloading => Icons.downloading,
+    OfflinePackageState.failed => Icons.error_outline,
+    OfflinePackageState.partial => Icons.cloud_queue,
+    OfflinePackageState.stale => Icons.schedule,
+    OfflinePackageState.ready => Icons.offline_pin,
+  };
 
   static Color _color(ThemeData theme, OfflinePackageState state) =>
       switch (state) {
@@ -191,14 +197,17 @@ class OfflineDataNotice extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.offline_pin,
-              size: 18, color: theme.colorScheme.onSecondaryContainer),
+          Icon(
+            Icons.offline_pin,
+            size: 18,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               status.state == OfflinePackageState.partial
                   ? 'Offline — gespeicherte Daten von $age, unvollständig. '
-                      'Keine Echtzeit.'
+                        'Keine Echtzeit.'
                   : 'Offline — gespeicherte Daten von $age. Keine Echtzeit.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSecondaryContainer,
@@ -236,11 +245,12 @@ class _OfflinePackageSheet extends ConsumerWidget {
             Text(
               status.state == OfflinePackageState.missing
                   ? 'Noch nichts gespeichert. Im Zug ist genau dann kein Netz, '
-                      'wenn du die Daten brauchst.'
+                        'wenn du die Daten brauchst.'
                   : '${status.state.label} · Stand ${status.ageLabel} · '
-                      '${status.sizeLabel}',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        '${status.sizeLabel}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 12),
             if (manifest != null) ...[
@@ -293,16 +303,16 @@ class _OfflinePackageSheet extends ConsumerWidget {
     final (IconData icon, Color color, String trailing) = part.isEmptySource
         ? (Icons.remove, theme.colorScheme.onSurfaceVariant, '—')
         : part.isComplete
-            ? (
-                Icons.check_circle,
-                theme.colorScheme.primary,
-                offlineSizeLabel(part.bytes)
-              )
-            : (
-                Icons.error_outline,
-                theme.colorScheme.tertiary,
-                '${part.stored}/${part.expected}'
-              );
+        ? (
+            Icons.check_circle,
+            theme.colorScheme.primary,
+            offlineSizeLabel(part.bytes),
+          )
+        : (
+            Icons.error_outline,
+            theme.colorScheme.tertiary,
+            '${part.stored}/${part.expected}',
+          );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -319,8 +329,9 @@ class _OfflinePackageSheet extends ConsumerWidget {
                 if (part.note != null)
                   Text(
                     part.note!,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
               ],
             ),
@@ -328,8 +339,9 @@ class _OfflinePackageSheet extends ConsumerWidget {
           const SizedBox(width: 8),
           Text(
             trailing,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

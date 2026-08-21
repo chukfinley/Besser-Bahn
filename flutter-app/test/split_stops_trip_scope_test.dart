@@ -40,45 +40,55 @@ LegStopover _lso(String name) =>
     LegStopover(stop: _st(name), departure: _at(_run.indexOf(name)));
 
 Trip _trip(List<String> stops) => Trip(
-      id: 'zuglauf-1',
-      line: const TransitLine(
-          name: 'ICE 1234',
-          fahrtNr: '1234',
-          productName: 'ICE',
-          product: 'nationalExpress'),
-      direction: stops.last,
-      origin: _st(stops.first),
-      destination: _st(stops.last),
-      stopovers: [for (final s in stops) _tso(s)],
-    );
+  id: 'zuglauf-1',
+  line: const TransitLine(
+    name: 'ICE 1234',
+    fahrtNr: '1234',
+    productName: 'ICE',
+    product: 'nationalExpress',
+  ),
+  direction: stops.last,
+  origin: _st(stops.first),
+  destination: _st(stops.last),
+  stopovers: [for (final s in stops) _tso(s)],
+);
 
 JourneyLeg _leg(List<String> stops) => JourneyLeg(
-      tripId: 'zuglauf-1',
-      origin: _st(stops.first),
-      destination: _st(stops.last),
-      plannedDeparture: _at(_run.indexOf(stops.first)),
-      departure: _at(_run.indexOf(stops.first)),
-      plannedArrival: _at(_run.indexOf(stops.last)),
-      arrival: _at(_run.indexOf(stops.last)),
-      line: const TransitLine(
-          name: 'ICE 1234',
-          fahrtNr: '1234',
-          productName: 'ICE',
-          product: 'nationalExpress'),
-      stopovers: [for (final s in stops) _lso(s)],
-    );
+  tripId: 'zuglauf-1',
+  origin: _st(stops.first),
+  destination: _st(stops.last),
+  plannedDeparture: _at(_run.indexOf(stops.first)),
+  departure: _at(_run.indexOf(stops.first)),
+  plannedArrival: _at(_run.indexOf(stops.last)),
+  arrival: _at(_run.indexOf(stops.last)),
+  line: const TransitLine(
+    name: 'ICE 1234',
+    fahrtNr: '1234',
+    productName: 'ICE',
+    product: 'nationalExpress',
+  ),
+  stopovers: [for (final s in stops) _lso(s)],
+);
 
-List<String> _names(List<Map<String, dynamic>> stops) =>
-    [for (final s in stops) s['name'] as String];
+List<String> _names(List<Map<String, dynamic>> stops) => [
+  for (final s in stops) s['name'] as String,
+];
 
 void main() {
   group('the cached train run is cut to the ridden section (#22)', () {
     // Berlin → Braunschweig, on an ICE that carries on to Frankfurt.
-    final ride = ['Berlin Hbf', 'Berlin-Spandau', 'Wolfsburg Hbf', 'Braunschweig Hbf'];
+    final ride = [
+      'Berlin Hbf',
+      'Berlin-Spandau',
+      'Wolfsburg Hbf',
+      'Braunschweig Hbf',
+    ];
 
     test('candidates never run past the leg destination', () {
-      final stops = splitStopsFromJourney(Journey(legs: [_leg(ride)]),
-          tripFor: (_) => _trip(_run));
+      final stops = splitStopsFromJourney(
+        Journey(legs: [_leg(ride)]),
+        tripFor: (_) => _trip(_run),
+      );
 
       expect(_names(stops), ride);
       expect(_names(stops), isNot(contains('Hildesheim Hbf')));
@@ -86,12 +96,14 @@ void main() {
     });
 
     test('boundaries are the leg endpoints, not the ends of the run', () {
-      final stops = splitStopsFromJourney(Journey(legs: [_leg(ride)]),
-          tripFor: (_) => _trip(_run));
+      final stops = splitStopsFromJourney(
+        Journey(legs: [_leg(ride)]),
+        tripFor: (_) => _trip(_run),
+      );
 
       final boundaries = [
         for (final s in stops)
-          if (s['_boundary'] == true) s['name'] as String
+          if (s['_boundary'] == true) s['name'] as String,
       ];
       expect(boundaries, ['Berlin Hbf', 'Braunschweig Hbf']);
     });
@@ -107,15 +119,18 @@ void main() {
         plannedArrival: _at(3),
         arrival: _at(3),
         line: const TransitLine(
-            name: 'ICE 1234',
-            fahrtNr: '1234',
-            productName: 'ICE',
-            product: 'nationalExpress'),
+          name: 'ICE 1234',
+          fahrtNr: '1234',
+          productName: 'ICE',
+          product: 'nationalExpress',
+        ),
         stopovers: [_lso('Berlin Hbf'), _lso('Braunschweig Hbf')],
       );
 
-      final stops =
-          splitStopsFromJourney(Journey(legs: [leg]), tripFor: (_) => _trip(_run));
+      final stops = splitStopsFromJourney(
+        Journey(legs: [leg]),
+        tripFor: (_) => _trip(_run),
+      );
 
       expect(_names(stops), ride);
     });
@@ -125,69 +140,94 @@ void main() {
       final foreign = Trip(
         id: 'zuglauf-1',
         line: const TransitLine(
-            name: 'ICE 1234',
-            fahrtNr: '1234',
-            productName: 'ICE',
-            product: 'nationalExpress'),
+          name: 'ICE 1234',
+          fahrtNr: '1234',
+          productName: 'ICE',
+          product: 'nationalExpress',
+        ),
         direction: 'Anderswo',
         origin: const Station(id: 'x1', name: 'Anderswo Hbf'),
         destination: const Station(id: 'x2', name: 'Sonstwo Hbf'),
         stopovers: const [
-          Stopover(stop: Station(id: 'x1', name: 'Anderswo Hbf')),
-          Stopover(stop: Station(id: 'x2', name: 'Sonstwo Hbf')),
+          Stopover(
+            stop: Station(id: 'x1', name: 'Anderswo Hbf'),
+          ),
+          Stopover(
+            stop: Station(id: 'x2', name: 'Sonstwo Hbf'),
+          ),
         ],
       );
 
-      final stops = splitStopsFromJourney(Journey(legs: [_leg(ride)]),
-          tripFor: (_) => foreign);
+      final stops = splitStopsFromJourney(
+        Journey(legs: [_leg(ride)]),
+        tripFor: (_) => foreign,
+      );
 
       expect(_names(stops), ride);
     });
 
-    test('tripStopsForLeg picks the right call on a run that repeats a stop',
-        () {
-      // Ring: A … B … A. The leg boards at the SECOND call at A.
-      Stopover so(String name, int min) => Stopover(
-            stop: _st(name),
-            plannedDeparture: _base.add(Duration(minutes: min)),
-            departure: _base.add(Duration(minutes: min)),
-            plannedArrival: _base.add(Duration(minutes: min)),
-            arrival: _base.add(Duration(minutes: min)),
-          );
-      final trip = Trip(
-        id: 'ring',
-        line: const TransitLine(
-            name: 'S1', fahrtNr: '1', productName: 'S', product: 'suburban'),
-        direction: 'A',
-        origin: _st('A'),
-        destination: _st('A'),
-        stopovers: [so('A', 0), so('B', 20), so('A', 40), so('C', 60)],
-      );
-      final leg = JourneyLeg(
-        tripId: 'ring',
-        origin: _st('A'),
-        destination: _st('C'),
-        plannedDeparture: _base.add(const Duration(minutes: 40)),
-        departure: _base.add(const Duration(minutes: 40)),
-        plannedArrival: _base.add(const Duration(minutes: 60)),
-        arrival: _base.add(const Duration(minutes: 60)),
-        line: const TransitLine(
-            name: 'S1', fahrtNr: '1', productName: 'S', product: 'suburban'),
-        stopovers: const [],
-      );
+    test(
+      'tripStopsForLeg picks the right call on a run that repeats a stop',
+      () {
+        // Ring: A … B … A. The leg boards at the SECOND call at A.
+        Stopover so(String name, int min) => Stopover(
+          stop: _st(name),
+          plannedDeparture: _base.add(Duration(minutes: min)),
+          departure: _base.add(Duration(minutes: min)),
+          plannedArrival: _base.add(Duration(minutes: min)),
+          arrival: _base.add(Duration(minutes: min)),
+        );
+        final trip = Trip(
+          id: 'ring',
+          line: const TransitLine(
+            name: 'S1',
+            fahrtNr: '1',
+            productName: 'S',
+            product: 'suburban',
+          ),
+          direction: 'A',
+          origin: _st('A'),
+          destination: _st('A'),
+          stopovers: [so('A', 0), so('B', 20), so('A', 40), so('C', 60)],
+        );
+        final leg = JourneyLeg(
+          tripId: 'ring',
+          origin: _st('A'),
+          destination: _st('C'),
+          plannedDeparture: _base.add(const Duration(minutes: 40)),
+          departure: _base.add(const Duration(minutes: 40)),
+          plannedArrival: _base.add(const Duration(minutes: 60)),
+          arrival: _base.add(const Duration(minutes: 60)),
+          line: const TransitLine(
+            name: 'S1',
+            fahrtNr: '1',
+            productName: 'S',
+            product: 'suburban',
+          ),
+          stopovers: const [],
+        );
 
-      final ride = tripStopsForLeg(trip, leg)!;
-      expect([for (final s in ride) s.stop.name], ['A', 'C']);
-    });
+        final ride = tripStopsForLeg(trip, leg)!;
+        expect([for (final s in ride) s.stop.name], ['A', 'C']);
+      },
+    );
   });
 
   group('the split candidates carry the connection\'s own trains', () {
     test('a leg fed from the trip cache still knows its product and train', () {
       final stops = splitStopsFromJourney(
-          Journey(legs: [
-            _leg(['Berlin Hbf', 'Berlin-Spandau', 'Wolfsburg Hbf', 'Braunschweig Hbf'])
-          ]),
-          tripFor: (_) => _trip(_run));
+        Journey(
+          legs: [
+            _leg([
+              'Berlin Hbf',
+              'Berlin-Spandau',
+              'Wolfsburg Hbf',
+              'Braunschweig Hbf',
+            ]),
+          ],
+        ),
+        tripFor: (_) => _trip(_run),
+      );
 
       // An ICE section is never free on the Deutschlandticket (#13) …
       expect(isSegmentDTicketCovered(stops, 0, stops.length - 1), isFalse);

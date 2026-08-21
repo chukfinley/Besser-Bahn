@@ -193,13 +193,15 @@ class StationMapState {
       map: map ?? this.map,
       selectedLevel: selectedLevel ?? this.selectedLevel,
       hiddenCategories: hiddenCategories ?? this.hiddenCategories,
-      highlightGleis:
-          clearHighlight ? null : (highlightGleis ?? this.highlightGleis),
+      highlightGleis: clearHighlight
+          ? null
+          : (highlightGleis ?? this.highlightGleis),
       highlightSection: (clearHighlight || clearSection)
           ? null
           : (highlightSection ?? this.highlightSection),
-      transferNote:
-          clearTransferNote ? null : (transferNote ?? this.transferNote),
+      transferNote: clearTransferNote
+          ? null
+          : (transferNote ?? this.transferNote),
       highlightRole: clearHighlight
           ? GleisRole.none
           : (highlightRole ?? this.highlightRole),
@@ -224,15 +226,13 @@ class StationMapState {
       secondaryFallbackCoachSequence: (clearFallback || clearSecondary)
           ? null
           : (secondaryFallbackCoachSequence ??
-              this.secondaryFallbackCoachSequence),
+                this.secondaryFallbackCoachSequence),
       product: clearFallback ? null : (product ?? this.product),
       secondaryProduct: (clearFallback || clearSecondary)
           ? null
           : (secondaryProduct ?? this.secondaryProduct),
-      trainLabel:
-          clearTrainLabel ? null : (trainLabel ?? this.trainLabel),
-      osmGeometry:
-          clearOsmGeometry ? null : (osmGeometry ?? this.osmGeometry),
+      trainLabel: clearTrainLabel ? null : (trainLabel ?? this.trainLabel),
+      osmGeometry: clearOsmGeometry ? null : (osmGeometry ?? this.osmGeometry),
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
     );
@@ -319,7 +319,10 @@ class StationMapState {
   // `core/platform_train.dart` module — the SAME implementation the route map's
   // parked trains use, so the Bahnhofskarte and Streckenverlauf can never drift.
   List<({String letter, LatLng pos})> _sectionLineFor(
-      MapPoi? plat, ({String start, String end})? range, String? g) {
+    MapPoi? plat,
+    ({String start, String end})? range,
+    String? g,
+  ) {
     final m = map;
     if (m == null || plat == null || g == null) return const [];
     return pt.platformSectionLine(m, plat, range, g, osmRail: _osmRailFor(g));
@@ -327,33 +330,52 @@ class StationMapState {
 
   /// The boarding (Einstieg) train drawn to scale, top-down, on its platform.
   List<({List<LatLng> outline, Coach coach, bool boarding})>
-      get boardingTrainCars => _trainCarsFor(
-          highlightGleis, highlightSection, coachSequence, fallbackCoachSequence);
+  get boardingTrainCars => _trainCarsFor(
+    highlightGleis,
+    highlightSection,
+    coachSequence,
+    fallbackCoachSequence,
+  );
 
   /// The Ausstieg train on a transfer map — the arriving train on its Gleis.
   List<({List<LatLng> outline, Coach coach, bool boarding})>
-      get secondaryTrainCars => _trainCarsFor(secondaryGleis, secondarySection,
-          secondaryCoachSequence, secondaryFallbackCoachSequence);
+  get secondaryTrainCars => _trainCarsFor(
+    secondaryGleis,
+    secondarySection,
+    secondaryCoachSequence,
+    secondaryFallbackCoachSequence,
+  );
 
   /// Per-car train at [g]: the exact per-stop Wagenreihung when we have it,
   /// else the train's known composition ([fallback]) placed to scale on this
   /// platform — for stops the vehicle-sequence endpoint doesn't serve (a
   /// regional train's Ausstieg/terminus). Empty only when we know neither.
   List<({List<LatLng> outline, Coach coach, bool boarding})> _trainCarsFor(
-      String? g,
-      ({String start, String end})? section,
-      CoachSequence? cs,
-      CoachSequence? fallback) {
+    String? g,
+    ({String start, String end})? section,
+    CoachSequence? cs,
+    CoachSequence? fallback,
+  ) {
     final m = map;
     if (m == null || g == null) return const [];
     final osmRail = _osmRailFor(g);
     if (cs != null) {
       return pt.platformTrainCars(
-          m, gleis: g, section: section, cs: cs, osmRail: osmRail);
+        m,
+        gleis: g,
+        section: section,
+        cs: cs,
+        osmRail: osmRail,
+      );
     }
     if (fallback != null) {
       return pt.platformTrainFromComposition(
-          m, gleis: g, section: section, cs: fallback, osmRail: osmRail);
+        m,
+        gleis: g,
+        section: section,
+        cs: fallback,
+        osmRail: osmRail,
+      );
     }
     return const [];
   }
@@ -363,15 +385,27 @@ class StationMapState {
   /// — so the map still shows a *train*, not a bare line. Sized to a realistic
   /// per-product length, NOT the whole platform. Empty once any per-car train
   /// (exact or composition fallback) is drawn.
-  List<LatLng> get boardingGenericBody => _genericBodyFor(highlightGleis,
-      highlightSection, boardingTrainCars.isEmpty, product);
+  List<LatLng> get boardingGenericBody => _genericBodyFor(
+    highlightGleis,
+    highlightSection,
+    boardingTrainCars.isEmpty,
+    product,
+  );
 
   /// Same, for the Ausstieg (arriving) train's Gleis on a transfer map.
-  List<LatLng> get secondaryGenericBody => _genericBodyFor(secondaryGleis,
-      secondarySection, secondaryTrainCars.isEmpty, secondaryProduct);
+  List<LatLng> get secondaryGenericBody => _genericBodyFor(
+    secondaryGleis,
+    secondarySection,
+    secondaryTrainCars.isEmpty,
+    secondaryProduct,
+  );
 
-  List<LatLng> _genericBodyFor(String? g, ({String start, String end})? section,
-      bool noCars, String? prod) {
+  List<LatLng> _genericBodyFor(
+    String? g,
+    ({String start, String end})? section,
+    bool noCars,
+    String? prod,
+  ) {
     final m = map;
     if (m == null || g == null || !noCars) return const [];
     final dims = TrainDimensions.forProduct(prod);
@@ -423,10 +457,20 @@ class StationMapNotifier extends Notifier<StationMapState> {
   /// fallback for stops the per-station vehicle-sequence endpoint doesn't serve
   /// (a regional train's terminus/Ausstieg 404s). [_fallbackRef] is the Einstieg
   /// train; [_secondaryFallbackRef] is the Ausstieg train on a transfer.
-  ({String category, String trainNumber, String originEva, DateTime? departureTime})?
-      _fallbackRef;
-  ({String category, String trainNumber, String originEva, DateTime? departureTime})?
-      _secondaryFallbackRef;
+  ({
+    String category,
+    String trainNumber,
+    String originEva,
+    DateTime? departureTime,
+  })?
+  _fallbackRef;
+  ({
+    String category,
+    String trainNumber,
+    String originEva,
+    DateTime? departureTime,
+  })?
+  _secondaryFallbackRef;
 
   @override
   StationMapState build() => const StationMapState();
@@ -435,32 +479,43 @@ class StationMapNotifier extends Notifier<StationMapState> {
   /// journey so the boarding track is highlighted and its floor pre-selected.
   /// [role] sets whether that Gleis is the rider's Einstieg, Ausstieg or Umstieg
   /// — so the banner doesn't call the destination an "Einstieg".
-  Future<void> loadForStation(Station station,
-      {String? highlightGleis,
-      String? transferNote,
-      GleisRole role = GleisRole.board,
-      String? secondaryGleis,
-      GleisRole secondaryRole = GleisRole.none,
-      ({String start, String end})? sectionOverride,
-      ({String category, String trainNumber, DateTime? time})? coachRef,
-      ({String category, String trainNumber, DateTime? time})?
-          secondaryCoachRef,
-      CoachSequence? fallbackCoachSequence,
-      CoachSequence? secondaryFallbackCoachSequence,
-      ({String category, String trainNumber, String originEva, DateTime? departureTime})?
-          fallbackRef,
-      ({String category, String trainNumber, String originEva, DateTime? departureTime})?
-          secondaryFallbackRef,
-      String? product,
-      String? secondaryProduct,
-      String? trainLabel,
-      // Everything else we know about this ride, used to work out WHICH pole of
-      // a bus stop the rider needs when no bay code is signed (#55): the line,
-      // where this ride is headed, and the next stop on the run.
-      String? lineName,
-      String? towardsName,
-      LatLng? nextStopAt,
-      Set<String>? primaryTypes}) async {
+  Future<void> loadForStation(
+    Station station, {
+    String? highlightGleis,
+    String? transferNote,
+    GleisRole role = GleisRole.board,
+    String? secondaryGleis,
+    GleisRole secondaryRole = GleisRole.none,
+    ({String start, String end})? sectionOverride,
+    ({String category, String trainNumber, DateTime? time})? coachRef,
+    ({String category, String trainNumber, DateTime? time})? secondaryCoachRef,
+    CoachSequence? fallbackCoachSequence,
+    CoachSequence? secondaryFallbackCoachSequence,
+    ({
+      String category,
+      String trainNumber,
+      String originEva,
+      DateTime? departureTime,
+    })?
+    fallbackRef,
+    ({
+      String category,
+      String trainNumber,
+      String originEva,
+      DateTime? departureTime,
+    })?
+    secondaryFallbackRef,
+    String? product,
+    String? secondaryProduct,
+    String? trainLabel,
+    // Everything else we know about this ride, used to work out WHICH pole of
+    // a bus stop the rider needs when no bay code is signed (#55): the line,
+    // where this ride is headed, and the next stop on the run.
+    String? lineName,
+    String? towardsName,
+    LatLng? nextStopAt,
+    Set<String>? primaryTypes,
+  }) async {
     _lineName = lineName;
     _towardsName = towardsName;
     _nextStopAt = nextStopAt;
@@ -499,7 +554,8 @@ class StationMapNotifier extends Notifier<StationMapState> {
       secondaryFallbackCoachSequence: secondaryFallbackCoachSequence,
       product: product,
       secondaryProduct: secondaryProduct,
-      clearFallback: fallbackCoachSequence == null &&
+      clearFallback:
+          fallbackCoachSequence == null &&
           secondaryFallbackCoachSequence == null &&
           fallbackRef == null &&
           secondaryFallbackRef == null &&
@@ -543,7 +599,8 @@ class StationMapNotifier extends Notifier<StationMapState> {
     if (station.id.isEmpty) return;
     final svc = ref.read(coachSequenceServiceProvider);
     Future<CoachSequence?> fetch(
-        ({String category, String trainNumber, DateTime? time})? r) async {
+      ({String category, String trainNumber, DateTime? time})? r,
+    ) async {
       if (r == null || r.trainNumber.isEmpty) return null;
       try {
         return await svc.getCoachSequenceForDeparture(
@@ -561,9 +618,17 @@ class StationMapNotifier extends Notifier<StationMapState> {
     // the vehicle-sequence endpoint always serves) — so we can still draw the
     // train where THIS stop's per-station sequence 404s (regional terminus).
     Future<CoachSequence?> fetchOrigin(
-        ({String category, String trainNumber, String originEva, DateTime? departureTime})?
-            r) async {
-      if (r == null || r.trainNumber.isEmpty || r.originEva.isEmpty) return null;
+      ({
+        String category,
+        String trainNumber,
+        String originEva,
+        DateTime? departureTime,
+      })?
+      r,
+    ) async {
+      if (r == null || r.trainNumber.isEmpty || r.originEva.isEmpty) {
+        return null;
+      }
       try {
         return await svc.getCoachSequenceForDeparture(
           category: r.category,
@@ -607,22 +672,28 @@ class StationMapNotifier extends Notifier<StationMapState> {
     // A new station's map → drop the previous station's OSM geometry so the
     // train never rides the wrong station's rail while the new fetch is pending.
     state = state.copyWith(
-        isLoading: true, clearError: true, clearOsmGeometry: true);
+      isLoading: true,
+      clearError: true,
+      clearOsmGeometry: true,
+    );
     try {
       final map = await fetch();
       final level = _levelForLoad(map);
       AppLog.log(
-          'map loaded: slug "${map.slug}", level "$level", '
-          'highlight ${state.highlightGleis ?? '–'} '
-          'section ${state.highlightSection == null ? '–' : '${state.highlightSection!.start}–${state.highlightSection!.end}'}',
-          tag: 'map');
+        'map loaded: slug "${map.slug}", level "$level", '
+        'highlight ${state.highlightGleis ?? '–'} '
+        'section ${state.highlightSection == null ? '–' : '${state.highlightSection!.start}–${state.highlightSection!.end}'}',
+        tag: 'map',
+      );
       state = state.copyWith(
         map: map,
         selectedLevel: level,
         // Open uncluttered: hide every category except the journey-relevant
         // one(s). The rider re-enables lifts/exits/lockers/etc. via the legend.
-        hiddenCategories:
-            map.pois.map((p) => p.type).toSet().difference(_primaryTypes),
+        hiddenCategories: map.pois
+            .map((p) => p.type)
+            .toSet()
+            .difference(_primaryTypes),
         isLoading: false,
       );
       // Fetch this station's OSM platform/rail geometry (Overpass) so the
@@ -635,8 +706,10 @@ class StationMapNotifier extends Notifier<StationMapState> {
       if (st != null) await _loadCoachSequences(st);
     } on StationMapException catch (e) {
       // Known/expected failure (bad slug, no map data) — message is user-safe.
-      AppLog.log('map load failed (StationMapException): ${e.message}',
-          tag: 'map');
+      AppLog.log(
+        'map load failed (StationMapException): ${e.message}',
+        tag: 'map',
+      );
       // bahnhof.de only maps railway stations. A bus or tram stop lands here
       // every time — and that is exactly the stop where the rider needs to know
       // which side of the street to stand on, so build the map from OSM instead
@@ -724,11 +797,12 @@ class StationMapNotifier extends Notifier<StationMapState> {
       ],
     );
     AppLog.log(
-        'map built from stop poles: "${station.name}" ${poles.length} poles '
-        '(osm ${sources[0].length}, delfi ${sources[1].length}, '
-        'highlight ${state.highlightGleis ?? '–'} '
-        '${picked == null ? 'UNMATCHED' : 'via ${picked.how.name}'})',
-        tag: 'map');
+      'map built from stop poles: "${station.name}" ${poles.length} poles '
+      '(osm ${sources[0].length}, delfi ${sources[1].length}, '
+      'highlight ${state.highlightGleis ?? '–'} '
+      '${picked == null ? 'UNMATCHED' : 'via ${picked.how.name}'})',
+      tag: 'map',
+    );
     state = state.copyWith(
       map: map,
       selectedLevel: 'GROUND_FLOOR',
@@ -739,14 +813,13 @@ class StationMapNotifier extends Notifier<StationMapState> {
       // this a stop whose leg carries no Gleis at all (a plain roadside stop)
       // could never light one up, which is precisely the case the line and the
       // side-of-the-road rules exist for.
-      highlightGleis:
-          mine == null ? null : normalizeGleis(mine.label),
+      highlightGleis: mine == null ? null : normalizeGleis(mine.label),
       clearHighlight: mine == null,
       highlightRole: mine == null
           ? GleisRole.none
           : (state.highlightRole == GleisRole.none
-              ? GleisRole.board
-              : state.highlightRole),
+                ? GleisRole.board
+                : state.highlightRole),
     );
     return true;
   }
@@ -820,7 +893,8 @@ class StationMapNotifier extends Notifier<StationMapState> {
 /// floor and your filters, kept as you left it.
 final stationMapProvider =
     NotifierProvider<StationMapNotifier, StationMapState>(
-        StationMapNotifier.new);
+      StationMapNotifier.new,
+    );
 
 /// The map opened **from a trip** (a stop on the Reiseplan, a Halt in the Zug
 /// view): its own instance of the same notifier.
@@ -832,7 +906,8 @@ final stationMapProvider =
 /// question, so nothing about them is shared state now.
 final dedicatedStationMapProvider =
     NotifierProvider<StationMapNotifier, StationMapState>(
-        StationMapNotifier.new);
+      StationMapNotifier.new,
+    );
 
 /// Out-of-service lifts/escalators at a transfer station, for the tracks the
 /// rider actually uses (#73).
@@ -846,22 +921,29 @@ final dedicatedStationMapProvider =
 /// an empty list, i.e. no warning, rather than an error in the middle of a
 /// journey the rider is reading.
 final stepFreeTransferProvider = FutureProvider.autoDispose
-    .family<List<StationFacility>, ({String station, String gleise})>(
-        (ref, key) async {
-  if (key.station.isEmpty) return const [];
-  try {
-    final map = await ref
-        .read(stationMapServiceProvider)
-        .fetchByStationName(key.station, background: true);
-    final gleise =
-        key.gleise.split(',').where((g) => g.trim().isNotEmpty).toSet();
-    // Without a known Gleis, warn about any broken lift in the station: the
-    // rider still has to cross it, we just can't say which one bites.
-    return gleise.isEmpty
-        ? map.outOfServiceFacilities
-        : map.outOfServiceForGleise(gleise);
-  } catch (e) {
-    AppLog.log('step-free check for "${key.station}" failed: $e', tag: 'map');
-    return const [];
-  }
-});
+    .family<List<StationFacility>, ({String station, String gleise})>((
+      ref,
+      key,
+    ) async {
+      if (key.station.isEmpty) return const [];
+      try {
+        final map = await ref
+            .read(stationMapServiceProvider)
+            .fetchByStationName(key.station, background: true);
+        final gleise = key.gleise
+            .split(',')
+            .where((g) => g.trim().isNotEmpty)
+            .toSet();
+        // Without a known Gleis, warn about any broken lift in the station: the
+        // rider still has to cross it, we just can't say which one bites.
+        return gleise.isEmpty
+            ? map.outOfServiceFacilities
+            : map.outOfServiceForGleise(gleise);
+      } catch (e) {
+        AppLog.log(
+          'step-free check for "${key.station}" failed: $e',
+          tag: 'map',
+        );
+        return const [];
+      }
+    });

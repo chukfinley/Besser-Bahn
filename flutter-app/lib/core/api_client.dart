@@ -11,14 +11,16 @@ class ApiClient {
   ApiClient._();
 
   Map<String, String> get _headers => {
-        'User-Agent': ApiConstants.userAgent,
-        'Accept': 'application/json',
-        'Accept-Language': 'de-DE,de;q=0.9',
-      };
+    'User-Agent': ApiConstants.userAgent,
+    'Accept': 'application/json',
+    'Accept-Language': 'de-DE,de;q=0.9',
+  };
 
   /// GET that expects a Map response
-  Future<Map<String, dynamic>> get(String url,
-      {Map<String, String>? queryParams}) async {
+  Future<Map<String, dynamic>> get(
+    String url, {
+    Map<String, String>? queryParams,
+  }) async {
     final response = await _rawGet(url, queryParams: queryParams);
     final decoded = json.decode(response.body);
 
@@ -32,14 +34,18 @@ class ApiClient {
   }
 
   /// GET that returns raw decoded JSON (List or Map)
-  Future<dynamic> getList(String url,
-      {Map<String, String>? queryParams}) async {
+  Future<dynamic> getList(
+    String url, {
+    Map<String, String>? queryParams,
+  }) async {
     final response = await _rawGet(url, queryParams: queryParams);
     return json.decode(response.body);
   }
 
-  Future<http.Response> _rawGet(String url,
-      {Map<String, String>? queryParams}) async {
+  Future<http.Response> _rawGet(
+    String url, {
+    Map<String, String>? queryParams,
+  }) async {
     final uri = Uri.parse(url).replace(queryParameters: queryParams);
     final response = await _client.get(uri, headers: _headers);
     if (response.statusCode != 200) {
@@ -48,8 +54,10 @@ class ApiClient {
     return response;
   }
 
-  Future<Map<String, dynamic>> post(String url,
-      {required Map<String, dynamic> body}) async {
+  Future<Map<String, dynamic>> post(
+    String url, {
+    required Map<String, dynamic> body,
+  }) async {
     final uri = Uri.parse(url);
     final response = await _client.post(
       uri,

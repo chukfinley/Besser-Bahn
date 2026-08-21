@@ -10,14 +10,20 @@ void main() {
     test('with transfers, the weakest link decides', () {
       // Catching the transfer is the risk here, not arriving on time.
       expect(
-          const JourneyPrediction(verbindungsscore: 54, puenktlichkeit: 90)
-              .reliabilityScore,
-          54);
+        const JourneyPrediction(
+          verbindungsscore: 54,
+          puenktlichkeit: 90,
+        ).reliabilityScore,
+        54,
+      );
       // …and vice versa.
       expect(
-          const JourneyPrediction(verbindungsscore: 94, puenktlichkeit: 71)
-              .reliabilityScore,
-          71);
+        const JourneyPrediction(
+          verbindungsscore: 94,
+          puenktlichkeit: 71,
+        ).reliabilityScore,
+        71,
+      );
     });
 
     test('no scores → null, so it sorts last rather than looking terrible', () {
@@ -26,10 +32,20 @@ void main() {
 
     test("the reporter's example orders as they expect", () {
       // ICE→ICE 7min: 54 | ICE direkt: 89 | RE→ICE 18min: 94
-      final tight = const JourneyPrediction(verbindungsscore: 54, puenktlichkeit: 88);
+      final tight = const JourneyPrediction(
+        verbindungsscore: 54,
+        puenktlichkeit: 88,
+      );
       final direct = const JourneyPrediction(puenktlichkeit: 89);
-      final relaxed = const JourneyPrediction(verbindungsscore: 94, puenktlichkeit: 94);
-      final scores = [tight, direct, relaxed].map((p) => p.reliabilityScore!).toList();
+      final relaxed = const JourneyPrediction(
+        verbindungsscore: 94,
+        puenktlichkeit: 94,
+      );
+      final scores = [
+        tight,
+        direct,
+        relaxed,
+      ].map((p) => p.reliabilityScore!).toList();
       expect(scores, [54, 89, 94]);
       // Sorted most-reliable-first → relaxed, direct, tight.
       scores.sort((a, b) => b.compareTo(a));

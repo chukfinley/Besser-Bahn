@@ -106,11 +106,7 @@ class ChukNavThemeData {
 /// Works inside a `MaterialApp` — like everything in chuk_ui it does not depend
 /// on Material itself.
 class ChukNavTheme extends InheritedWidget {
-  const ChukNavTheme({
-    super.key,
-    required this.data,
-    required super.child,
-  });
+  const ChukNavTheme({super.key, required this.data, required super.child});
 
   /// The nav-bar design values exposed to descendants.
   final ChukNavThemeData data;
@@ -119,7 +115,8 @@ class ChukNavTheme extends InheritedWidget {
   ///
   /// Prefer the `context.chukNav` extension for brevity.
   static ChukNavThemeData of(BuildContext context) {
-    final inherited = context.dependOnInheritedWidgetOfExactType<ChukNavTheme>();
+    final inherited = context
+        .dependOnInheritedWidgetOfExactType<ChukNavTheme>();
     assert(
       inherited != null,
       'No ChukNavTheme found in context. Wrap the ChukNavBar in a '

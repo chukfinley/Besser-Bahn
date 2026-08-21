@@ -36,7 +36,7 @@ class PredictionRequest {
 /// past trip; just return null so the badge stays hidden.
 final journeyPredictionProvider = FutureProvider.autoDispose
     .family<JourneyPrediction?, PredictionRequest>((ref, req) async {
-  final arr = req.journey.plannedArrival ?? req.journey.arrival;
-  if (arr != null && arr.isBefore(DateTime.now())) return null;
-  return ref.read(predictionServiceProvider).predict(req.journey);
-});
+      final arr = req.journey.plannedArrival ?? req.journey.arrival;
+      if (arr != null && arr.isBefore(DateTime.now())) return null;
+      return ref.read(predictionServiceProvider).predict(req.journey);
+    });

@@ -53,7 +53,7 @@ class SearchOptions {
           {
             'locationId': via!.vendoLocationId,
             if (viaStayMinutes != null) 'minUmstiegsdauer': viaStayMinutes,
-          }
+          },
         ];
 
   /// Nulling a field needs an explicit flag — `copyWith(maxTransfers: null)`
@@ -69,7 +69,9 @@ class SearchOptions {
     bool clearViaStayMinutes = false,
   }) {
     return SearchOptions(
-      maxTransfers: clearMaxTransfers ? null : (maxTransfers ?? this.maxTransfers),
+      maxTransfers: clearMaxTransfers
+          ? null
+          : (maxTransfers ?? this.maxTransfers),
       minTransferMinutes: clearMinTransferMinutes
           ? null
           : (minTransferMinutes ?? this.minTransferMinutes),
@@ -91,5 +93,9 @@ class SearchOptions {
 
   @override
   int get hashCode => Object.hash(
-      maxTransfers, minTransferMinutes, via?.vendoLocationId, viaStayMinutes);
+    maxTransfers,
+    minTransferMinutes,
+    via?.vendoLocationId,
+    viaStayMinutes,
+  );
 }

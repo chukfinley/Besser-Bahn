@@ -13,11 +13,16 @@ void main() {
 
     test('hint text is present exactly when recommended', () {
       for (final l in OccupancyLevel.values) {
-        expect(l.reservationHint.isNotEmpty, l.recommendsReservation,
-            reason: '$l');
+        expect(
+          l.reservationHint.isNotEmpty,
+          l.recommendsReservation,
+          reason: '$l',
+        );
       }
-      expect(OccupancyLevel.high.reservationHint,
-          'Sitzplatzreservierung empfohlen');
+      expect(
+        OccupancyLevel.high.reservationHint,
+        'Sitzplatzreservierung empfohlen',
+      );
     });
   });
 }

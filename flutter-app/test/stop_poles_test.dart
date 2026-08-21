@@ -36,11 +36,14 @@ void main() {
       // that is also what DB puts in the leg.
       final merged = mergePoles(
         [_osm('A5', _osmA5)],
-        [_delfi('11', _delfi11, ['201 → Schönberg'])],
+        [
+          _delfi('11', _delfi11, ['201 → Schönberg']),
+        ],
       );
       expect(merged.single.bay, 'A5');
-      expect(merged.single.directions, ['201 → Schönberg'],
-          reason: 'the direction still comes from DELFI');
+      expect(merged.single.directions, [
+        '201 → Schönberg',
+      ], reason: 'the direction still comes from DELFI');
     });
 
     test('one bay, one dot — even when the two sources put it 22 m apart', () {
@@ -78,24 +81,24 @@ void main() {
 
       final merged = mergePoles(
         [_osm('B1', osmB1), _osm('D2', const LatLng(54.315959, 10.131234))],
-        [_delfi('D2', delfiD2, ['11 → Elmschenhagen'])],
+        [
+          _delfi('D2', delfiD2, ['11 → Elmschenhagen']),
+        ],
       );
 
       final b1 = merged.firstWhere((p) => p.bay == 'B1');
       expect(b1.directions, isEmpty, reason: 'D2\'s buses are not B1\'s');
-      expect(merged.firstWhere((p) => p.bay == 'D2').directions,
-          ['11 → Elmschenhagen']);
+      expect(merged.firstWhere((p) => p.bay == 'D2').directions, [
+        '11 → Elmschenhagen',
+      ]);
     });
 
     test('a bay the signed source lists twice is still one pole', () {
       // OSM can carry the same bay as a stop node AND a platform node.
-      final merged = mergePoles(
-        [
-          _osm('B1', const LatLng(54.315671, 10.131436)),
-          _osm('B1', const LatLng(54.315680, 10.131500)),
-        ],
-        const [],
-      );
+      final merged = mergePoles([
+        _osm('B1', const LatLng(54.315671, 10.131436)),
+        _osm('B1', const LatLng(54.315680, 10.131500)),
+      ], const []);
       expect(merged, hasLength(1));
     });
 
@@ -109,15 +112,20 @@ void main() {
           _delfi('2', const LatLng(54.2903, 10.38412), ['Schönberg']),
         ],
       );
-      expect(merged, hasLength(3 - 1),
-          reason: 'the OSM pole merges with DELFI Steig 2, Steig 1 is its own');
+      expect(
+        merged,
+        hasLength(3 - 1),
+        reason: 'the OSM pole merges with DELFI Steig 2, Steig 1 is its own',
+      );
       expect(merged.map((p) => p.bay).toList(), ['1', '2']);
     });
 
     test('either source alone still yields a map', () {
       expect(mergePoles([_osm('A4', _osmA4)], const []), hasLength(1));
-      expect(mergePoles(const [], [_delfi('1', _delfi1, const [])]),
-          hasLength(1));
+      expect(
+        mergePoles(const [], [_delfi('1', _delfi1, const [])]),
+        hasLength(1),
+      );
       expect(mergePoles(const [], const []), isEmpty);
     });
 
@@ -134,7 +142,9 @@ void main() {
   group('#55 — finding the rider\'s own pole', () {
     final poles = mergePoles(
       [_osm('A4', _osmA4), _osm('A5', _osmA5), _osm('B3', _osmB3)],
-      [_delfi('1', _delfi1, const ['740 → Kiel ZOB'])],
+      [
+        _delfi('1', _delfi1, const ['740 → Kiel ZOB']),
+      ],
     );
 
     test('the leg\'s Gleis picks the pole with that code', () {

@@ -14,22 +14,24 @@ Map<String, dynamic> _halt(
   bool cancelled = false,
   List<Map<String, String>>? echtzeitNotizen,
   Map<String, String>? serviceNotiz,
-}) =>
-    {
-      'ort': {'evaNr': name, 'name': name},
-      'ankunftsDatum': '2026-07-14T11:38:00+02:00',
-      'abgangsDatum': '2026-07-14T11:40:00+02:00',
-      'gleis': '7',
-      'istZusatzhalt': zusatz,
-      if (cancelled)
-        'ersatzhaltNotiz': {'text': 'Halt entfällt', 'typ': 'GECANCELT'},
-      'echtzeitNotizen': ?echtzeitNotizen,
-      'serviceNotiz': ?serviceNotiz,
-    };
+}) => {
+  'ort': {'evaNr': name, 'name': name},
+  'ankunftsDatum': '2026-07-14T11:38:00+02:00',
+  'abgangsDatum': '2026-07-14T11:40:00+02:00',
+  'gleis': '7',
+  'istZusatzhalt': zusatz,
+  if (cancelled)
+    'ersatzhaltNotiz': {'text': 'Halt entfällt', 'typ': 'GECANCELT'},
+  'echtzeitNotizen': ?echtzeitNotizen,
+  'serviceNotiz': ?serviceNotiz,
+};
 
 Future<dynamic> _trip(Map<String, dynamic> body) {
-  final svc = VendoService(client: MockClient((_) async =>
-      http.Response.bytes(utf8.encode(json.encode(body)), 200)));
+  final svc = VendoService(
+    client: MockClient(
+      (_) async => http.Response.bytes(utf8.encode(json.encode(body)), 200),
+    ),
+  );
   return svc.getTrip('2|#VN#1#ST#1');
 }
 
@@ -39,11 +41,14 @@ void main() {
       final trip = await _trip({
         'mitteltext': 'ICE 844',
         'himNotizen': [
-          {'text': 'Die Strecke ist zwischen Berlin-Spandau und Wolfsburg '
-              'gesperrt.'}
+          {
+            'text':
+                'Die Strecke ist zwischen Berlin-Spandau und Wolfsburg '
+                'gesperrt.',
+          },
         ],
         'echtzeitNotizen': [
-          {'text': 'Verspätung aus vorheriger Fahrt'}
+          {'text': 'Verspätung aus vorheriger Fahrt'},
         ],
         'halte': [_halt('Berlin Hbf'), _halt('Hannover Hbf')],
       });
@@ -62,19 +67,25 @@ void main() {
         'mitteltext': 'ICE 947',
         'halte': [
           _halt('Köln Hbf'),
-          _halt('Berlin-Spandau', echtzeitNotizen: [
-            {'text': 'Neuer Zielhalt'}
-          ]),
-          _halt('Berlin Hbf', cancelled: true, echtzeitNotizen: [
-            {'text': 'Halt entfällt'}
-          ]),
+          _halt(
+            'Berlin-Spandau',
+            echtzeitNotizen: [
+              {'text': 'Neuer Zielhalt'},
+            ],
+          ),
+          _halt(
+            'Berlin Hbf',
+            cancelled: true,
+            echtzeitNotizen: [
+              {'text': 'Halt entfällt'},
+            ],
+          ),
         ],
       });
 
       expect(trip.disruptions, contains('Neuer Zielhalt'));
       expect(trip.disruptions, contains('Halt entfällt'));
     });
-
 
     test('a stop that only lets you off is flagged (#20)', () async {
       // 9 of 450 live stops carry this; without it such a stop looks exactly
@@ -83,14 +94,20 @@ void main() {
         'mitteltext': 'ICE 844',
         'halte': [
           _halt('Berlin Hbf'),
-          _halt('Hannover Hbf', serviceNotiz: {
-            'key': 'text.realtime.stop.entry.disabled',
-            'text': 'Hält nur zum Aussteigen',
-          }),
-          _halt('Köln Hbf', serviceNotiz: {
-            'key': 'text.realtime.stop.exit.disabled',
-            'text': 'Hält nur zum Einsteigen',
-          }),
+          _halt(
+            'Hannover Hbf',
+            serviceNotiz: {
+              'key': 'text.realtime.stop.entry.disabled',
+              'text': 'Hält nur zum Aussteigen',
+            },
+          ),
+          _halt(
+            'Köln Hbf',
+            serviceNotiz: {
+              'key': 'text.realtime.stop.exit.disabled',
+              'text': 'Hält nur zum Einsteigen',
+            },
+          ),
         ],
       });
 
@@ -105,25 +122,27 @@ void main() {
       expect(trip.stopovers[2].noBoarding, isFalse);
     });
 
-    test('attributNotizen stay out of disruptions (amenities, not faults)',
-        () async {
-      final trip = await _trip({
-        'mitteltext': 'ICE 844',
-        'attributNotizen': [
-          {'key': 'WLAN', 'text': 'WLAN verfügbar'}
-        ],
-        'halte': [_halt('Berlin Hbf'), _halt('Hannover Hbf')],
-      });
+    test(
+      'attributNotizen stay out of disruptions (amenities, not faults)',
+      () async {
+        final trip = await _trip({
+          'mitteltext': 'ICE 844',
+          'attributNotizen': [
+            {'key': 'WLAN', 'text': 'WLAN verfügbar'},
+          ],
+          'halte': [_halt('Berlin Hbf'), _halt('Hannover Hbf')],
+        });
 
-      expect(trip.disruptions, isEmpty);
-      expect(trip.attributes, isNotEmpty);
-    });
+        expect(trip.disruptions, isEmpty);
+        expect(trip.attributes, isNotEmpty);
+      },
+    );
 
     test('a note naming an Umleitung marks the run rerouted', () async {
       final trip = await _trip({
         'mitteltext': 'ICE 844',
         'echtzeitNotizen': [
-          {'text': 'Umleitung über Magdeburg'}
+          {'text': 'Umleitung über Magdeburg'},
         ],
         'halte': [_halt('Berlin Hbf'), _halt('Hannover Hbf')],
       });
@@ -164,13 +183,16 @@ void main() {
       final trip = await _trip({
         'mitteltext': 'ICE 844',
         'echtzeitNotizen': [
-          {'text': 'Verspätung aus vorheriger Fahrt'}
+          {'text': 'Verspätung aus vorheriger Fahrt'},
         ],
         'halte': [_halt('Berlin Hbf'), _halt('Hannover Hbf')],
       });
 
-      expect(trip.isRerouted, isFalse,
-          reason: 'delay notes must not trigger the Umleitung banner');
+      expect(
+        trip.isRerouted,
+        isFalse,
+        reason: 'delay notes must not trigger the Umleitung banner',
+      );
       expect(trip.disruptions, isNotEmpty);
     });
 

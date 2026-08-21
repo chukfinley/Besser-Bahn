@@ -21,16 +21,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// cannot be what removes it.
 Journey _journey(String from, String to) {
   final soon = DateTime.now().add(const Duration(days: 1));
-  return Journey(legs: [
-    JourneyLeg(
-      origin: Station(id: from, name: from),
-      destination: Station(id: to, name: to),
-      plannedDeparture: soon,
-      departure: soon,
-      plannedArrival: soon.add(const Duration(hours: 2)),
-      arrival: soon.add(const Duration(hours: 2)),
-    ),
-  ]);
+  return Journey(
+    legs: [
+      JourneyLeg(
+        origin: Station(id: from, name: from),
+        destination: Station(id: to, name: to),
+        plannedDeparture: soon,
+        departure: soon,
+        plannedArrival: soon.add(const Duration(hours: 2)),
+        arrival: soon.add(const Duration(hours: 2)),
+      ),
+    ],
+  );
 }
 
 void main() {
@@ -48,8 +50,11 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     expect(container.read(libraryProvider).loaded, isTrue);
-    expect(container.read(libraryProvider).journeys, hasLength(1),
-        reason: 'the load must not overwrite what was saved meanwhile');
+    expect(
+      container.read(libraryProvider).journeys,
+      hasLength(1),
+      reason: 'the load must not overwrite what was saved meanwhile',
+    );
   });
 
   test('stored entries and entries saved meanwhile both survive', () async {
@@ -67,8 +72,11 @@ void main() {
     container.read(libraryProvider.notifier).toggleJourney(_journey('A', 'B'));
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
-    final keys =
-        container.read(libraryProvider).journeys.map((j) => j.key).toSet();
+    final keys = container
+        .read(libraryProvider)
+        .journeys
+        .map((j) => j.key)
+        .toSet();
     expect(keys, hasLength(2));
     expect(keys, contains(stored.key));
   });

@@ -27,8 +27,9 @@ Journey _journey({required String originId, DateTime? departure}) {
         'origin': {'id': originId, 'name': 'Kiel Hbf'},
         'destination': {'id': '8002549', 'name': 'Hamburg Hbf'},
         'plannedDeparture': dep.toIso8601String(),
-        'plannedArrival':
-            dep.add(const Duration(minutes: 75)).toIso8601String(),
+        'plannedArrival': dep
+            .add(const Duration(minutes: 75))
+            .toIso8601String(),
         'line': {'name': 'ICE 71'},
       },
     ],
@@ -76,10 +77,12 @@ void main() {
 
     test('two trips do not get each other\'s key', () {
       final kiel = _saved(_journey(originId: '8000199'));
-      final hamburg = _saved(_journey(
-        originId: '8002549',
-        departure: _base.add(const Duration(hours: 1)),
-      ));
+      final hamburg = _saved(
+        _journey(
+          originId: '8002549',
+          departure: _base.add(const Duration(hours: 1)),
+        ),
+      );
 
       final keys = _plan([kiel, hamburg]).map((r) => r.tripKey).toSet();
 
@@ -107,10 +110,12 @@ void main() {
   group('the key still finds the trip when the tap comes back', () {
     test('a planned key resolves to exactly that saved trip', () async {
       final trip = _saved(_journey(originId: '8000199'));
-      final other = _saved(_journey(
-        originId: '8002549',
-        departure: _base.add(const Duration(hours: 1)),
-      ));
+      final other = _saved(
+        _journey(
+          originId: '8002549',
+          departure: _base.add(const Duration(hours: 1)),
+        ),
+      );
       SharedPreferences.setMockInitialValues({});
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -157,45 +162,61 @@ void main() {
       final opened = NotificationService.tripOpens.first;
 
       await NotificationService.handleResponseForTest(
-          tap(payload: 'trip:8000199_8002549_2026-08-01T10:00'));
+        tap(payload: 'trip:8000199_8002549_2026-08-01T10:00'),
+      );
 
       expect(await opened, '8000199_8002549_2026-08-01T10:00');
       // Persisted for the case where nothing was listening yet, and consumed
       // exactly once.
-      expect(await NotificationService.takePendingTripKey(),
-          '8000199_8002549_2026-08-01T10:00');
+      expect(
+        await NotificationService.takePendingTripKey(),
+        '8000199_8002549_2026-08-01T10:00',
+      );
       expect(await NotificationService.takePendingTripKey(), isNull);
     });
 
-    test('"Stoppen" on the arrival alarm silences it and goes nowhere', () async {
-      await NotificationService.handleResponseForTest(
-        tap(payload: 'trip:8000199_8002549_2026-08-01T10:00',
-            actionId: 'stop_alarm'),
-      );
+    test(
+      '"Stoppen" on the arrival alarm silences it and goes nowhere',
+      () async {
+        await NotificationService.handleResponseForTest(
+          tap(
+            payload: 'trip:8000199_8002549_2026-08-01T10:00',
+            actionId: 'stop_alarm',
+          ),
+        );
 
-      expect(await NotificationService.takePendingTripKey(), isNull,
-          reason: 'the rider is switching it off, not asking to be taken '
-              'anywhere');
-    });
+        expect(
+          await NotificationService.takePendingTripKey(),
+          isNull,
+          reason:
+              'the rider is switching it off, not asking to be taken '
+              'anywhere',
+        );
+      },
+    );
 
     test('a notification without a trip behaves as before', () async {
       await NotificationService.handleResponseForTest(tap());
       await NotificationService.handleResponseForTest(tap(payload: 'trip:'));
       await NotificationService.handleResponseForTest(
-          tap(payload: 'split-result'));
+        tap(payload: 'split-result'),
+      );
 
       expect(await NotificationService.takePendingTripKey(), isNull);
     });
 
-    test('the missed-connection prompt still needs its explicit action — a body '
-        'tap must not be read as approval', () async {
-      const payload = 'missed-connection:not-a-valid-rescue';
+    test(
+      'the missed-connection prompt still needs its explicit action — a body '
+      'tap must not be read as approval',
+      () async {
+        const payload = 'missed-connection:not-a-valid-rescue';
 
-      await NotificationService.handleResponseForTest(tap(payload: payload));
-      expect(await NotificationService.takePendingMissedRescue(), isNull);
+        await NotificationService.handleResponseForTest(tap(payload: payload));
+        expect(await NotificationService.takePendingMissedRescue(), isNull);
 
-      // And it is not mistaken for a trip either.
-      expect(await NotificationService.takePendingTripKey(), isNull);
-    });
+        // And it is not mistaken for a trip either.
+        expect(await NotificationService.takePendingTripKey(), isNull);
+      },
+    );
   });
 }

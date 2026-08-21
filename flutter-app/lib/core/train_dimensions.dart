@@ -46,46 +46,52 @@ class TrainDimensions {
     switch (product) {
       case 'nationalExpress': // ICE — streamlined high-speed unit
         return const TrainDimensions(
-            totalLengthM: 250,
-            carLengthM: 26.5,
-            widthM: 2.95,
-            noseLenM: 5,
-            noseBothEnds: true);
+          totalLengthM: 250,
+          carLengthM: 26.5,
+          widthM: 2.95,
+          noseLenM: 5,
+          noseBothEnds: true,
+        );
       case 'national': // IC/EC — blunt loco + UIC coaches (26.4 m)
         return const TrainDimensions(
-            totalLengthM: 260,
-            carLengthM: 26.4,
-            widthM: 2.825,
-            noseLenM: 0,
-            noseBothEnds: false);
+          totalLengthM: 260,
+          carLengthM: 26.4,
+          widthM: 2.825,
+          noseLenM: 0,
+          noseBothEnds: false,
+        );
       case 'regionalExpress': // RE — push-pull double-deck (Dosto 26.8 m)
         return const TrainDimensions(
-            totalLengthM: 155,
-            carLengthM: 26.8,
-            widthM: 2.80,
-            noseLenM: 0,
-            noseBothEnds: false);
+          totalLengthM: 155,
+          carLengthM: 26.8,
+          widthM: 2.80,
+          noseLenM: 0,
+          noseBothEnds: false,
+        );
       case 'regional': // RB — regional EMU (BR 425/440), rounded cab
         return const TrainDimensions(
-            totalLengthM: 70,
-            carLengthM: 23,
-            widthM: 2.92,
-            noseLenM: 3,
-            noseBothEnds: true);
+          totalLengthM: 70,
+          carLengthM: 23,
+          widthM: 2.92,
+          noseLenM: 3,
+          noseBothEnds: true,
+        );
       case 'suburban': // S-Bahn EMU (BR 423/430), rounded cab
         return const TrainDimensions(
-            totalLengthM: 70,
-            carLengthM: 17,
-            widthM: 3.02,
-            noseLenM: 3,
-            noseBothEnds: true);
+          totalLengthM: 70,
+          carLengthM: 17,
+          widthM: 3.02,
+          noseLenM: 3,
+          noseBothEnds: true,
+        );
       default:
         return const TrainDimensions(
-            totalLengthM: 120,
-            carLengthM: 25,
-            widthM: 2.9,
-            noseLenM: 2.5,
-            noseBothEnds: true);
+          totalLengthM: 120,
+          carLengthM: 25,
+          widthM: 2.9,
+          noseLenM: 2.5,
+          noseBothEnds: true,
+        );
     }
   }
 }

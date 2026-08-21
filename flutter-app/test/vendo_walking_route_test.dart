@@ -19,12 +19,16 @@ String _body({int points = 28, int? distance = 683, int? traveltime = 492}) =>
       ],
     });
 
-Future<WalkingRoute?> _route(http.Response response,
-    {void Function(http.Request)? onRequest}) {
-  final svc = VendoService(client: MockClient((req) async {
-    onRequest?.call(req);
-    return response;
-  }));
+Future<WalkingRoute?> _route(
+  http.Response response, {
+  void Function(http.Request)? onRequest,
+}) {
+  final svc = VendoService(
+    client: MockClient((req) async {
+      onRequest?.call(req);
+      return response;
+    }),
+  );
   return svc.calculateWalkingRoute(
     fromLat: 50.943029,
     fromLon: 6.958730,
@@ -41,10 +45,14 @@ void main() {
       // so asking for WKB would only buy us a decoder.
       late Map<String, dynamic> body;
       late String url;
-      await _route(http.Response(_body(), 200), onRequest: (req) {
-        body = json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
-        url = req.url.toString();
-      });
+      await _route(
+        http.Response(_body(), 200),
+        onRequest: (req) {
+          body =
+              json.decode(utf8.decode(req.bodyBytes)) as Map<String, dynamic>;
+          url = req.url.toString();
+        },
+      );
       expect(url, endsWith('/mob/location/calculateroute'));
       expect(body['gpsPositions'], [
         {'latitude': 50.943029, 'longitude': 6.958730},
@@ -67,13 +75,15 @@ void main() {
 
     test('a sub-minute walk is 1 min, never 0', () async {
       final r = await _route(
-          http.Response(_body(distance: 40, traveltime: 35), 200));
+        http.Response(_body(distance: 40, traveltime: 35), 200),
+      );
       expect(r!.summary, '40 m · 1 min');
     });
 
     test('summary uses whatever DB gave', () async {
       final r = await _route(
-          http.Response(_body(distance: null, traveltime: null), 200));
+        http.Response(_body(distance: null, traveltime: null), 200),
+      );
       expect(r!.summary, isNull);
       expect(r.points, hasLength(28));
     });
@@ -96,10 +106,15 @@ void main() {
     test('a failure is null, not an exception — the map still works', () async {
       // The straight line and the blue dot are already on screen; a routing
       // failure must not take the location feature down with it.
-      expect(await _route(http.Response('{"code":"VALIDIERUNG"}', 400)), isNull);
+      expect(
+        await _route(http.Response('{"code":"VALIDIERUNG"}', 400)),
+        isNull,
+      );
       expect(await _route(http.Response('{"code":"FATAL"}', 500)), isNull);
-      expect(await _route(http.Response(json.encode({'distance': 5}), 200)),
-          isNull);
+      expect(
+        await _route(http.Response(json.encode({'distance': 5}), 200)),
+        isNull,
+      );
     });
   });
 }

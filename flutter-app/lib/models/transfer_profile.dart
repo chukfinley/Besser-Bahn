@@ -10,19 +10,49 @@
 enum TransferProfile {
   fast('Schnell', '🚀', 0.6, 'Du kennst die Bahnhöfe und gehst zügig.'),
   normal('Normal', '🚶', 1.0, 'Standard — wie die Bahn plant.'),
-  luggage('Mit Gepäck', '🧳', 1.4, 'Koffer, Treppen kosten Zeit.',
-      minTransferMinutes: 10),
-  child('Mit Kind', '👨‍👧', 1.6, 'Kinderwagen, kleine Schritte, Aufzüge.',
-      minTransferMinutes: 12),
-  bike('Mit Fahrrad', '🚲', 1.6, 'Aufzug oder Rampe statt Treppe.',
-      minTransferMinutes: 12),
-  accessible('Barrierearm', '♿', 1.8, 'Nur Aufzüge und Rampen.',
-      minTransferMinutes: 15),
-  slow('Mehr Zeit', '🐢', 2.0, 'Umsteigen darf nicht hetzen.',
-      minTransferMinutes: 20);
+  luggage(
+    'Mit Gepäck',
+    '🧳',
+    1.4,
+    'Koffer, Treppen kosten Zeit.',
+    minTransferMinutes: 10,
+  ),
+  child(
+    'Mit Kind',
+    '👨‍👧',
+    1.6,
+    'Kinderwagen, kleine Schritte, Aufzüge.',
+    minTransferMinutes: 12,
+  ),
+  bike(
+    'Mit Fahrrad',
+    '🚲',
+    1.6,
+    'Aufzug oder Rampe statt Treppe.',
+    minTransferMinutes: 12,
+  ),
+  accessible(
+    'Barrierearm',
+    '♿',
+    1.8,
+    'Nur Aufzüge und Rampen.',
+    minTransferMinutes: 15,
+  ),
+  slow(
+    'Mehr Zeit',
+    '🐢',
+    2.0,
+    'Umsteigen darf nicht hetzen.',
+    minTransferMinutes: 20,
+  );
 
-  const TransferProfile(this.label, this.emoji, this.factor, this.hint,
-      {this.minTransferMinutes});
+  const TransferProfile(
+    this.label,
+    this.emoji,
+    this.factor,
+    this.hint, {
+    this.minTransferMinutes,
+  });
 
   /// Minimum transfer time to *ask DB for* (`minUmstiegsdauer`), so the search
   /// returns real alternatives with enough slack instead of 5-minute changes
@@ -60,7 +90,6 @@ enum TransferProfile {
   int effectiveGap(int plannedGapMinutes, {bool samePlatform = false}) =>
       samePlatform ? plannedGapMinutes : (plannedGapMinutes / factor).floor();
 
-  static TransferProfile fromName(String? name) =>
-      TransferProfile.values.firstWhere((p) => p.name == name,
-          orElse: () => TransferProfile.normal);
+  static TransferProfile fromName(String? name) => TransferProfile.values
+      .firstWhere((p) => p.name == name, orElse: () => TransferProfile.normal);
 }

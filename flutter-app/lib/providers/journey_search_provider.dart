@@ -51,7 +51,6 @@ enum ProductCategory {
     }
     return [for (final c in cats) ...c.vendoCodes];
   }
-
 }
 
 class JourneySearchState {
@@ -190,29 +189,43 @@ class JourneySearchState {
     }
     switch (sortMode) {
       case JourneySortMode.departure:
-        journeys.sort((a, b) =>
-            (a.departure ?? DateTime(0)).compareTo(b.departure ?? DateTime(0)));
+        journeys.sort(
+          (a, b) => (a.departure ?? DateTime(0)).compareTo(
+            b.departure ?? DateTime(0),
+          ),
+        );
       case JourneySortMode.arrival:
-        journeys.sort((a, b) =>
-            (a.arrival ?? DateTime(0)).compareTo(b.arrival ?? DateTime(0)));
+        journeys.sort(
+          (a, b) =>
+              (a.arrival ?? DateTime(0)).compareTo(b.arrival ?? DateTime(0)),
+        );
       case JourneySortMode.duration:
-        journeys.sort((a, b) =>
-            (a.duration ?? Duration.zero).compareTo(b.duration ?? Duration.zero));
+        journeys.sort(
+          (a, b) => (a.duration ?? Duration.zero).compareTo(
+            b.duration ?? Duration.zero,
+          ),
+        );
       case JourneySortMode.transfers:
         journeys.sort((a, b) => a.transfers.compareTo(b.transfers));
       case JourneySortMode.reliability:
         // Needs the per-journey prediction, which is async and lives in its
         // own provider — sorted by [reliabilitySortedJourneysProvider], which
         // starts from this (departure-ordered) list.
-        journeys.sort((a, b) =>
-            (a.departure ?? DateTime(0)).compareTo(b.departure ?? DateTime(0)));
+        journeys.sort(
+          (a, b) => (a.departure ?? DateTime(0)).compareTo(
+            b.departure ?? DateTime(0),
+          ),
+        );
       case JourneySortMode.buffer:
         // Only reachable without a deadline (the case above returns) — e.g. the
         // rider picked "Puffer" and then switched back to a departure search.
         // Falls back to departure order instead of pretending to rank slack
         // there is no appointment to measure against.
-        journeys.sort((a, b) =>
-            (a.departure ?? DateTime(0)).compareTo(b.departure ?? DateTime(0)));
+        journeys.sort(
+          (a, b) => (a.departure ?? DateTime(0)).compareTo(
+            b.departure ?? DateTime(0),
+          ),
+        );
     }
     return journeys;
   }
@@ -232,10 +245,10 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
   /// with it — without a deadline there is nothing to have slack in front of,
   /// and a filter left set would silently narrow the next search.
   void resetToNow() => state = state.copyWith(
-        clearDateTime: true,
-        isArrival: false,
-        clearMinBufferMinutes: true,
-      );
+    clearDateTime: true,
+    isArrival: false,
+    clearMinBufferMinutes: true,
+  );
   void setSortMode(JourneySortMode mode) =>
       state = state.copyWith(sortMode: mode);
 
@@ -295,8 +308,7 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
   /// Restrict the search to Deutschlandticket-covered connections. Like the
   /// product filter this is part of the query, so it re-runs the search.
   void toggleOnlyDeutschlandTicket() {
-    state = state.copyWith(
-        onlyDeutschlandTicket: !state.onlyDeutschlandTicket);
+    state = state.copyWith(onlyDeutschlandTicket: !state.onlyDeutschlandTicket);
     if (state.result != null) search();
   }
 
@@ -346,15 +358,18 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
           error: from == null && to == null
               ? 'Start und Ziel eingeben.'
               : from == null
-                  ? 'Startstation nicht gefunden.'
-                  : 'Zielstation nicht gefunden.',
+              ? 'Startstation nicht gefunden.'
+              : 'Zielstation nicht gefunden.',
         );
         return;
       }
 
-      AppLog.log('search ${from.name} (${from.id}) → ${to.name} (${to.id}) '
-          'at ${state.dateTime ?? "now"} '
-          '${state.useArrival ? "[arrival]" : "[departure]"}', tag: 'journey');
+      AppLog.log(
+        'search ${from.name} (${from.id}) → ${to.name} (${to.id}) '
+        'at ${state.dateTime ?? "now"} '
+        '${state.useArrival ? "[arrival]" : "[departure]"}',
+        tag: 'journey',
+      );
 
       // DB Vendo (DB Navigator backend) is the only working journey source:
       // it returns journeys WITH prices and is not Akamai-gated. The old
@@ -369,7 +384,8 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
       // 5-minute changes after the fact (#19). An explicit wish from the
       // options sheet wins over the profile's guess; null for fast/normal.
       final fromProfile = options.minTransferMinutes == null;
-      final minTransfer = options.minTransferMinutes ??
+      final minTransfer =
+          options.minTransferMinutes ??
           settings.transferProfile.minTransferMinutes;
 
       Future<JourneyResult> run({int? minTransferMinutes}) =>
@@ -399,18 +415,24 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
       // options sheet is a filter like any other — quietly ignoring it would
       // be worse than an empty list they know how to widen.
       if (result.journeys.isEmpty && minTransfer != null && fromProfile) {
-        AppLog.log('no journeys with minUmstiegsdauer=$minTransfer — retrying',
-            tag: 'journey');
+        AppLog.log(
+          'no journeys with minUmstiegsdauer=$minTransfer — retrying',
+          tag: 'journey',
+        );
         result = await run();
         relaxed = result.journeys.isNotEmpty;
       }
-      AppLog.log('vendo result: ${result.journeys.length} journeys'
-          '${relaxed ? " (profile relaxed)" : ""}', tag: 'journey');
+      AppLog.log(
+        'vendo result: ${result.journeys.length} journeys'
+        '${relaxed ? " (profile relaxed)" : ""}',
+        tag: 'journey',
+      );
       state = state.copyWith(
-          result: result,
-          isLoading: false,
-          transferProfileRelaxed: relaxed,
-          resultSerial: state.resultSerial + 1);
+        result: result,
+        isLoading: false,
+        transferProfileRelaxed: relaxed,
+        resultSerial: state.resultSerial + 1,
+      );
     } catch (e) {
       AppLog.log('search FAILED: $e', tag: 'journey');
       state = state.copyWith(error: 'Fehler: $e', isLoading: false);
@@ -457,7 +479,7 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
         minTransferMinutes: state.transferProfileRelaxed
             ? null
             : options.minTransferMinutes ??
-                settings.transferProfile.minTransferMinutes,
+                  settings.transferProfile.minTransferMinutes,
         maxTransfers: options.maxTransfers,
         viaLocations: options.viaLocationsJson,
       );
@@ -465,21 +487,22 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
       // Dedupe against what we already show (paged windows can overlap).
       final existing = current?.journeys ?? const [];
       final seen = existing.map(_journeyKey).toSet();
-      final fresh =
-          more.journeys.where((j) => seen.add(_journeyKey(j))).toList();
+      final fresh = more.journeys
+          .where((j) => seen.add(_journeyKey(j)))
+          .toList();
 
       final combined = JourneyResult(
-        journeys: earlier
-            ? [...fresh, ...existing]
-            : [...existing, ...fresh],
+        journeys: earlier ? [...fresh, ...existing] : [...existing, ...fresh],
         // Advance only the token we scrolled; keep the other end intact.
         earlierRef: earlier ? more.earlierRef : current?.earlierRef,
         laterRef: earlier ? current?.laterRef : more.laterRef,
       );
       state = state.copyWith(result: combined, isLoading: false);
     } catch (e) {
-      AppLog.log('loadMore(${earlier ? "earlier" : "later"}) failed: $e',
-          tag: 'journey');
+      AppLog.log(
+        'loadMore(${earlier ? "earlier" : "later"}) failed: $e',
+        tag: 'journey',
+      );
       state = state.copyWith(isLoading: false);
     }
   }
@@ -497,7 +520,8 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
 
 final journeySearchProvider =
     NotifierProvider<JourneySearchNotifier, JourneySearchState>(
-        JourneySearchNotifier.new);
+      JourneySearchNotifier.new,
+    );
 
 /// Which connection is the fastest / cheapest / safest / best compromise of
 /// the current result list (#11, point 9).
@@ -506,16 +530,16 @@ final journeySearchProvider =
 /// already request, so the labels fill in as those land — no extra traffic.
 final journeyHighlightsProvider =
     Provider.autoDispose<Map<JourneyHighlight, Journey>>((ref) {
-  final journeys = ref.watch(journeySearchProvider).sortedJourneys;
-  return journeyHighlights(
-    journeys,
-    (j) => ref
-        .watch(journeyPredictionProvider(PredictionRequest(j)))
-        .asData
-        ?.value
-        ?.reliabilityScore,
-  );
-});
+      final journeys = ref.watch(journeySearchProvider).sortedJourneys;
+      return journeyHighlights(
+        journeys,
+        (j) => ref
+            .watch(journeyPredictionProvider(PredictionRequest(j)))
+            .asData
+            ?.value
+            ?.reliabilityScore,
+      );
+    });
 
 /// The result list the UI renders — [JourneySearchState.sortedJourneys], except
 /// in `reliability` mode, where it's re-ordered by the prediction model.
@@ -526,8 +550,9 @@ final journeyHighlightsProvider =
 /// missing) a score keep their departure order at the bottom instead of
 /// jumping around. The requests are the same ones the badges already make, so
 /// this mode costs nothing extra.
-final reliabilitySortedJourneysProvider =
-    Provider.autoDispose<List<Journey>>((ref) {
+final reliabilitySortedJourneysProvider = Provider.autoDispose<List<Journey>>((
+  ref,
+) {
   final state = ref.watch(journeySearchProvider);
   final journeys = state.sortedJourneys;
   if (state.sortMode != JourneySortMode.reliability) return journeys;

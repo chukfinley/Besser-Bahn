@@ -17,27 +17,40 @@ void main() {
 
     test('lifted at ≥20 min late or on cancellation, on an ICE', () {
       expect(
-          LiveTripTracker.zugbindungAufgehoben(
-              product: 'nationalExpress', delaySeconds: 20 * 60),
-          isTrue);
+        LiveTripTracker.zugbindungAufgehoben(
+          product: 'nationalExpress',
+          delaySeconds: 20 * 60,
+        ),
+        isTrue,
+      );
       expect(
-          LiveTripTracker.zugbindungAufgehoben(
-              product: 'nationalExpress', cancelled: true),
-          isTrue);
+        LiveTripTracker.zugbindungAufgehoben(
+          product: 'nationalExpress',
+          cancelled: true,
+        ),
+        isTrue,
+      );
     });
 
     test('not lifted below 20 min', () {
       expect(
-          LiveTripTracker.zugbindungAufgehoben(
-              product: 'nationalExpress', delaySeconds: 19 * 60),
-          isFalse);
+        LiveTripTracker.zugbindungAufgehoben(
+          product: 'nationalExpress',
+          delaySeconds: 19 * 60,
+        ),
+        isFalse,
+      );
     });
 
     test('a late regional train never lifts a Zugbindung (it has none)', () {
       expect(
-          LiveTripTracker.zugbindungAufgehoben(
-              product: 'regional', delaySeconds: 60 * 60, cancelled: true),
-          isFalse);
+        LiveTripTracker.zugbindungAufgehoben(
+          product: 'regional',
+          delaySeconds: 60 * 60,
+          cancelled: true,
+        ),
+        isFalse,
+      );
     });
   });
 }

@@ -44,9 +44,10 @@ class LiveUpdateService {
     final s = await LiveUpdate.isSupported();
     _supported = s;
     AppLog.log(
-        'live update: isSupported=$s '
-        '(Android 16 QPR1+/17 nötig UND „Livemeldungen" für die App an)',
-        tag: 'notify');
+      'live update: isSupported=$s '
+      '(Android 16 QPR1+/17 nötig UND „Livemeldungen" für die App an)',
+      tag: 'notify',
+    );
     return s;
   }
 
@@ -64,13 +65,19 @@ class LiveUpdateService {
   /// ordinary notification instead", not "something broke".
   static Future<bool> show(Journey journey, {DateTime? now}) async {
     if (_dismissed) {
-      AppLog.log('live update: übersprungen — vom Nutzer weggewischt (reset() '
-          'setzt das bei neuer Reise zurück)', tag: 'notify');
+      AppLog.log(
+        'live update: übersprungen — vom Nutzer weggewischt (reset() '
+        'setzt das bei neuer Reise zurück)',
+        tag: 'notify',
+      );
       return false;
     }
     if (!await isSupported()) {
-      AppLog.log('live update: NICHT gepostet — Gerät promotet es nicht '
-          '(isSupported=false)', tag: 'notify');
+      AppLog.log(
+        'live update: NICHT gepostet — Gerät promotet es nicht '
+        '(isSupported=false)',
+        tag: 'notify',
+      );
       return false;
     }
     _listenForDismissal();
@@ -78,14 +85,20 @@ class LiveUpdateService {
     final at = now ?? DateTime.now();
     final trip = summariseTrip(journey, at);
     if (trip.isEmpty) {
-      AppLog.log('live update: NICHT gepostet — Reise ohne verwertbare '
-          'Etappen/Zeiten (summariseTrip leer)', tag: 'notify');
+      AppLog.log(
+        'live update: NICHT gepostet — Reise ohne verwertbare '
+        'Etappen/Zeiten (summariseTrip leer)',
+        tag: 'notify',
+      );
       return false;
     }
     // Over and done: the Live Update's whole promise is that it is current.
     if (trip.finishedAt(at)) {
-      AppLog.log('live update: NICHT gepostet — Reise laut Zeiten schon '
-          'beendet, blende aus', tag: 'notify');
+      AppLog.log(
+        'live update: NICHT gepostet — Reise laut Zeiten schon '
+        'beendet, blende aus',
+        tag: 'notify',
+      );
       await hide();
       return false;
     }
@@ -99,13 +112,13 @@ class LiveUpdateService {
     final title = trip.cancelled
         ? '$head · fällt aus'
         : delay > 0
-            ? '$head · +$delay min'
-            : head;
+        ? '$head · +$delay min'
+        : head;
     final semantic = trip.cancelled
         ? LiveUpdateSemantic.danger
         : delay > 0
-            ? LiveUpdateSemantic.caution
-            : LiveUpdateSemantic.safe;
+        ? LiveUpdateSemantic.caution
+        : LiveUpdateSemantic.safe;
 
     try {
       final result = await LiveUpdate.post(
@@ -153,10 +166,11 @@ class LiveUpdateService {
       // seeing in the log.
       final live = await LiveUpdate.isPromoted();
       AppLog.log(
-          'live update [${result.style}]: "$title" · ${trip.segments.length} '
-          'Etappen, ${trip.transferPoints.length} Umstiege · '
-          'post.promoted=${result.promoted}, system.promoted=$live',
-          tag: 'notify');
+        'live update [${result.style}]: "$title" · ${trip.segments.length} '
+        'Etappen, ${trip.transferPoints.length} Umstiege · '
+        'post.promoted=${result.promoted}, system.promoted=$live',
+        tag: 'notify',
+      );
       return result.promoted;
     } catch (e) {
       AppLog.log('live update: POST fehlgeschlagen — $e', tag: 'notify');
@@ -167,7 +181,10 @@ class LiveUpdateService {
   /// The three figures the Android 17 template shows. Ignored below it, so the
   /// order matters only there: delay first, because it is the reason to look.
   static List<LiveUpdateMetric> _metrics(
-      LiveTripSummary trip, int semantic, DateTime now) {
+    LiveTripSummary trip,
+    int semantic,
+    DateTime now,
+  ) {
     final metrics = <LiveUpdateMetric>[
       LiveUpdateMetric.count(
         label: 'Verspätung',
@@ -180,15 +197,21 @@ class LiveUpdateService {
     // next stop, and when do I get off this train (transfer or final arrival).
     final nextName = _nextStop(trip, now)?.stop.name;
     if (nextName != null && nextName.isNotEmpty) {
-      metrics.add(LiveUpdateMetric.text(label: 'Nächster Halt', value: nextName));
+      metrics.add(
+        LiveUpdateMetric.text(label: 'Nächster Halt', value: nextName),
+      );
     }
     final legArr = _myStopArrival(trip);
     final finalArr = trip.arrival;
     final isTransfer =
         legArr != null && finalArr != null && legArr.isBefore(finalArr);
     if (legArr != null) {
-      metrics.add(LiveUpdateMetric.clock(
-          label: isTransfer ? 'Umstieg' : 'Ankunft', value: legArr));
+      metrics.add(
+        LiveUpdateMetric.clock(
+          label: isTransfer ? 'Umstieg' : 'Ankunft',
+          value: legArr,
+        ),
+      );
     }
     return metrics;
   }
@@ -224,9 +247,7 @@ class LiveUpdateService {
     // with a countdown, so the bar feels alive between stations.
     final next = _nextStop(trip, now);
     final where = next?.stop.name ?? leg.destination.name;
-    final at = next?.arrival ??
-        next?.departure ??
-        _myStopArrival(trip);
+    final at = next?.arrival ?? next?.departure ?? _myStopArrival(trip);
     if (at == null) return 'Nächster Halt: $where';
     final mins = at.difference(now).inMinutes;
     if (mins <= 1) return 'Gleich: $where';
@@ -237,7 +258,10 @@ class LiveUpdateService {
   /// train (transfer or final, with Gleis) and, on a multi-leg trip, where the
   /// whole journey ends. The passing stations never appear here.
   static String _journeyLine(
-      LiveTripSummary trip, Journey journey, DateTime now) {
+    LiveTripSummary trip,
+    Journey journey,
+    DateTime now,
+  ) {
     final leg = trip.currentLeg;
     final myArr = _myStopArrival(trip);
     final finalArr = trip.arrival;
@@ -248,8 +272,9 @@ class LiveUpdateService {
       final g = leg.arrivalPlatform;
       final gStr = (g != null && g.isNotEmpty) ? ' Gl $g' : '';
       parts.add(
-          '${isTransfer ? 'Umstieg' : 'Ziel'} ${leg.destination.name} '
-          '${myArr.hhmm}$gStr');
+        '${isTransfer ? 'Umstieg' : 'Ziel'} ${leg.destination.name} '
+        '${myArr.hhmm}$gStr',
+      );
     }
     if (isTransfer) {
       final rides = journey.legs.where((l) => !l.isWalking).toList();
@@ -328,7 +353,9 @@ class LiveUpdateService {
       final at = next.arrival ?? next.departure;
       if (at == null) return next.stop.name;
       final m = at.difference(now).inMinutes;
-      return m <= 1 ? 'Gleich ${next.stop.name}' : '${next.stop.name} in ${_mins(m)}';
+      return m <= 1
+          ? 'Gleich ${next.stop.name}'
+          : '${next.stop.name} in ${_mins(m)}';
     }
     return '';
   }

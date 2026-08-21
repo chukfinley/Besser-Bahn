@@ -20,10 +20,10 @@ class TripAttribute {
   });
 
   factory TripAttribute.fromDbWeb(Map<String, dynamic> json) => TripAttribute(
-        kategorie: json['kategorie'] as String? ?? '',
-        key: json['key'] as String? ?? '',
-        value: json['value'] as String? ?? '',
-      );
+    kategorie: json['kategorie'] as String? ?? '',
+    key: json['key'] as String? ?? '',
+    value: json['value'] as String? ?? '',
+  );
 }
 
 class Trip {
@@ -157,15 +157,18 @@ class Trip {
           .whereType<Map<String, dynamic>>()
           .where((f) => f['geometry'] != null)
           .map((f) {
-        final coords = (f['geometry'] as Map<String, dynamic>)['coordinates'];
-        if (coords is List && coords.length >= 2) {
-          return {
-            'lat': (coords[1] as num).toDouble(),
-            'lng': (coords[0] as num).toDouble(),
-          };
-        }
-        return <String, double>{};
-      }).where((m) => m.isNotEmpty).toList();
+            final coords =
+                (f['geometry'] as Map<String, dynamic>)['coordinates'];
+            if (coords is List && coords.length >= 2) {
+              return {
+                'lat': (coords[1] as num).toDouble(),
+                'lng': (coords[0] as num).toDouble(),
+              };
+            }
+            return <String, double>{};
+          })
+          .where((m) => m.isNotEmpty)
+          .toList();
     }
 
     return Trip(
@@ -221,9 +224,11 @@ class Trip {
           if (current.stop.hasLocation && next.stop.hasLocation) {
             // Straight chord between the two stops — the naive estimate. This
             // cuts across the landscape, so the marker floats off the rails.
-            var lat = current.stop.latitude! +
+            var lat =
+                current.stop.latitude! +
                 (next.stop.latitude! - current.stop.latitude!) * progress;
-            var lng = current.stop.longitude! +
+            var lng =
+                current.stop.longitude! +
                 (next.stop.longitude! - current.stop.longitude!) * progress;
 
             // Once the real DB track geometry is loaded, snap onto it: walk the
@@ -283,7 +288,11 @@ class Trip {
     var total = 0.0;
     for (var i = lo; i < hi; i++) {
       total += _dist(
-          poly[i]['lat']!, poly[i]['lng']!, poly[i + 1]['lat']!, poly[i + 1]['lng']!);
+        poly[i]['lat']!,
+        poly[i]['lng']!,
+        poly[i + 1]['lat']!,
+        poly[i + 1]['lng']!,
+      );
       seg.add(total);
     }
     if (total <= 0) return null;
@@ -309,7 +318,10 @@ class Trip {
   }
 
   static int _nearestIndex(
-      List<Map<String, double>> poly, double lat, double lng) {
+    List<Map<String, double>> poly,
+    double lat,
+    double lng,
+  ) {
     var best = 0;
     var bestD = double.infinity;
     for (var i = 0; i < poly.length; i++) {

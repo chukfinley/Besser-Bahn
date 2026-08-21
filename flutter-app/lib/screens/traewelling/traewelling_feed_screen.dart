@@ -64,17 +64,20 @@ class _TraewellingFeedScreenState extends ConsumerState<TraewellingFeedScreen> {
             child: SegmentedButton<_FeedSource>(
               segments: const [
                 ButtonSegment(
-                    value: _FeedSource.friends,
-                    label: Text('Freunde'),
-                    icon: Icon(Icons.group, size: 18)),
+                  value: _FeedSource.friends,
+                  label: Text('Freunde'),
+                  icon: Icon(Icons.group, size: 18),
+                ),
                 ButtonSegment(
-                    value: _FeedSource.global,
-                    label: Text('Global'),
-                    icon: Icon(Icons.public, size: 18)),
+                  value: _FeedSource.global,
+                  label: Text('Global'),
+                  icon: Icon(Icons.public, size: 18),
+                ),
                 ButtonSegment(
-                    value: _FeedSource.mine,
-                    label: Text('Meine'),
-                    icon: Icon(Icons.person, size: 18)),
+                  value: _FeedSource.mine,
+                  label: Text('Meine'),
+                  icon: Icon(Icons.person, size: 18),
+                ),
               ],
               selected: {_source},
               onSelectionChanged: (s) => setState(() => _source = s.first),
@@ -82,8 +85,7 @@ class _TraewellingFeedScreenState extends ConsumerState<TraewellingFeedScreen> {
           ),
           Expanded(
             child: feed.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => _error(context, username),
               data: (statuses) => RefreshIndicator(
                 onRefresh: () async => _refresh(username),
@@ -113,14 +115,14 @@ class _TraewellingFeedScreenState extends ConsumerState<TraewellingFeedScreen> {
   Widget _empty(ThemeData theme) {
     final (text, _) = switch (_source) {
       _FeedSource.friends => (
-          'Noch nichts im Feed.\nFolge Leuten oder schau dir „Global" an.',
-          null
-        ),
+        'Noch nichts im Feed.\nFolge Leuten oder schau dir „Global" an.',
+        null,
+      ),
       _FeedSource.global => ('Gerade keine Check-ins.', null),
       _FeedSource.mine => (
-          'Noch keine eigenen Fahrten.\nChecke im Zug über das Träwelling-Symbol ein.',
-          null
-        ),
+        'Noch keine eigenen Fahrten.\nChecke im Zug über das Träwelling-Symbol ein.',
+        null,
+      ),
     };
     return ListView(
       children: [
@@ -128,9 +130,11 @@ class _TraewellingFeedScreenState extends ConsumerState<TraewellingFeedScreen> {
         Icon(Icons.inbox, size: 56, color: theme.colorScheme.outline),
         const SizedBox(height: 12),
         Center(
-          child: Text(text,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: theme.colorScheme.outline)),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.colorScheme.outline),
+          ),
         ),
       ],
     );
@@ -145,26 +149,30 @@ class _TraewellingFeedScreenState extends ConsumerState<TraewellingFeedScreen> {
         await service.like(statusId);
       }
       _refresh(username);
-    } catch (_) {/* ignore — UI refreshes on next pull */}
+    } catch (_) {
+      /* ignore — UI refreshes on next pull */
+    }
   }
 
   Widget _error(BuildContext context, String? username) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48),
-              const SizedBox(height: 12),
-              const Text('Feed konnte nicht geladen werden.',
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => _refresh(username),
-                child: const Text('Erneut versuchen'),
-              ),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48),
+          const SizedBox(height: 12),
+          const Text(
+            'Feed konnte nicht geladen werden.',
+            textAlign: TextAlign.center,
           ),
-        ),
-      );
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: () => _refresh(username),
+            child: const Text('Erneut versuchen'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

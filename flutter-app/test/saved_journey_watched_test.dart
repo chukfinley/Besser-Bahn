@@ -3,18 +3,20 @@ import 'package:besser_bahn/models/library_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Map<String, dynamic> _journeyJson() => {
-      'legs': [
-        {
-          'origin': {'id': '8000199', 'name': 'Kiel Hbf'},
-          'destination': {'id': '8002549', 'name': 'Hamburg Hbf'},
-          'plannedDeparture': '2026-07-15T10:00:00.000',
-        }
-      ],
-    };
+  'legs': [
+    {
+      'origin': {'id': '8000199', 'name': 'Kiel Hbf'},
+      'destination': {'id': '8002549', 'name': 'Hamburg Hbf'},
+      'plannedDeparture': '2026-07-15T10:00:00.000',
+    },
+  ],
+};
 
 SavedJourney _saved({bool? watched}) {
   final j = SavedJourney(
-      journey: Journey.fromJson(_journeyJson()), savedAtMs: 42);
+    journey: Journey.fromJson(_journeyJson()),
+    savedAtMs: 42,
+  );
   return watched == null ? j : j.copyWith(watched: watched);
 }
 
@@ -31,19 +33,27 @@ void main() {
         'journey': _journeyJson(),
         'savedAtMs': 123,
       });
-      expect(old.watched, isTrue,
-          reason: 'an update must not take alerts away silently');
+      expect(
+        old.watched,
+        isTrue,
+        reason: 'an update must not take alerts away silently',
+      );
     });
 
     test('an explicit opt-out survives a round-trip to disk', () {
       final restored = SavedJourney.fromJson(_saved(watched: false).toJson());
-      expect(restored.watched, isFalse,
-          reason: 'switching tracking off must stick across a restart');
+      expect(
+        restored.watched,
+        isFalse,
+        reason: 'switching tracking off must stick across a restart',
+      );
     });
 
     test('an explicit opt-in survives a round-trip to disk', () {
-      expect(SavedJourney.fromJson(_saved(watched: true).toJson()).watched,
-          isTrue);
+      expect(
+        SavedJourney.fromJson(_saved(watched: true).toJson()).watched,
+        isTrue,
+      );
     });
 
     test('copyWith(watched:) leaves identity and save time alone', () {

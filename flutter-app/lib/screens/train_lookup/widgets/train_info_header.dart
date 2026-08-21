@@ -63,10 +63,7 @@ class TrainInfoHeader extends StatelessWidget {
     }
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: content,
-      ),
+      child: Padding(padding: const EdgeInsets.all(16), child: content),
     );
   }
 
@@ -76,115 +73,126 @@ class TrainInfoHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-            // Train name and direction
-            Row(
-              children: [
-                ProductBadge(label: trip.line.productBadge),
-                const SizedBox(width: 8),
-                Expanded(
-                  // Product lives in the badge; show the line number plus the
-                  // train number in parentheses after it (no repeated "RE").
-                  child: Text(
-                    trip.line.lineNumberWithFahrt,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
+        // Train name and direction
+        Row(
+          children: [
+            ProductBadge(label: trip.line.productBadge),
+            const SizedBox(width: 8),
+            Expanded(
+              // Product lives in the badge; show the line number plus the
+              // train number in parentheses after it (no repeated "RE").
+              child: Text(
+                trip.line.lineNumberWithFahrt,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                // Route map: hidden by default, opened fullscreen from here.
-                if (trip.stopovers.any((s) => s.stop.hasLocation))
-                  IconButton(
-                    icon: const Icon(Icons.map_outlined),
-                    tooltip: 'Streckenverlauf',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => openTrainMap(context, trip,
-                        coachSequence: coachSequence,
-                        boardingId: boardingId,
-                        alightingId: alightingId),
-                  ),
-                if (action != null) ...[
-                  const SizedBox(width: 4),
-                  action!,
-                ],
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '→ ${trip.direction}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant),
-            ),
-
-            // Per-train reliability (Anschluss/Pünktlichkeit for this leg).
-            if (predictionStrip != null) ...[
-              const SizedBox(height: 8),
-              predictionStrip!,
-            ],
-
-            // Who actually runs this train (erixx, metronom, DB Fernverkehr…) —
-            // DB's line label ("RE 83") hides it, so surface it with a small
-            // brand-coloured badge (#operator).
-            ...(() {
-              final op = operatorFor(
-                  productName: trip.line.productName,
-                  product: trip.line.product,
-                  name: trip.line.name);
-              final label = op?.name ?? trip.line.operatorName;
-              if (label == null) return const <Widget>[];
-              final color =
-                  op != null ? Color(op.color) : theme.colorScheme.primary;
-              return [
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration:
-                          BoxDecoration(color: color, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text('Betrieben von $label',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ];
-            })(),
-
-            // Endpoints/times are NOT repeated here — the Halte timeline below
-            // (same card) already shows origin, destination and their times.
-
-            // Live "next stop" — the one piece of run-level info the timeline
-            // doesn't surface at a glance.
-            if (trip.currentStop != null) ...[
-              const SizedBox(height: 8),
-              _infoChip(Icons.location_on,
-                  'Nächst: ${trip.currentStop!.stop.name}'),
-            ],
-
-            // Expected 2nd-class occupancy for the run.
-            if (trip.occupancy != OccupancyLevel.unknown) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  OccupancyIndicator(level: trip.occupancy),
-                  const SizedBox(width: 6),
-                  Text(
-                    trip.occupancy.expectedLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500),
-                  ),
-                ],
               ),
-              if (trip.occupancy.recommendsReservation) ...[
-                const SizedBox(height: 6),
-                _infoChip(
-                    Icons.event_seat, trip.occupancy.reservationHint),
+            ),
+            // Route map: hidden by default, opened fullscreen from here.
+            if (trip.stopovers.any((s) => s.stop.hasLocation))
+              IconButton(
+                icon: const Icon(Icons.map_outlined),
+                tooltip: 'Streckenverlauf',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => openTrainMap(
+                  context,
+                  trip,
+                  coachSequence: coachSequence,
+                  boardingId: boardingId,
+                  alightingId: alightingId,
+                ),
+              ),
+            if (action != null) ...[const SizedBox(width: 4), action!],
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '→ ${trip.direction}',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+
+        // Per-train reliability (Anschluss/Pünktlichkeit for this leg).
+        if (predictionStrip != null) ...[
+          const SizedBox(height: 8),
+          predictionStrip!,
+        ],
+
+        // Who actually runs this train (erixx, metronom, DB Fernverkehr…) —
+        // DB's line label ("RE 83") hides it, so surface it with a small
+        // brand-coloured badge (#operator).
+        ...(() {
+          final op = operatorFor(
+            productName: trip.line.productName,
+            product: trip.line.product,
+            name: trip.line.name,
+          );
+          final label = op?.name ?? trip.line.operatorName;
+          if (label == null) return const <Widget>[];
+          final color = op != null
+              ? Color(op.color)
+              : theme.colorScheme.primary;
+          return [
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Betrieben von $label',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
+            ),
+          ];
+        })(),
+
+        // Endpoints/times are NOT repeated here — the Halte timeline below
+        // (same card) already shows origin, destination and their times.
+
+        // Live "next stop" — the one piece of run-level info the timeline
+        // doesn't surface at a glance.
+        if (trip.currentStop != null) ...[
+          const SizedBox(height: 8),
+          _infoChip(
+            Icons.location_on,
+            'Nächst: ${trip.currentStop!.stop.name}',
+          ),
+        ],
+
+        // Expected 2nd-class occupancy for the run.
+        if (trip.occupancy != OccupancyLevel.unknown) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              OccupancyIndicator(level: trip.occupancy),
+              const SizedBox(width: 6),
+              Text(
+                trip.occupancy.expectedLabel,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
+          ),
+          if (trip.occupancy.recommendsReservation) ...[
+            const SizedBox(height: 6),
+            _infoChip(Icons.event_seat, trip.occupancy.reservationHint),
+          ],
+        ],
       ],
     );
   }

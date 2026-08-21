@@ -56,78 +56,78 @@ class _Backend {
   /// Answer everything 401, as the backend does once the session is dead.
   bool sessionDead = false;
 
-  List<_Req> of(String path) =>
-      requests.where((r) => r.path == path).toList();
+  List<_Req> of(String path) => requests.where((r) => r.path == path).toList();
 
   int count(String path) => of(path).length;
 
   http.Client client() => MockClient((req) async {
-        requests.add(_Req(req.method, req.url, req.headers));
-        final path = req.url.path;
+    requests.add(_Req(req.method, req.url, req.headers));
+    final path = req.url.path;
 
-        if (sessionDead) {
-          return http.Response('', 401);
-        }
-        if (rateLimited) {
-          return http.Response(
-              json.encode({'domain': 'MOB', 'code': 'RETRY', 'status': 'ERROR'}),
-              429,
-              headers: {'retry-after': '1'});
-        }
+    if (sessionDead) {
+      return http.Response('', 401);
+    }
+    if (rateLimited) {
+      return http.Response(
+        json.encode({'domain': 'MOB', 'code': 'RETRY', 'status': 'ERROR'}),
+        429,
+        headers: {'retry-after': '1'},
+      );
+    }
 
-        if (path == '/mob/kundenkonten/$_konto') {
-          return _json({
-            'kundenkontoId': _konto,
-            'kundennummer': '1234567890',
-            'vorname': 'Max',
-            'nachname': 'Mustermann',
-            'anrede': 'HR',
-            'geburtsdatum': '1990-01-01',
-            'kundendatensatzId': 'KD1',
-            'hauptadresse': {
-              'strasse': strasse,
-              'plz': '12345',
-              'ort': 'Musterstadt',
-              'land': 'DE',
-            },
-            'kundenprofile': [
-              {
-                'id': 'KP1',
-                'kontaktmailadresse': {'email': 'max@example.org'},
-              }
-            ],
-          });
-        }
-
-        // Conditional GET → 304 unless the caller deliberately skipped the
-        // If-None-Match header.
-        if (req.method == 'GET' &&
-            etag304 &&
-            req.headers.containsKey('If-None-Match')) {
-          return http.Response('', 304);
-        }
-
-        if (path == '/mob/kundenkonten/$_konto/bbStatus') {
-          return _json({
-            'activeBonusPoints': bonusPoints,
-            'activeStatusPoints': 50,
-            'statusLevel': '1',
-            'bbSubscription': false,
-          });
-        }
-        if (path == '/mob/emobilebahncards') return _json([]);
-        if (path == '/mob/reisenuebersicht') {
-          return _json({'auftragsIndizes': [], 'reiseIndizes': []});
-        }
-        if (path == '/mob/kundendatensatz/KD1/favoriten') return _json([]);
-        return http.Response('unexpected ${req.method} $path', 404);
+    if (path == '/mob/kundenkonten/$_konto') {
+      return _json({
+        'kundenkontoId': _konto,
+        'kundennummer': '1234567890',
+        'vorname': 'Max',
+        'nachname': 'Mustermann',
+        'anrede': 'HR',
+        'geburtsdatum': '1990-01-01',
+        'kundendatensatzId': 'KD1',
+        'hauptadresse': {
+          'strasse': strasse,
+          'plz': '12345',
+          'ort': 'Musterstadt',
+          'land': 'DE',
+        },
+        'kundenprofile': [
+          {
+            'id': 'KP1',
+            'kontaktmailadresse': {'email': 'max@example.org'},
+          },
+        ],
       });
+    }
+
+    // Conditional GET → 304 unless the caller deliberately skipped the
+    // If-None-Match header.
+    if (req.method == 'GET' &&
+        etag304 &&
+        req.headers.containsKey('If-None-Match')) {
+      return http.Response('', 304);
+    }
+
+    if (path == '/mob/kundenkonten/$_konto/bbStatus') {
+      return _json({
+        'activeBonusPoints': bonusPoints,
+        'activeStatusPoints': 50,
+        'statusLevel': '1',
+        'bbSubscription': false,
+      });
+    }
+    if (path == '/mob/emobilebahncards') return _json([]);
+    if (path == '/mob/reisenuebersicht') {
+      return _json({'auftragsIndizes': [], 'reiseIndizes': []});
+    }
+    if (path == '/mob/kundendatensatz/KD1/favoriten') return _json([]);
+    return http.Response('unexpected ${req.method} $path', 404);
+  });
 
   static http.Response _json(Object body) => http.Response.bytes(
-        utf8.encode(json.encode(body)),
-        200,
-        headers: {'content-type': 'application/json', 'etag': _etag},
-      );
+    utf8.encode(json.encode(body)),
+    200,
+    headers: {'content-type': 'application/json', 'etag': _etag},
+  );
 }
 
 /// A JWT whose payload carries the kundenkontoid claim the service decodes.
@@ -160,10 +160,13 @@ void main() {
       'db_kundenkonto_id': _konto,
     });
     backend = _Backend();
-    container = ProviderContainer(overrides: [
-      dbAccountServiceProvider
-          .overrideWithValue(DbAccountService(client: backend.client())),
-    ]);
+    container = ProviderContainer(
+      overrides: [
+        dbAccountServiceProvider.overrideWithValue(
+          DbAccountService(client: backend.client()),
+        ),
+      ],
+    );
     // The Profil tab watches all of these; they must be alive, or a refresh
     // would be building them for the first time rather than refreshing them.
     container.listen(dbAuthProvider, (_, _) {});
@@ -176,23 +179,32 @@ void main() {
   tearDown(() => container.dispose());
 
   group('pull-to-refresh reloads the whole account (#31)', () {
-    test('a profile change made outside the app shows up after one refresh',
-        () async {
-      await boot();
-      expect(container.read(dbAuthProvider).profile?.adresse?.strasse,
-          'Alte Straße 1');
+    test(
+      'a profile change made outside the app shows up after one refresh',
+      () async {
+        await boot();
+        expect(
+          container.read(dbAuthProvider).profile?.adresse?.strasse,
+          'Alte Straße 1',
+        );
 
-      // The user corrects their address on bahn.de, then pulls to refresh.
-      backend.strasse = 'Neue Straße 2';
-      await container.read(accountRefreshProvider).refresh();
+        // The user corrects their address on bahn.de, then pulls to refresh.
+        backend.strasse = 'Neue Straße 2';
+        await container.read(accountRefreshProvider).refresh();
 
-      expect(container.read(dbAuthProvider).profile?.adresse?.strasse,
+        expect(
+          container.read(dbAuthProvider).profile?.adresse?.strasse,
           'Neue Straße 2',
-          reason: 'the refresh must replace the profile, not keep the cache');
-      expect(container.read(dbAuthProvider).error, isNull);
-      expect(container.read(dbAuthProvider).lastRefreshedAt, isNotNull,
-          reason: '"Zuletzt aktualisiert" proves the refresh actually ran');
-    });
+          reason: 'the refresh must replace the profile, not keep the cache',
+        );
+        expect(container.read(dbAuthProvider).error, isNull);
+        expect(
+          container.read(dbAuthProvider).lastRefreshedAt,
+          isNotNull,
+          reason: '"Zuletzt aktualisiert" proves the refresh actually ran',
+        );
+      },
+    );
 
     test('BahnBonus updates without a logout/login round-trip', () async {
       await boot();
@@ -201,10 +213,14 @@ void main() {
       backend.bonusPoints = 250;
       await container.read(accountRefreshProvider).refresh();
 
-      expect(container.read(bahnbonusProvider).value?.activeBonusPoints, 250,
-          reason: 'this is the report: points only moved after re-login, '
-              'because the forced refresh was answered 304 / rate-limited '
-              'and fell back to the disk cache');
+      expect(
+        container.read(bahnbonusProvider).value?.activeBonusPoints,
+        250,
+        reason:
+            'this is the report: points only moved after re-login, '
+            'because the forced refresh was answered 304 / rate-limited '
+            'and fell back to the disk cache',
+      );
     });
 
     test('one refresh = exactly one request per source', () async {
@@ -217,88 +233,113 @@ void main() {
       // The profile is requested by the refresh itself AND, indirectly, by the
       // trip overview (which needs kundenprofilId) — the service's coalescer
       // must collapse those into one POST.
-      expect(backend.count('/mob/kundenkonten/$_konto'), 1,
-          reason: 'duplicate concurrent requests are what trip the 429 that '
-              'makes a refresh silently serve the stale cache');
+      expect(
+        backend.count('/mob/kundenkonten/$_konto'),
+        1,
+        reason:
+            'duplicate concurrent requests are what trip the 429 that '
+            'makes a refresh silently serve the stale cache',
+      );
       expect(backend.count('/mob/kundenkonten/$_konto/bbStatus'), 1);
       expect(backend.count('/mob/emobilebahncards'), 1);
       expect(backend.count('/mob/reisenuebersicht'), 1);
     });
 
-    test('a forced refresh skips If-None-Match, so it cannot be told 304',
-        () async {
-      await boot();
-      // The cold start stored an ETag for every GET.
-      expect(
-        backend
-            .of('/mob/kundenkonten/$_konto/bbStatus')
-            .every((r) => !r.headers.containsKey('If-None-Match')),
-        isTrue,
-        reason: 'nothing was cached yet on the very first read',
-      );
-      backend.requests.clear();
+    test(
+      'a forced refresh skips If-None-Match, so it cannot be told 304',
+      () async {
+        await boot();
+        // The cold start stored an ETag for every GET.
+        expect(
+          backend
+              .of('/mob/kundenkonten/$_konto/bbStatus')
+              .every((r) => !r.headers.containsKey('If-None-Match')),
+          isTrue,
+          reason: 'nothing was cached yet on the very first read',
+        );
+        backend.requests.clear();
 
-      await container.read(accountRefreshProvider).refresh();
-      await _settle();
+        await container.read(accountRefreshProvider).refresh();
+        await _settle();
 
-      for (final path in [
-        '/mob/kundenkonten/$_konto/bbStatus',
-        '/mob/emobilebahncards',
-        '/mob/reisenuebersicht',
-      ]) {
-        expect(backend.of(path).single.headers.containsKey('If-None-Match'),
+        for (final path in [
+          '/mob/kundenkonten/$_konto/bbStatus',
+          '/mob/emobilebahncards',
+          '/mob/reisenuebersicht',
+        ]) {
+          expect(
+            backend.of(path).single.headers.containsKey('If-None-Match'),
             isFalse,
-            reason: '$path was fetched conditionally — the server answers 304 '
-                'and the user keeps staring at the old value');
-      }
-    });
+            reason:
+                '$path was fetched conditionally — the server answers 304 '
+                'and the user keeps staring at the old value',
+          );
+        }
+      },
+    );
 
-    test('a second pull while one runs joins it instead of doubling everything',
-        () async {
-      await boot();
-      backend.requests.clear();
+    test(
+      'a second pull while one runs joins it instead of doubling everything',
+      () async {
+        await boot();
+        backend.requests.clear();
 
-      final refresher = container.read(accountRefreshProvider);
-      await Future.wait([refresher.refresh(), refresher.refresh()]);
-      await _settle();
+        final refresher = container.read(accountRefreshProvider);
+        await Future.wait([refresher.refresh(), refresher.refresh()]);
+        await _settle();
 
-      expect(backend.count('/mob/kundenkonten/$_konto'), 1);
-      expect(backend.count('/mob/kundenkonten/$_konto/bbStatus'), 1);
-      expect(backend.count('/mob/reisenuebersicht'), 1);
-    });
+        expect(backend.count('/mob/kundenkonten/$_konto'), 1);
+        expect(backend.count('/mob/kundenkonten/$_konto/bbStatus'), 1);
+        expect(backend.count('/mob/reisenuebersicht'), 1);
+      },
+    );
 
-    test('the automatic resume refresh is throttled, the manual pull is not',
-        () async {
-      await boot();
-      backend.requests.clear();
+    test(
+      'the automatic resume refresh is throttled, the manual pull is not',
+      () async {
+        await boot();
+        backend.requests.clear();
 
-      // Resume right after the cold start already refreshed → skipped.
-      await container.read(accountRefreshProvider).refresh(auto: true);
-      expect(backend.requests, isEmpty,
-          reason: 'resume fires far more often than the account changes');
+        // Resume right after the cold start already refreshed → skipped.
+        await container.read(accountRefreshProvider).refresh(auto: true);
+        expect(
+          backend.requests,
+          isEmpty,
+          reason: 'resume fires far more often than the account changes',
+        );
 
-      // A user-pulled refresh is never throttled.
-      await container.read(accountRefreshProvider).refresh();
-      expect(backend.count('/mob/kundenkonten/$_konto'), 1);
-    });
+        // A user-pulled refresh is never throttled.
+        await container.read(accountRefreshProvider).refresh();
+        expect(backend.count('/mob/kundenkonten/$_konto'), 1);
+      },
+    );
 
-    test('a failed refresh surfaces as an error instead of a silent no-op',
-        () async {
-      await boot();
-      expect(container.read(dbAuthProvider).isLoggedIn, isTrue);
+    test(
+      'a failed refresh surfaces as an error instead of a silent no-op',
+      () async {
+        await boot();
+        expect(container.read(dbAuthProvider).isLoggedIn, isTrue);
 
-      // Every endpoint 429s from here on — the state the rate limiter leaves
-      // the app in, and the reason a pull used to change nothing at all.
-      backend.rateLimited = true;
-      await container.read(accountRefreshProvider).refresh();
+        // Every endpoint 429s from here on — the state the rate limiter leaves
+        // the app in, and the reason a pull used to change nothing at all.
+        backend.rateLimited = true;
+        await container.read(accountRefreshProvider).refresh();
 
-      final auth = container.read(dbAuthProvider);
-      expect(auth.error, contains('Aktualisieren fehlgeschlagen'),
-          reason: 'a refresh that could not run must say so — silently '
-              'showing the old data is what made this look broken');
-      expect(auth.profile, isNotNull,
-          reason: 'a failed refresh must not sign the user out');
-    });
+        final auth = container.read(dbAuthProvider);
+        expect(
+          auth.error,
+          contains('Aktualisieren fehlgeschlagen'),
+          reason:
+              'a refresh that could not run must say so — silently '
+              'showing the old data is what made this look broken',
+        );
+        expect(
+          auth.profile,
+          isNotNull,
+          reason: 'a failed refresh must not sign the user out',
+        );
+      },
+    );
   });
 
   /// BB-1: "Account-Refresh geht nicht". The tokens were gone from secure
@@ -307,29 +348,38 @@ void main() {
   /// abgelaufen" — a refresh that could never work, with no way out but a
   /// manual logout the user had no reason to try.
   group('a dead session signs out instead of faking a login (BB-1)', () {
-    test('no token on disk at cold start → signed out, cached profile dropped',
-        () async {
-      await boot();
-      expect(container.read(dbAuthProvider).isLoggedIn, isTrue);
+    test(
+      'no token on disk at cold start → signed out, cached profile dropped',
+      () async {
+        await boot();
+        expect(container.read(dbAuthProvider).isLoggedIn, isTrue);
 
-      // The refresh token is gone (revoked upstream, or the store was wiped)
-      // — but the profile cache in SharedPreferences survives, as on a real
-      // device. Relaunch: fresh container, same disks.
-      container.dispose();
-      FlutterSecureStorage.setMockInitialValues({});
-      container = ProviderContainer(overrides: [
-        dbAccountServiceProvider
-            .overrideWithValue(DbAccountService(client: backend.client())),
-      ]);
-      container.listen(dbAuthProvider, (_, _) {});
-      await _settle();
+        // The refresh token is gone (revoked upstream, or the store was wiped)
+        // — but the profile cache in SharedPreferences survives, as on a real
+        // device. Relaunch: fresh container, same disks.
+        container.dispose();
+        FlutterSecureStorage.setMockInitialValues({});
+        container = ProviderContainer(
+          overrides: [
+            dbAccountServiceProvider.overrideWithValue(
+              DbAccountService(client: backend.client()),
+            ),
+          ],
+        );
+        container.listen(dbAuthProvider, (_, _) {});
+        await _settle();
 
-      final auth = container.read(dbAuthProvider);
-      expect(auth.initialized, isTrue);
-      expect(auth.isLoggedIn, isFalse,
-          reason: 'without a token every request 401s — showing the cached '
-              'profile just hides a login the user has to redo');
-    });
+        final auth = container.read(dbAuthProvider);
+        expect(auth.initialized, isTrue);
+        expect(
+          auth.isLoggedIn,
+          isFalse,
+          reason:
+              'without a token every request 401s — showing the cached '
+              'profile just hides a login the user has to redo',
+        );
+      },
+    );
 
     test('a 401 during a refresh signs out and says why', () async {
       await boot();

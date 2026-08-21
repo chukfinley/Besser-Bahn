@@ -77,7 +77,7 @@ enum BahnCardType {
   final String classValue;
   const BahnCardType(this.label, this.apiValue, this.classValue);
 
-  /// DB Vendo reduction token "<ART> <KLASSE>" for the `reisende` payload.
+  /// DB Vendo reduction token `"<ART> <KLASSE>"` for the `reisende` payload.
   String get vendoErmaessigung => this == BahnCardType.none
       ? 'KEINE_ERMAESSIGUNG KLASSENLOS'
       : '$apiValue $classValue';

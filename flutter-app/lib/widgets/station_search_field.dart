@@ -216,7 +216,7 @@ class _StationSearchFieldState extends ConsumerState<StationSearchField> {
                     );
                   },
                   loading: _busy,
-                  error: (_, __) => _notice(
+                  error: (_, _) => _notice(
                     context,
                     'Suche gerade nicht erreichbar — bitte erneut versuchen.',
                     icon: Icons.cloud_off,

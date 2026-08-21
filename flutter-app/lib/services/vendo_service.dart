@@ -144,15 +144,14 @@ class VendoService {
             'zeitPunktArt': isArrival ? 'ANKUNFT' : 'ABFAHRT',
           },
           'zielLocationId': toLocationId,
-          if (minTransferMinutes != null)
-            'minUmstiegsdauer': minTransferMinutes,
-          if (maxTransfers != null) 'maxUmstiege': maxTransfers,
+          'minUmstiegsdauer': ?minTransferMinutes,
+          'maxUmstiege': ?maxTransfers,
           if (viaLocations != null && viaLocations.isNotEmpty)
             'viaLocations': viaLocations,
           // Earlier/later pagination: the DB Navigator backend returns
           // frueherContext/spaeterContext tokens; replaying one here scrolls
           // the result window. Field is `context` (English), not `kontext`.
-          if (context != null) 'context': context,
+          'context': ?context,
         },
       },
       'reisendenProfil': {
@@ -399,7 +398,7 @@ class VendoService {
           'zeitPunktArt': 'ANKUNFT',
         },
         'zielLocationId': zielLocationId,
-        if (context != null) 'context': context,
+        'context': ?context,
       },
     };
     final url = '$_base/trip/weitereabfahrten';

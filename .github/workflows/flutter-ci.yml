@@ -1,0 +1,51 @@
+name: Flutter CI
+
+on:
+  pull_request:
+    paths:
+      - "flutter-app/**"
+      - ".github/workflows/flutter-ci.yml"
+  push:
+    branches:
+      - main
+      - "chore/**"
+    paths:
+      - "flutter-app/**"
+      - ".github/workflows/flutter-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The SDK version comes from pubspec.yaml (`environment: flutter:`), the
+      # same line IzzyOnDroid's reproducible-build script parses. Pinning it a
+      # second time here would let CI drift away from the release toolchain.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter-app/pubspec.yaml
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        working-directory: flutter-app
+        run: flutter --version
+
+      - name: Get dependencies
+        working-directory: flutter-app
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: flutter-app
+        run: flutter analyze
+
+      - name: Test
+        working-directory: flutter-app
+        run: flutter test

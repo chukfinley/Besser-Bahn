@@ -48,7 +48,7 @@ void main() {
         overrides: [hafasServiceProvider.overrideWithValue(hafas)]);
     addTearDown(c.dispose);
     // Keep the auto-dispose provider alive for the length of the test.
-    addTearDown(c.listen(stationSearchProvider, (_, __) {}).close);
+    addTearDown(c.listen(stationSearchProvider, (_, _) {}).close);
     return c;
   }
 

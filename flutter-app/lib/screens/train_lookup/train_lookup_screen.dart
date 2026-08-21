@@ -314,7 +314,7 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         itemCount: trains.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final train = trains[index];
           return ActionChip(

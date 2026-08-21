@@ -121,7 +121,7 @@ class HomeOptionsCard extends StatelessWidget {
                   vertical: 12,
                 ),
               ),
-              value: selectedBahnCard,
+              initialValue: selectedBahnCard,
               items: bahnCardOptions.map((
                 option,
               ) {

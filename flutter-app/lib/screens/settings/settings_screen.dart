@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -543,19 +541,28 @@ class SettingsScreen extends ConsumerWidget {
                     color: Theme.of(ctx).colorScheme.onSurfaceVariant),
               ),
             ),
-            for (final p in TransferProfile.values)
-              RadioListTile<TransferProfile>(
-                value: p,
-                groupValue: settings.transferProfile,
-                title: Text('${p.emoji}  ${p.label}'),
-                subtitle: Text(p.hint),
-                onChanged: (v) {
-                  if (v != null) {
-                    ref.read(settingsProvider.notifier).setTransferProfile(v);
-                  }
-                  Navigator.pop(ctx);
-                },
+            // The group value and the handler live on the RadioGroup ancestor
+            // since Flutter 3.32; the tiles only carry their own value.
+            RadioGroup<TransferProfile>(
+              groupValue: settings.transferProfile,
+              onChanged: (v) {
+                if (v != null) {
+                  ref.read(settingsProvider.notifier).setTransferProfile(v);
+                }
+                Navigator.pop(ctx);
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final p in TransferProfile.values)
+                    RadioListTile<TransferProfile>(
+                      value: p,
+                      title: Text('${p.emoji}  ${p.label}'),
+                      subtitle: Text(p.hint),
+                    ),
+                ],
               ),
+            ),
           ],
         ),
       ),
@@ -736,12 +743,10 @@ Future<void> _createBackup(BuildContext context) async {
 /// launch, so the running app still holds the old data until it does that
 /// again.
 Future<void> _restoreBackup(BuildContext context) async {
-  final picked = await FilePicker.platform.pickFiles(withData: true);
-  final file = picked?.files.firstOrNull;
+  final file = await FilePicker.pickFile();
   if (file == null || !context.mounted) return;
-  final bytes = file.bytes ??
-      (file.path != null ? await File(file.path!).readAsBytes() : null);
-  if (bytes == null || !context.mounted) return;
+  final bytes = await file.readAsBytes();
+  if (!context.mounted) return;
 
   final password = await _askPassword(context, confirm: false);
   if (password == null || !context.mounted) return;

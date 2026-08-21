@@ -75,7 +75,7 @@ Map<String, dynamic> _conn(
 String _body(List<Map<String, dynamic>> conns, {String? earlier}) =>
     json.encode({
       'verbindungen': conns,
-      if (earlier != null) 'frueherContext': earlier,
+      'frueherContext': ?earlier,
     });
 
 /// What one captured search asked for.

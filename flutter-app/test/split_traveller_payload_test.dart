@@ -104,7 +104,7 @@ void main() {
             weitere: halbtax,
             sba: sba,
           ),
-          const Traveler(typ: TravelerType.familienkind, alter: 8),
+          Traveler(typ: TravelerType.familienkind, alter: 8),
         ],
       ));
       notifier.setBahnCard(BahnCardType.bc25_2);

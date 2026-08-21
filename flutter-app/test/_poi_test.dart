@@ -12,6 +12,7 @@ void main() {
     double mx(double lon) => (lon - p7.longitude) * mlon;
     double my(double lat) => (lat - p7.latitude) * 111320.0;
     for (final p in map.platforms) {
+      // ignore: avoid_print — this file is a hand-run probe, not an assertion test.
       print('Gleis ${p.name}: x=${mx(p.longitude).toStringAsFixed(0)} y=${my(p.latitude).toStringAsFixed(0)} level=${p.level}');
     }
   });

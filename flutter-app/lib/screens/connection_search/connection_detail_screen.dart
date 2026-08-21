@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_log.dart';
+import '../../core/cache/cache_entry.dart';
 import '../../core/extensions.dart';
 import '../../core/missed_connection.dart';
 import '../../core/share_text.dart';
@@ -55,8 +56,9 @@ import 'widgets/transfer_coach_hint.dart';
 /// In-memory cache (app session) so a leg's train data is fetched once and
 /// reused — scrolling away and back never re-downloads or rebuilds from
 /// scratch; cached data shows instantly and refreshes in the background.
-final Map<String, Trip> _tripCache = {};
-final Map<String, CoachSequence> _coachCache = {};
+final Map<String, CacheEntry<Trip>> _tripCache = {};
+
+final Map<String, CacheEntry<CoachSequence>> _coachCache = {};
 
 /// Full multi-leg connection as ONE screen: each train's complete detail
 /// (header, live map, coach sequence, stops) stacked vertically — scroll down
@@ -253,7 +255,7 @@ class _ConnectionDetailScreenState
     if (destination == null || destination.vendoLocationId.isEmpty) return null;
     final prevIndex = legs.indexOf(prev);
     if (prevIndex < 0) return null;
-    final trip = prev.tripId != null ? _tripCache[prev.tripId] : null;
+    final trip = prev.tripId != null ? _tripCache[prev.tripId]?.data : null;
     final stops = alightStopsOfLeg(prev, trip: trip);
     if (stops.length < 3) return null; // no stop between board and change
     return EarlierAlightInput(
@@ -777,7 +779,11 @@ class _ConnectionDetailScreenState
       ShareParams(
         // The refreshed per-leg runs we already hold → live arrival platform/time
         // (a Gleiswechsel/delay the search snapshot missed, #50).
-        text: etaShareText(journey, link, live: _tripCache),
+        text: etaShareText(
+          journey,
+          link,
+          live: {for (final e in _tripCache.entries) e.key: e.value.data},
+        ),
         subject: 'Meine Ankunft — ${journey.destination?.name ?? 'Ziel'}',
       ),
     );
@@ -965,7 +971,8 @@ class _ConnectionDetailScreenState
     // handed over — trimmed to the ridden section, never the whole run (#22).
     final stops = splitStopsFromJourney(
       journey,
-      tripFor: (leg) => leg.tripId != null ? _tripCache[leg.tripId] : null,
+      tripFor: (leg) =>
+          leg.tripId != null ? _tripCache[leg.tripId]?.data : null,
     );
 
     if (stops.length < 2) {
@@ -1381,43 +1388,43 @@ class _ConnectionDetailScreenState
     return null;
   }
 
-  /// Freshest arrival of [leg] at its destination: the live time from the
-  /// background-refreshed trip when we have it, else the leg's search-time
-  /// value. This is what lets a delay shrink a transfer window after the fact.
   DateTime? _liveArrivalOf(JourneyLeg leg) {
-    final trip = leg.tripId != null ? _tripCache[leg.tripId] : null;
+    final trip = leg.tripId != null ? _tripCache[leg.tripId]?.data : null;
+
     final so = trip != null ? _stopFor(trip, leg.destination) : null;
+
     return so?.arrival ?? leg.arrival;
   }
 
-  /// Freshest departure of [leg] from its origin.
+  /// Freshest arrival of [leg] at its destination: the live time from the
+  /// background-refreshed trip when we have it, else the leg's search-time
+  /// value. This is what lets a delay shrink a transfer window after the fact.
   DateTime? _liveDepartureOf(JourneyLeg leg) {
-    final trip = leg.tripId != null ? _tripCache[leg.tripId] : null;
+    final trip = leg.tripId != null ? _tripCache[leg.tripId]?.data : null;
+
     final so = trip != null ? _stopFor(trip, leg.origin) : null;
     return so?.departure ?? leg.departure;
   }
+
+  /// Freshest departure of [leg] from its origin.
 
   /// Freshest arrival Gleis of [leg] at its destination — the live `ezGleis`
   /// from the refreshed run, not the platform the search happened to return.
   /// A Gleiswechsel announced after the search otherwise kept the old number
   /// on the transfer row and on the platform-to-platform map (#50).
   String? _livePlatformAtArrival(JourneyLeg leg) {
-    final trip = leg.tripId != null ? _tripCache[leg.tripId] : null;
+    final trip = _tripCache[leg.tripId]?.data;
     final so = trip != null ? _stopFor(trip, leg.destination) : null;
     return so?.platform ?? leg.arrivalPlatform;
   }
 
-  /// Freshest departure Gleis of [leg] at its origin — see above.
-  ///
-  /// For a bus in Schleswig-Holstein the regional backend gets the last word:
-  /// it is the only source that knows a bay has been closed and the departure
-  /// moved (Kiel Hbf B1 → B2), while DB and DELFI both still say B1. Everywhere
-  /// else, and for every train, this reads exactly as before.
   String? _livePlatformAtDeparture(JourneyLeg leg) {
     final moved = _movedBay(leg);
     if (moved != null) return moved.live;
-    final trip = leg.tripId != null ? _tripCache[leg.tripId] : null;
+
+    final trip = leg.tripId != null ? _tripCache[leg.tripId]?.data : null;
     final so = trip != null ? _stopFor(trip, leg.origin) : null;
+
     return so?.platform ?? leg.departurePlatform;
   }
 
@@ -2086,10 +2093,11 @@ class _LegSectionState extends ConsumerState<_LegSection>
       return;
     }
     // Serve cached data instantly, then refresh silently in the background.
-    final cached = _tripCache[id];
+    final cached = _tripCache[id]?.data;
+
     if (cached != null) {
       _trip = cached;
-      _coach = _coachCache[id];
+      _coach = _coachCache[id]?.data;
       _loading = false;
     }
     await _fetchFresh(id, silent: cached != null);
@@ -2121,7 +2129,7 @@ class _LegSectionState extends ConsumerState<_LegSection>
       if (label.isNotEmpty) {
         trip = trip.copyWith(line: trip.line.withName(label));
       }
-      _tripCache[id] = trip;
+      _tripCache[id] = CacheEntry(data: trip, createdAt: DateTime.now());
       if (mounted) {
         setState(() {
           _trip = trip;
@@ -2140,7 +2148,8 @@ class _LegSectionState extends ConsumerState<_LegSection>
     try {
       final cs = await coachFuture;
       if (cs != null) {
-        _coachCache[id] = cs;
+        _coachCache[id] = CacheEntry(data: cs, createdAt: DateTime.now());
+
         if (mounted) setState(() => _coach = cs);
       }
     } catch (_) {

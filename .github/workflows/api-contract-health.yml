@@ -1,0 +1,49 @@
+name: API Contract Health
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-contract-health
+  cancel-in-progress: false
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests curl_cffi pytest
+
+      - name: Run API contract healthcheck
+        working-directory: api-tests
+        run: |
+          set -o pipefail
+          python healthcheck.py 2>&1 | tee healthcheck.txt
+
+      - name: Publish healthcheck summary
+        if: always()
+        working-directory: api-tests
+        run: |
+          {
+            echo "## API Contract Health"
+            echo
+            echo '```text'
+            tail -n 80 healthcheck.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

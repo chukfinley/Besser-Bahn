@@ -207,6 +207,10 @@ def _wagenreihung(category: str, number, eva: str, when: datetime):
     })
     if r.status_code == 404:
         return None
+    if r.status_code == 403 and "OPS_BLOCKED" in r.text:
+        raise CheckError(
+            "vehicle-sequence is currently blocked by Akamai (OPS_BLOCKED)"
+        )
     r.raise_for_status()
     return r.json()
 

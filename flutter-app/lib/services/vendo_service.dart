@@ -825,7 +825,9 @@ class VendoService {
   static bool _boardCancelled(List<String> notes) {
     for (final n in notes) {
       final t = n.toLowerCase();
-      if (t.contains('entfällt') || t.contains('fällt aus')) return true;
+      if (t.contains('entfällt') || t.contains('fällt aus')) {
+        return true;
+      }
     }
     return false;
   }
@@ -941,14 +943,11 @@ class VendoService {
       }
     }
 
-    collect(data['himNotizen']);
-    collect(data['echtzeitNotizen']);
-    for (final h in halte.whereType<Map<String, dynamic>>()) {
-      // Per stop it is `echtzeitNotizen` that carries "Halt entfällt" /
-      // "Neuer Zielhalt" — `himNotizen` only ever appears at the root. Reading
-      // it here matched nothing at all (0 of 450 stops probed).
-      collect(h['echtzeitNotizen']);
-    }
+    collect(a['himNotizen']);
+collect(a['echtzeitNotizen']);
+for (final h in halte.whereType<Map<String, dynamic>>()) {
+  collect(h['echtzeitNotizen']);
+}
 
     return Trip(
       id: zuglaufId,
@@ -1404,7 +1403,10 @@ class VendoService {
     collect(a['himNotizen']);
     collect(a['echtzeitNotizen']);
     for (final h in halte.whereType<Map<String, dynamic>>()) {
+<<<<<<< HEAD
       // See _parseTripFromZuglauf: stop-level notes live in `echtzeitNotizen`.
+=======
+>>>>>>> e75b171 (chore(vendo): remove redundant debug logging)
       collect(h['echtzeitNotizen']);
     }
 

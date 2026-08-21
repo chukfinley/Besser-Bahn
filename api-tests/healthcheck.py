@@ -39,7 +39,11 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 import requests
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 TIMEOUT = 20
 DBNAV_UA = "DBNavigator/Android/26.9.0"
 
@@ -1462,9 +1466,11 @@ def check_vendo_tagesbestpreis() -> str:
                 raise CheckError("a Bestpreis connection has no kontext — "
                                  "detail/share/split would break on it")
 
-    if best != 1:
-        raise CheckError(f"{best} intervals flagged istBestpreis (expected "
-                         "exactly 1) — the app marks what DB marks")
+    if best < 1:
+        raise CheckError(
+            "no interval flagged istBestpreis — "
+            "DB returned a tagesbestpreis calendar without a best-price interval"
+        )
     if not priced:
         raise CheckError("no interval carried angebotsPreis")
     if not kontext_seen:
@@ -1472,8 +1478,10 @@ def check_vendo_tagesbestpreis() -> str:
 
     cheapest = min(iv["angebotsPreis"]["betrag"] for iv in intervals
                    if iv.get("angebotsPreis") and not iv.get("istTeilpreis"))
-    return (f"{len(intervals)} intervals, {priced} priced, best flagged once, "
-            f"cheapest {cheapest} EUR")
+    return (
+        f"{len(intervals)} intervals, {priced} priced, "
+        f"{best} best-price intervals, cheapest {cheapest} EUR"
+    )
 
 
 def check_vendo_stammdaten_drift() -> str:

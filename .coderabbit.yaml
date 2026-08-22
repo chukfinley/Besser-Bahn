@@ -1,14 +1,14 @@
 # yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
 #
-# CodeRabbit configuration. Public repo with outside contributors, so reviews
-# are in English. Bots are ignored (their PRs are noise and burn review quota);
-# human contributors are reviewed. No paid seat is auto-provisioned as long as
-# the org/account uses manual seat approval.
+# CodeRabbit-Konfiguration. Reviews auf Deutsch. Bots werden ignoriert (deren
+# PRs sind Laerm und kosten Review-Kontingent); menschliche Contributor werden
+# reviewt. Kein bezahlter Seat wird automatisch gebucht, solange der Account den
+# manuellen Seat-Modus nutzt.
 
-language: en-US
+language: de-DE
 
-# Concise, risk-first tone (max 250 chars).
-tone_instructions: "Be concise and direct. Call out first anything that leaks secrets, breaks the build, or loses data. No filler, no praise."
+# Knapp, risiko-zuerst (max 250 Zeichen).
+tone_instructions: "Antworte auf Deutsch, knapp und direkt. Nenne zuerst, was Secrets leakt, den Build bricht oder Daten verliert. Kein Fuelltext, kein Lob."
 
 early_access: false
 

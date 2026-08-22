@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_log.dart';
+import '../core/cache/cache_entry.dart';
 import '../core/journey_cache.dart';
 import '../core/search_history_cache.dart';
 import '../models/journey.dart';
@@ -357,7 +358,7 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
 
   Future<void> search({String? fromText, String? toText}) async {
     state = state.copyWith(isLoading: true, error: null);
-
+    CacheEntry<JourneyResult>? cached;
     try {
       final hafas = ref.read(hafasServiceProvider);
 
@@ -416,7 +417,7 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
       if (cached != null) {
         AppLog.log('loaded journey from offline cache', tag: 'offline');
 
-        state = state.copyWith(result: cached, isLoading: false);
+        state = state.copyWith(result: cached.data, isLoading: false);
 
         // Cache hit:
         // keep cached result instead of blocking user
@@ -494,6 +495,21 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
       );
     } catch (e) {
       AppLog.log('search FAILED: $e', tag: 'journey');
+
+      if (cached != null) {
+        AppLog.log(
+          'network failed — using stale journey cache',
+          tag: 'offline',
+        );
+
+        state = state.copyWith(
+          result: cached.data,
+          isLoading: false,
+          error: null,
+        );
+
+        return;
+      }
 
       state = state.copyWith(error: 'Fehler: $e', isLoading: false);
     }

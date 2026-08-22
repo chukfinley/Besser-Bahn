@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/journey.dart';
+import 'cache/cache_entry.dart';
+import 'cache/cache_policy.dart';
 
 class JourneyCache {
   static String key({
@@ -17,10 +19,16 @@ class JourneyCache {
   static Future<void> write(String key, JourneyResult result) async {
     final prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString(key, jsonEncode(result.toJson()));
+    await prefs.setString(
+      key,
+      jsonEncode({
+        'createdAt': DateTime.now().toIso8601String(),
+        'data': result.toJson(),
+      }),
+    );
   }
 
-  static Future<JourneyResult?> read(String key) async {
+  static Future<CacheEntry<JourneyResult>?> read(String key) async {
     final prefs = await SharedPreferences.getInstance();
 
     final raw = prefs.getString(key);
@@ -28,10 +36,19 @@ class JourneyCache {
     if (raw == null) return null;
 
     try {
-      return JourneyResult.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+
+      final createdAt = DateTime.parse(json['createdAt'] as String);
+      final data = JourneyResult.fromJson(json['data'] as Map<String, dynamic>);
+
+      return CacheEntry(data: data, createdAt: createdAt);
     } catch (_) {
       await prefs.remove(key);
       return null;
     }
+  }
+
+  static bool isFresh(CacheEntry<JourneyResult> entry) {
+    return !entry.isExpired(CachePolicy.journeySearch.ttl);
   }
 }

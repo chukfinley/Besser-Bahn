@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit configuration. Public repo with outside contributors, so reviews
+# are in English. Bots are ignored (their PRs are noise and burn review quota);
+# human contributors are reviewed. No paid seat is auto-provisioned as long as
+# the org/account uses manual seat approval.
+
+language: en-US
+
+# Concise, risk-first tone (max 250 chars).
+tone_instructions: "Be concise and direct. Call out first anything that leaks secrets, breaks the build, or loses data. No filler, no praise."
+
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+
+  # Do not review generated code, build output, binaries, lockfiles, assets.
+  path_filters:
+    - "!**/*.g.dart"
+    - "!**/*.freezed.dart"
+    - "!**/build/**"
+    - "!**/.dart_tool/**"
+    - "!pubspec.lock"
+    - "!flutter-app/pubspec.lock"
+    - "!uv.lock"
+    - "!**/*.xapk"
+    - "!**/*.png"
+    - "!**/*.jks"
+    - "!**/*.keystore"
+
+  path_instructions:
+    - path: "flutter-app/lib/**/*.dart"
+      instructions: >
+        Flutter/Dart. Dispose controllers, streams and Riverpod providers.
+        Follow the app structure: screens/, providers/ (Riverpod), router/
+        (GoRouter), services/. Never hardcode secrets or signing keys. Handle
+        network errors and missing/changed upstream response fields defensively;
+        do not crash on a null or absent field.
+    - path: "prediction-service/**/*.py"
+      instructions: >
+        Python service. When network code or response parsing changes, the
+        matching check in api-tests/healthcheck.py must be added or updated.
+        Fail loudly on a changed upstream shape rather than parsing wrong data.
+    - path: "api-tests/**/*.py"
+      instructions: >
+        Endpoint probes. Each check must assert the response still has the shape
+        the app parses. Keep soft checks (soft=True) only for known-flaky sources.
+    - path: "main.py"
+      instructions: >
+        Entry point. Keep it thin; heavy logic belongs in the service modules.
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    # Only bots ignored; exact GitHub bot names carry a "[bot]" suffix.
+    ignore_usernames:
+      - "dependabot[bot]"
+      - "renovate[bot]"
+
+chat:
+  auto_reply: true

@@ -1,18 +1,17 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/backup.dart';
 import '../../core/constants.dart';
 import '../../core/offline_package.dart';
 import '../../models/reisende.dart';
 import '../../models/split_ticket.dart';
-import '../../models/transfer_profile.dart';
 import '../../models/traewelling_models.dart';
+import '../../models/transfer_profile.dart';
 import '../../providers/offline_package_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../providers/settings_provider.dart';
@@ -797,11 +796,11 @@ Future<void> _createBackup(BuildContext context) async {
 /// launch, so the running app still holds the old data until it does that
 /// again.
 Future<void> _restoreBackup(BuildContext context) async {
-  final result = await FilePicker.platform.pickFiles();
-  if (result == null || result.files.isEmpty || !context.mounted) return;
+  final file = await FilePicker.pickFile();
+  if (file == null || !context.mounted) return;
 
-  final bytes = result.files.single.bytes;
-  if (bytes == null) return;
+  final bytes = await file.readAsBytes();
+  if (!context.mounted) return;
 
   final password = await _askPassword(context, confirm: false);
   if (password == null || !context.mounted) return;
@@ -840,5 +839,3 @@ Future<void> _openUrl(BuildContext context, String url) async {
     );
   }
 }
-
-

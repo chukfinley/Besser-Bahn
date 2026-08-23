@@ -797,10 +797,11 @@ Future<void> _createBackup(BuildContext context) async {
 /// launch, so the running app still holds the old data until it does that
 /// again.
 Future<void> _restoreBackup(BuildContext context) async {
-  final file = await FilePicker.pickFile();
-  if (file == null || !context.mounted) return;
-  final bytes = await file.readAsBytes();
-  if (!context.mounted) return;
+  final result = await FilePicker.platform.pickFiles();
+  if (result == null || result.files.isEmpty || !context.mounted) return;
+
+  final bytes = result.files.single.bytes;
+  if (bytes == null) return;
 
   final password = await _askPassword(context, confirm: false);
   if (password == null || !context.mounted) return;
@@ -839,3 +840,5 @@ Future<void> _openUrl(BuildContext context, String url) async {
     );
   }
 }
+
+

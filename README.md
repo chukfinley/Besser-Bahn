@@ -1,5 +1,7 @@
 # Besser Bahn
 
+*In einer anderen Sprache lesen: **Deutsch** · [English](README.en.md)*
+
 **Die bessere Bahn-App. Privacy-first, für Vielfahrer.**
 
 Ein Premium-Begleiter für die Deutsche Bahn: Verbindungssuche, Live-Abfahrten,

@@ -1045,8 +1045,11 @@ final ticketTripsProvider = FutureProvider<List<DbTicketTrip>>((ref) async {
   final indices = await ref.watch(ticketIndicesProvider.future);
   final vendo = ref.read(vendoServiceProvider);
 
-  Future<DbTicketTrip?> resolve(DbReiseIndex i) async {
-    final kwId = i.kundenwunschIds.isNotEmpty ? i.kundenwunschIds.first : '';
+  // One order can carry several kundenwunschIds — a round trip books the
+  // outbound and the return leg under a single auftragsnummer, each its own
+  // kundenwunschId (#90). Resolve every id as its own trip; taking only
+  // `.first` dropped the outbound leg from the Reisen tab.
+  Future<DbTicketTrip?> resolve(DbReiseIndex i, String kwId) async {
     if (kwId.isEmpty) return null;
     final key = '${i.auftragsnummer}/$kwId';
     final DbTicket t;
@@ -1068,8 +1071,15 @@ final ticketTripsProvider = FutureProvider<List<DbTicketTrip>>((ref) async {
     return DbTicketTrip(index: i, ticketKey: key, ticket: t, journey: j);
   }
 
+  final keys = <({DbReiseIndex index, String kwId})>[];
+  for (final i in indices) {
+    final ids = i.kundenwunschIds.isEmpty ? const [''] : i.kundenwunschIds;
+    for (final kwId in ids) {
+      keys.add((index: i, kwId: kwId));
+    }
+  }
   final trips = (await Future.wait(
-    indices.map(resolve),
+    keys.map((k) => resolve(k.index, k.kwId)),
   )).whereType<DbTicketTrip>().toList();
   // Upcoming first (soonest departure), then past (most recent first) — same
   // order the local saved trips use.

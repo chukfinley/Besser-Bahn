@@ -155,8 +155,11 @@ class _HomeScreenState extends State<HomeScreen> {
         onChanged: widget.navigationShell.goBranch,
         items: const [
           ChukNavItem(
-            icon: Icons.search_outlined,
-            activeIcon: Icons.search,
+            // directions has a real outlined→filled twin, so the active tab
+            // fills like the others; the magnifier (search) has no filled
+            // variant in Material, so it only ever recoloured.
+            icon: Icons.directions_outlined,
+            activeIcon: Icons.directions,
             label: 'Suche',
           ),
           ChukNavItem(

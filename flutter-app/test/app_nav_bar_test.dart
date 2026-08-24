@@ -8,8 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// The four shell destinations, in the order HomeScreen wires them.
 const _items = [
   ChukNavItem(
-    icon: Icons.search_outlined,
-    activeIcon: Icons.search,
+    icon: Icons.directions_outlined,
+    activeIcon: Icons.directions,
     label: 'Suche',
   ),
   ChukNavItem(
@@ -92,8 +92,8 @@ void main() {
       // Selected → filled icon; the rest keep their outline variant.
       expect(find.byIcon(Icons.bookmark), findsOneWidget);
       expect(find.byIcon(Icons.bookmark_border), findsNothing);
-      expect(find.byIcon(Icons.search_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.search), findsNothing);
+      expect(find.byIcon(Icons.directions_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.directions), findsNothing);
     });
 
     testWidgets(

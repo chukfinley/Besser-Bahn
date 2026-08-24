@@ -91,20 +91,6 @@ class JourneyCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // "Schnellste / Günstigste / Sicherste" (#11.9) as a left-aligned
-              // header over the whole card. It used to be a centred chip at the
-              // top of the inner column, where it read as floating on the seam
-              // between two cards; as a header it sits clearly inside its card.
-              if (highlights.isNotEmpty) ...[
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    for (final h in highlights) _HighlightChip(highlight: h),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -151,8 +137,9 @@ class JourneyCard extends ConsumerWidget {
                           _CancelBanner(partial: !journey.hasCancelledLeg),
                           const SizedBox(height: 6),
                         ],
-                        // Route row: origin (left) and destination (right). No arrow —
-                        // a search always runs left→right, so it adds nothing.
+                        // Route row: origin (left) and destination (right), with
+                        // the "Günstigste / Sicherste" highlight centred BETWEEN
+                        // the two stations (#11.9) — not as a header up top.
                         Row(
                           children: [
                             Expanded(
@@ -166,6 +153,20 @@ class JourneyCard extends ConsumerWidget {
                                 ),
                               ),
                             ),
+                            if (highlights.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: [
+                                    for (final h in highlights)
+                                      _HighlightChip(highlight: h),
+                                  ],
+                                ),
+                              ),
+                            ],
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(

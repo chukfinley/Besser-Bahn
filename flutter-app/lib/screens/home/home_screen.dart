@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:go_router/go_router.dart';
 
@@ -153,13 +154,22 @@ class _HomeScreenState extends State<HomeScreen> {
         // truth for which tab is which — the bar just hands over an index, and
         // the pager pans the strip the whole distance to it.
         onChanged: widget.navigationShell.goBranch,
-        items: const [
+        items: [
           ChukNavItem(
-            // directions has a real outlined→filled twin, so the active tab
-            // fills like the others; the magnifier (search) has no filled
-            // variant in Material, so it only ever recoloured.
-            icon: Icons.directions_outlined,
-            activeIcon: Icons.directions,
+            // The magnifier has no filled twin in Material, so the active tab
+            // swaps to a filled-lens SVG to match the other tabs' fill; the
+            // inactive state keeps the familiar outline magnifier.
+            icon: Icons.search,
+            iconBuilder: (active, color, size) => active
+                ? SvgPicture.asset(
+                    'assets/icon/search_filled.svg',
+                    width: size,
+                    height: size,
+                    colorFilter: color == null
+                        ? null
+                        : ColorFilter.mode(color, BlendMode.srcIn),
+                  )
+                : Icon(Icons.search, size: size, color: color),
             label: 'Suche',
           ),
           ChukNavItem(

@@ -313,7 +313,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(router.state.uri.path, '/nearby');
 
-    await tester.tap(find.byIcon(Icons.directions_outlined));
+    await tester.tap(find.byIcon(Icons.search));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

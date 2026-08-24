@@ -13,6 +13,7 @@ import '../../models/journey.dart';
 import '../../providers/account_provider.dart';
 import '../../providers/service_providers.dart';
 import '../connection_search/connection_detail_screen.dart';
+import '../connection_search/widgets/journey_card.dart';
 import 'widgets/bahncard_view.dart' show openFirstBahnCardControl;
 
 /// Entry point for a booked ticket from the Reisen tab. Loads the ticket,
@@ -87,6 +88,31 @@ class TicketDetailScreen extends ConsumerWidget {
             ),
           );
         }
+        // One order can bundle several legs under a single auftragsnummer — a
+        // round trip books outbound + return, each its own kundenwunschId —
+        // and opening the order used to jump straight into whichever leg was
+        // tapped, with the rest of the plan a tap away and easy to miss. Show
+        // every resolved leg of the order together when there's more than one.
+        final trips =
+            ref.watch(ticketTripsProvider).asData?.value ??
+            const <DbTicketTrip>[];
+        DateTime depOf(DbTicketTrip x) =>
+            x.journey!.plannedDeparture ?? x.journey!.departure ?? DateTime(0);
+        final siblings =
+            trips
+                .where(
+                  (x) =>
+                      x.index.auftragsnummer == auftragsnummer &&
+                      x.journey != null,
+                )
+                .toList()
+              ..sort((a, b) => depOf(a).compareTo(depOf(b)));
+        if (siblings.length > 1) {
+          return _OrderPlanScreen(
+            auftragsnummer: auftragsnummer,
+            trips: siblings,
+          );
+        }
         return ConnectionDetailScreen(
           journey: j,
           ticketRef: (
@@ -95,6 +121,59 @@ class TicketDetailScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The full plan for an order that bundles several legs (Hin- und
+/// Rückfahrt) under one auftragsnummer — each leg as the same [JourneyCard]
+/// used everywhere else, in departure order. Tapping one opens its full
+/// Reiseplan (with the Ticket action for that leg), exactly like a
+/// single-leg order always has.
+class _OrderPlanScreen extends StatelessWidget {
+  final String auftragsnummer;
+  final List<DbTicketTrip> trips;
+
+  const _OrderPlanScreen({required this.auftragsnummer, required this.trips});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reiseplan')),
+      body: ListView(
+        padding: const EdgeInsets.only(top: 8, bottom: 24),
+        children: [
+          for (final t in trips) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 16, 4),
+              child: Text(
+                t.ticket?.isReturn == true ? 'Rückfahrt' : 'Hinfahrt',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            JourneyCard(
+              journey: t.journey!,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ConnectionDetailScreen(
+                    journey: t.journey!,
+                    ticketRef: (
+                      auftragsnummer: auftragsnummer,
+                      kundenwunschId: t.ticketKey.contains('/')
+                          ? t.ticketKey.split('/').last
+                          : '',
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -445,26 +445,36 @@ class _TrackEndCar extends StatelessWidget {
         ),
         child: SizedBox(
           width: bodyW,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (!coach.isLocomotive)
-                Text(
-                  coach.wagonNumber > 0 ? '${coach.wagonNumber}' : '–',
-                  style: TextStyle(
-                    fontSize: compact ? 13 : 16,
-                    fontWeight: FontWeight.w800,
-                    color: fg,
-                  ),
-                )
-              else
-                Icon(Icons.train, color: fg, size: 16),
-              if (freeCount != null) ...[
-                const SizedBox(height: 3),
-                _FreeSeatBadge(free: freeCount!, big: !compact),
-              ],
-            ],
-          ),
+          // Same vertical structure as the middle cars ([_TrackCar]): number
+          // centered in the free space, badge pinned to the bottom. Centering
+          // the number+badge as one group made the head/tail labels ride
+          // higher than the middle coaches.
+          child: coach.isLocomotive
+              ? Center(child: Icon(Icons.train, color: fg, size: 16))
+              : Column(
+                  children: [
+                    const SizedBox(height: 3),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          coach.wagonNumber > 0 ? '${coach.wagonNumber}' : '–',
+                          style: TextStyle(
+                            fontSize: compact ? 13 : 16,
+                            fontWeight: FontWeight.w800,
+                            color: fg,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (freeCount != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: _FreeSeatBadge(free: freeCount!, big: !compact),
+                      )
+                    else if (!compact)
+                      const SizedBox(height: 14),
+                  ],
+                ),
         ),
       ),
     );

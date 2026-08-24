@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/platform_train.dart' show ExitSide;
 import '../../core/train_dimensions.dart';
 import '../../models/coach_sequence.dart';
 import '../../models/station.dart';
@@ -279,6 +280,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
           role: state.highlightRole,
           note: state.transferNote,
           trainLabel: state.trainLabel,
+          exitSide: state.highlightExitSide,
         );
       }
       return null;
@@ -452,7 +454,12 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
           chip(
             Icons.login,
             'Einstieg',
-            _gleisLabel(state.highlightGleis, state.highlightSection),
+            _gleisLabel(state.highlightGleis, state.highlightSection) +
+                switch (state.highlightExitSide) {
+                  ExitSide.right => '  ·  rechts',
+                  ExitSide.left => '  ·  links',
+                  ExitSide.unknown => '',
+                },
             roleColor(GleisRole.board)!,
           ),
         ],
@@ -1535,12 +1542,18 @@ class _BoardingBanner extends StatelessWidget {
 
   /// The train this map is for, e.g. "RE 7" — shown as a leading chip.
   final String? trainLabel;
+
+  /// Which side the Einstieg is on, if computable (#exit) — shown up top so the
+  /// rider doesn't have to read it off the map. Unknown → nothing shown.
+  final ExitSide exitSide;
+
   const _BoardingBanner({
     required this.gleis,
     this.section,
     this.role = GleisRole.board,
     this.note,
     this.trainLabel,
+    this.exitSide = ExitSide.unknown,
   });
 
   @override
@@ -1606,6 +1619,16 @@ class _BoardingBanner extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const TextSpan(text: ' (auf der Karte markiert)'),
+                  if (exitSide != ExitSide.unknown)
+                    TextSpan(
+                      text: exitSide == ExitSide.right
+                          ? '  ·  rechts einsteigen →'
+                          : '  ·  ← links einsteigen',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
                   if (note != null && note!.isNotEmpty)
                     TextSpan(
                       text: '\n$note',

@@ -129,12 +129,17 @@ class StationMapState {
   /// the train then falls back to the bahnhof.de cube-straight placement.
   final OsmPlatformGeometry? osmGeometry;
 
+  /// The next stop on this train's run (travel direction), when known — used to
+  /// work out which side the Einstieg is on (#exit).
+  final LatLng? nextStopAt;
+
   final bool isLoading;
   final String? error;
 
   const StationMapState({
     this.station,
     this.map,
+    this.nextStopAt,
     this.selectedLevel,
     this.hiddenCategories = const {},
     this.highlightGleis,
@@ -159,6 +164,8 @@ class StationMapState {
   StationMapState copyWith({
     Station? station,
     StationMap? map,
+    LatLng? nextStopAt,
+    bool clearNextStopAt = false,
     String? selectedLevel,
     Set<String>? hiddenCategories,
     String? highlightGleis,
@@ -191,6 +198,7 @@ class StationMapState {
     return StationMapState(
       station: station ?? this.station,
       map: map ?? this.map,
+      nextStopAt: clearNextStopAt ? null : (nextStopAt ?? this.nextStopAt),
       selectedLevel: selectedLevel ?? this.selectedLevel,
       hiddenCategories: hiddenCategories ?? this.hiddenCategories,
       highlightGleis: clearHighlight
@@ -240,6 +248,38 @@ class StationMapState {
 
   /// The POI for the highlighted boarding Gleis, if present on the current map.
   MapPoi? get highlightPoi => _poiForGleis(highlightGleis);
+
+  /// Which side the Einstieg is on for the highlighted Gleis (#exit): the
+  /// travel direction (this station → [nextStopAt]) crossed with where the
+  /// platform sits relative to its track. [pt.ExitSide.unknown] without the
+  /// next stop, an island platform, or a resolvable Gleis — the header then
+  /// just omits it (as at Hamburg-Altona, which has no sector cubes).
+  pt.ExitSide get highlightExitSide {
+    final m = map;
+    final plat = highlightPoi;
+    final g = highlightGleis;
+    final st = station;
+    final to = nextStopAt;
+    if (m == null ||
+        plat == null ||
+        g == null ||
+        to == null ||
+        st == null ||
+        !st.hasLocation) {
+      return pt.ExitSide.unknown;
+    }
+    final island = pt.resolveIsland(m, plat, pt.normalizeGleis(g), 0, 8);
+    final rail = LatLng(
+      plat.latitude + island.dLat,
+      plat.longitude + island.dLon,
+    );
+    return pt.exitSideOf(
+      travelFrom: LatLng(st.latitude!, st.longitude!),
+      travelTo: to,
+      track: rail,
+      platform: plat.latLng,
+    );
+  }
 
   /// The POI for the secondary (Ausstieg) Gleis on a transfer map.
   MapPoi? get secondaryHighlightPoi => _poiForGleis(secondaryGleis);
@@ -538,6 +578,8 @@ class StationMapNotifier extends Notifier<StationMapState> {
     final secSection = sraw.isNotEmpty ? parseGleisSection(sraw) : null;
     state = state.copyWith(
       station: station,
+      nextStopAt: nextStopAt,
+      clearNextStopAt: nextStopAt == null,
       highlightGleis: hl,
       highlightSection: section,
       transferNote: transferNote,

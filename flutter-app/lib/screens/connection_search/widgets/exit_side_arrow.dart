@@ -4,7 +4,6 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/platform_train.dart'
     show ExitSide, exitSideOf, resolveIsland, normalizeGleis;
-import '../../../models/journey.dart';
 import '../../../models/station.dart';
 import '../../../models/station_map.dart';
 import '../../../providers/service_providers.dart';
@@ -13,18 +12,18 @@ import '../../../providers/service_providers.dart';
 /// off ([boarding] false) at [station], in the train's direction of travel —
 /// squeezed in right next to the Gleis number.
 ///
-/// The side is pure geometry: the leg's travel direction (its approach or
-/// departure segment) crossed with where the platform sits relative to its
-/// track, from the bahnhof.de station map. Best-effort and heavily guarded —
-/// no map, no island platform, or a platform sitting on the track line all
-/// render nothing (an [SizedBox.shrink]), never a guess.
+/// [travelFrom]→[travelTo] is a short segment in the direction the train MOVES
+/// (the approach segment for an Ausstieg, the departure segment for an
+/// Einstieg). The side is pure geometry: that travel vector crossed with where
+/// the platform sits relative to its track, from the bahnhof.de station map.
+/// Best-effort and heavily guarded — no map, no island platform, or a platform
+/// sitting on the track line all render nothing (an [SizedBox.shrink]), never a
+/// guess.
 class ExitSideArrow extends ConsumerStatefulWidget {
-  /// The train this side is about: the arriving train for an Ausstieg, the
-  /// departing train for an Einstieg.
-  final JourneyLeg leg;
+  final LatLng? travelFrom;
+  final LatLng? travelTo;
 
-  /// The stop where it happens (the leg's destination for an Ausstieg, its
-  /// origin for an Einstieg).
+  /// The stop where it happens.
   final Station station;
 
   /// The Gleis the train uses at [station].
@@ -35,7 +34,8 @@ class ExitSideArrow extends ConsumerStatefulWidget {
 
   const ExitSideArrow({
     super.key,
-    required this.leg,
+    required this.travelFrom,
+    required this.travelTo,
     required this.station,
     required this.gleis,
     required this.boarding,
@@ -57,9 +57,10 @@ class _ExitSideArrowState extends ConsumerState<ExitSideArrow> {
   @override
   void didUpdateWidget(ExitSideArrow old) {
     super.didUpdateWidget(old);
-    if (old.leg.tripId != widget.leg.tripId ||
-        old.gleis != widget.gleis ||
-        old.boarding != widget.boarding) {
+    if (old.gleis != widget.gleis ||
+        old.boarding != widget.boarding ||
+        old.station.id != widget.station.id ||
+        old.travelTo != widget.travelTo) {
       _side = ExitSide.unknown;
       _load();
     }
@@ -73,31 +74,9 @@ class _ExitSideArrowState extends ConsumerState<ExitSideArrow> {
   Future<ExitSide> _compute() async {
     try {
       final gleis = normalizeGleis(widget.gleis);
-      if (gleis.isEmpty) return ExitSide.unknown;
-
-      // Travel direction: the leg's approach segment (…→station) for an
-      // Ausstieg, its departure segment (station→…) for an Einstieg.
-      final pts = <LatLng>[
-        if (widget.leg.origin.hasLocation)
-          LatLng(widget.leg.origin.latitude!, widget.leg.origin.longitude!),
-        for (final s in widget.leg.stopovers)
-          if (s.stop.hasLocation)
-            LatLng(s.stop.latitude!, s.stop.longitude!),
-        if (widget.leg.destination.hasLocation)
-          LatLng(
-            widget.leg.destination.latitude!,
-            widget.leg.destination.longitude!,
-          ),
-      ];
-      if (pts.length < 2) return ExitSide.unknown;
-      final LatLng travelFrom, travelTo;
-      if (widget.boarding) {
-        travelFrom = pts.first;
-        travelTo = pts[1];
-      } else {
-        travelFrom = pts[pts.length - 2];
-        travelTo = pts.last;
-      }
+      final from = widget.travelFrom;
+      final to = widget.travelTo;
+      if (gleis.isEmpty || from == null || to == null) return ExitSide.unknown;
 
       final svc = ref.read(stationMapServiceProvider);
       final name = widget.station.name;
@@ -114,13 +93,16 @@ class _ExitSideArrowState extends ConsumerState<ExitSideArrow> {
       }
       if (plat == null) return ExitSide.unknown;
       final island = resolveIsland(map, plat, gleis, 0, 8);
+      // `dLat/dLon` nudges the platform centre TOWARD the rail, so the rail
+      // point is the platform plus that nudge. No nudge (single-track) ⇒ the
+      // track and platform coincide ⇒ exitSideOf returns unknown.
       final rail = LatLng(
         plat.latitude + island.dLat,
         plat.longitude + island.dLon,
       );
       return exitSideOf(
-        travelFrom: travelFrom,
-        travelTo: travelTo,
+        travelFrom: from,
+        travelTo: to,
         track: rail,
         platform: plat.latLng,
       );
@@ -144,7 +126,6 @@ class _ExitSideArrowState extends ConsumerState<ExitSideArrow> {
         : Icons.arrow_back_rounded;
     final door = widget.boarding ? Icons.login_rounded : Icons.logout_rounded;
     return Container(
-      margin: const EdgeInsets.only(left: 6),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withAlpha(28),
@@ -155,7 +136,7 @@ class _ExitSideArrowState extends ConsumerState<ExitSideArrow> {
         children: [
           Icon(door, size: 15, color: color),
           const SizedBox(width: 3),
-          Icon(arrow, size: 17, color: color),
+          Icon(arrow, size: 18, color: color),
           const SizedBox(width: 2),
           Text(
             right ? 'rechts' : 'links',

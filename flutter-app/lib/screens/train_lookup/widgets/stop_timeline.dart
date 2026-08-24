@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../models/journey.dart' show OccupancyLevel;
 import '../../../models/trip.dart';
 import '../../../core/extensions.dart';
 import '../../../widgets/occupancy_indicator.dart';
 import '../../../widgets/platform_badge.dart' show TrackIcon;
+import '../../connection_search/widgets/exit_side_arrow.dart';
 
 /// Stop list for a train. When [boardingId]/[alightingId] are given (i.e. the
 /// timeline is shown for one leg of a journey, not a standalone train lookup),
@@ -442,7 +444,39 @@ class _StopTimelineState extends State<StopTimeline> {
         hideOccupancy: isBoard,
         // Wing-train split banner sits under the boarding stop, beneath the name.
         footer: isBoard ? widget.boardingBanner : null,
+        // Ausstieg/Einstieg side arrow squeezed in left of the Gleis chip, at
+        // the leg endpoints (#exit).
+        gleisLeading: _exitArrow(i, board, alight),
       ),
+    );
+  }
+
+  /// The left/right side arrow for a leg endpoint's Gleis chip: Einstieg at the
+  /// boarding stop, Ausstieg at the alighting stop. Null off a leg, off the
+  /// endpoints, without a Gleis, or when an adjacent stop lacks coordinates to
+  /// derive the direction of travel.
+  Widget? _exitArrow(int i, int board, int alight) {
+    final isLeg = widget.boardingId != null || widget.alightingId != null;
+    if (!isLeg || (i != board && i != alight)) return null;
+    final stops = widget.stopovers;
+    final s = stops[i];
+    final gleis = s.platform ?? s.plannedPlatform;
+    if (gleis == null || gleis.isEmpty) return null;
+    LatLng? at(int j) =>
+        (j >= 0 && j < stops.length && stops[j].stop.hasLocation)
+        ? LatLng(stops[j].stop.latitude!, stops[j].stop.longitude!)
+        : null;
+    // Boarding: travel is stop→next. Alighting: travel is prev→stop.
+    final boarding = i == board;
+    final from = boarding ? at(board) : at(alight - 1);
+    final to = boarding ? at(board + 1) : at(alight);
+    if (from == null || to == null) return null;
+    return ExitSideArrow(
+      travelFrom: from,
+      travelTo: to,
+      station: s.stop,
+      gleis: gleis,
+      boarding: boarding,
     );
   }
 
@@ -754,6 +788,10 @@ class _StopRow extends StatelessWidget {
   /// under the station name (the wing-train split banner on the boarding stop).
   final Widget? footer;
 
+  /// Widget squeezed in just left of the Gleis chip (the Ausstieg/Einstieg
+  /// side arrow at a leg endpoint). Null renders nothing there.
+  final Widget? gleisLeading;
+
   /// This stop is your alight endpoint: its single spine time is YOUR arrival,
   /// not the train's onward departure. Board/intermediate stops are
   /// departure-first. Endpoints never show the secondary "an/ab" dwell detail —
@@ -781,6 +819,7 @@ class _StopRow extends StatelessWidget {
     this.muted = false,
     this.hideOccupancy = false,
     this.footer,
+    this.gleisLeading,
     this.arrivalPrimary = false,
     this.dotReached = false,
     this.belowFill = 0,
@@ -974,6 +1013,10 @@ class _StopRow extends StatelessWidget {
                           // (with struck-through old platform) when it changed.
                           if (stopover.platform != null ||
                               stopover.plannedPlatform != null) ...[
+                            if (gleisLeading != null) ...[
+                              const SizedBox(width: 6),
+                              gleisLeading!,
+                            ],
                             const SizedBox(width: 8),
                             _platformChip(context, big: emphasize),
                           ],

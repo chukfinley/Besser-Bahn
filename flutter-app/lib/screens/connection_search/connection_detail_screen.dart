@@ -50,7 +50,6 @@ import '../../widgets/trip_progress_inline.dart';
 import '../../widgets/trwl_checkin_sheet.dart';
 import '../train_lookup/widgets/train_detail_view.dart';
 import 'widgets/leg_switcher.dart';
-import 'widgets/exit_side_arrow.dart';
 import 'widgets/transfer_coach_hint.dart';
 
 /// In-memory cache (app session) so a leg's train data is fetched once and
@@ -1682,51 +1681,12 @@ class _ConnectionDetailScreenState
     // one island platform and says so.
     final word = _platformWord(prev, next);
     final movedInfo = _movedBay(next);
-    final gleisSuffix =
-        '${wasGleis != null ? _insteadOf(wasGleis, movedInfo) : ''}'
-        '${movedInfo?.note != null ? ' · ${movedInfo!.note}' : ''}'
-        '${samePlatform ? ' · gleicher Bahnsteig' : ''}';
     final gleisText = (arrGleis != null || depGleis != null)
-        ? '$word ${arrGleis ?? '?'} → $word ${depGleis ?? '?'}$gleisSuffix'
+        ? '$word ${arrGleis ?? '?'} → $word ${depGleis ?? '?'}'
+              '${wasGleis != null ? _insteadOf(wasGleis, movedInfo) : ''}'
+              '${movedInfo?.note != null ? ' · ${movedInfo!.note}' : ''}'
+              '${samePlatform ? ' · gleicher Bahnsteig' : ''}'
         : (samePlatform ? 'gleicher Bahnsteig' : null);
-
-    // The Gleis line with a left/right Ausstieg/Einstieg arrow squeezed in
-    // right next to each Gleis number (#exit). Falls back to the plain text
-    // when there are no Gleis numbers (same-platform-only).
-    final theme = Theme.of(context);
-    Widget? gleisWidget;
-    if (arrGleis != null || depGleis != null) {
-      gleisWidget = DefaultTextStyle.merge(
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 2,
-          runSpacing: 2,
-          children: [
-            Text('$word ${arrGleis ?? '?'}'),
-            if (arrGleis != null)
-              ExitSideArrow(
-                leg: prev,
-                station: station,
-                gleis: arrGleis,
-                boarding: false,
-              ),
-            const Text(' → '),
-            Text('$word ${depGleis ?? '?'}'),
-            if (depGleis != null)
-              ExitSideArrow(
-                leg: next,
-                station: station,
-                gleis: depGleis,
-                boarding: true,
-              ),
-            if (gleisSuffix.isNotEmpty) Text(gleisSuffix),
-          ],
-        ),
-      );
-    }
 
     // A lift that is out at exactly this transfer (#73) — only asked for by the
     // profiles that depend on one, and only ever additive: no data, no warning.
@@ -1742,7 +1702,6 @@ class _ConnectionDetailScreenState
       strikeBefore: changed ? '$planGap min' : null,
       headColor: color,
       detail: gleisText,
-      detailWidget: gleisWidget,
       warn: warnText.isEmpty ? null : warnText,
       trailing: _stopoverButton(context, station),
       onTap: station.name.isEmpty
@@ -1833,7 +1792,6 @@ class _ConnectionDetailScreenState
     String? strikeBefore,
     Color? headColor,
     String? detail,
-    Widget? detailWidget,
     String? warn,
     VoidCallback? onTap,
     Widget? trailing,
@@ -1887,12 +1845,7 @@ class _ConnectionDetailScreenState
                         ),
                       ],
                     ),
-                    if (detailWidget != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: detailWidget,
-                      )
-                    else if (detail != null)
+                    if (detail != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(

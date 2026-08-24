@@ -337,7 +337,17 @@ class StationMapService {
   /// bahnhof.de slugs are the station name, umlaut-expanded and hyphenated
   /// (e.g. "Hamburg Hbf" -> "hamburg-hbf", "Büchen" -> "buechen").
   static String slugify(String name) {
-    var s = name.toLowerCase();
+    // DB appends a transit-mode qualifier to some stop names: "Hamburg-Altona(S)"
+    // is the S-Bahn part of the SAME station whose bahnhof.de page is
+    // "hamburg-altona". Left in, "(S)" slugged to a "-s" tail that resolves to a
+    // page WITHOUT map data, so the platform overlay was missing/misplaced at
+    // those stops (Hamburg-Altona, -Harburg). Drop a trailing (S)/(U)/(S+U);
+    // keep mid-name parentheses that ARE part of the slug ("Frankfurt (Main) Hbf").
+    var name0 = name.trim().replaceAll(
+      RegExp(r'\s*\((?:s|u|s\+u|s-u)\)$', caseSensitive: false),
+      '',
+    );
+    var s = name0.toLowerCase();
     const umlauts = {'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss'};
     umlauts.forEach((k, v) => s = s.replaceAll(k, v));
     s = s.replaceAll(RegExp(r'[^a-z0-9]+'), '-');

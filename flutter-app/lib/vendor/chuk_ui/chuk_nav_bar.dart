@@ -37,24 +37,13 @@ import 'chuk_squircle.dart';
 /// One destination in a [ChukNavBar].
 @immutable
 class ChukNavItem {
-  const ChukNavItem({
-    required this.icon,
-    required this.label,
-    this.activeIcon,
-    this.iconBuilder,
-  });
+  const ChukNavItem({required this.icon, required this.label, this.activeIcon});
 
   /// Icon shown when the tab is inactive.
   final IconData icon;
 
   /// Icon shown when the tab is active. Falls back to [icon].
   final IconData? activeIcon;
-
-  /// Optional custom glyph, for a tab whose active state can't be expressed as
-  /// a second [IconData] (e.g. Material has no filled magnifier, so Suche
-  /// swaps to a filled SVG when active). Given the active flag, the resolved
-  /// icon colour and size; when null the bar renders [icon]/[activeIcon].
-  final Widget Function(bool active, Color? color, double size)? iconBuilder;
 
   /// The tab label.
   final String label;
@@ -188,17 +177,12 @@ class _ChukNavBarState extends State<ChukNavBar> {
                   children: [
                     AnimatedSwitcher(
                       duration: t.motion.medium,
-                      child: item.iconBuilder != null
-                          ? KeyedSubtree(
-                              key: ValueKey(active),
-                              child: item.iconBuilder!(active, color, iconSize),
-                            )
-                          : Icon(
-                              active ? (item.activeIcon ?? item.icon) : item.icon,
-                              key: ValueKey(active),
-                              size: iconSize,
-                              color: color,
-                            ),
+                      child: Icon(
+                        active ? (item.activeIcon ?? item.icon) : item.icon,
+                        key: ValueKey(active),
+                        size: iconSize,
+                        color: color,
+                      ),
                     ),
                     AnimatedSize(
                       duration: t.motion.medium,

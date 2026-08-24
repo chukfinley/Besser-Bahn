@@ -121,10 +121,12 @@ class _ExitSideArrowState extends ConsumerState<ExitSideArrow> {
     final color = widget.boarding
         ? const Color(0xFF1E8E3E)
         : theme.colorScheme.error;
+    // One arrow only: the door/exit glyph carries its own arrow, so a second
+    // left/right arrow next to it read as doubled. Colour (green Einstieg / red
+    // Ausstieg) carries the on/off meaning; the arrow carries the side.
     final arrow = right
         ? Icons.arrow_forward_rounded
         : Icons.arrow_back_rounded;
-    final door = widget.boarding ? Icons.login_rounded : Icons.logout_rounded;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -134,8 +136,6 @@ class _ExitSideArrowState extends ConsumerState<ExitSideArrow> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(door, size: 15, color: color),
-          const SizedBox(width: 3),
           Icon(arrow, size: 18, color: color),
           const SizedBox(width: 2),
           Text(

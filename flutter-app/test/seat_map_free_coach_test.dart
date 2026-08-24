@@ -51,6 +51,46 @@ void main() {
     });
   });
 
+  group('mergeFreedom — first + second class (#89)', () {
+    test('a seat free in either class response is free in the merge', () {
+      // KLASSE_2 fetch: 2nd-class coach 5 has free seats, 1st-class coach 11
+      // reads all occupied (not selectable for a 2nd-class request).
+      final second = SeatMap.fromSsr(
+        _ssr({
+          '5': [1, 0, 1],
+          '11': [0, 0],
+        }),
+      );
+      // KLASSE_1 fetch of the SAME train: coach 11 shows its real free seats,
+      // coach 5 now reads occupied.
+      final first = SeatMap.fromSsr(
+        _ssr({
+          '5': [0, 0, 0],
+          '11': [1, 0],
+        }),
+      );
+      expect(second.totalFree, 2); // 2nd class only
+      expect(first.totalFree, 1); // 1st class only
+
+      final merged = second.mergeFreedom(first);
+      // Whole-train view: 2 free in coach 5 + 1 free in coach 11.
+      expect(merged.totalFree, 3);
+      expect(merged.freeCoachNumbers, ['5', '11']);
+    });
+
+    test('a sold-out class returns no coaches — union keeps the other', () {
+      final second = SeatMap.fromSsr(_ssr({})); // 2nd class sold out → empty
+      final first = SeatMap.fromSsr(
+        _ssr({
+          '11': [1, 0, 2],
+        }),
+      );
+      final merged = second.mergeFreedom(first);
+      expect(merged.totalFree, 2);
+      expect(merged.freeCoachNumbers, ['11']);
+    });
+  });
+
   group('freeCoachHint (#seat)', () {
     test('empty when nothing free', () {
       final map = SeatMap.fromSsr(

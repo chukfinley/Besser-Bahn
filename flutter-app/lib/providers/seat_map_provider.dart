@@ -77,14 +77,26 @@ final seatMapProvider = FutureProvider.family<SeatMap?, SeatMapRequest>((
   req,
 ) async {
   final service = ref.watch(seatMapServiceProvider);
-  final map = await service.fetchSeatMap(
+  // gsd reports free seats only for the requested class, so fetch BOTH and
+  // merge — otherwise first-class seats always read as occupied (#89). The two
+  // requests share the segment; only `klasse` differs.
+  Future<SeatMap?> fetch(bool firstClass) => service.fetchSeatMap(
     fahrtNr: req.fahrtNr,
     abfahrtEva: req.abfahrtEva,
     abfahrtZeit: req.abfahrtZeit,
     ankunftEva: req.ankunftEva,
     ankunftZeit: req.ankunftZeit,
-    firstClass: req.firstClass,
+    firstClass: firstClass,
   );
+  final results = await Future.wait([fetch(false), fetch(true)]);
+  final second = results[0];
+  final first = results[1];
+  final SeatMap? map;
+  if (second != null && first != null) {
+    map = second.mergeFreedom(first);
+  } else {
+    map = second ?? first;
+  }
   if (map == null) return null;
   return service.attachLayouts(map);
 });

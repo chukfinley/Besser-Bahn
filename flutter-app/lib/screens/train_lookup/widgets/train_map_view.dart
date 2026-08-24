@@ -624,6 +624,11 @@ class _TrainMapState extends ConsumerState<TrainMap> {
 
     return AppMap(
       interactive: widget.interactive,
+      // A long-distance run (Kiel→München ~600 km) only fits at ~zoom 6, but
+      // the default floor is 10 — so the camera fit was clamped to 10, opening
+      // zoomed in with no way back out ("nur rein, nicht raus"). Drop the floor
+      // to 5 so the whole route fits and the rider can zoom out to it.
+      minZoom: 5,
       // Lazily fetch a stop's platform only once it's zoomed into view.
       onPositionChanged: _onCamera,
       // Show the real DB station floor plan when you zoom into a stop. The

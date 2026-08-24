@@ -37,3 +37,4 @@ flutter-app/.test_out.txt
 
 # local scratch / apk analysis
 _scratch/
+_raw/

@@ -24,7 +24,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: "projects/658602031061/locations/global/workloadIdentityPools/github-actions/providers/github-actions"
+          service_account: "github-actions-firebase@besser-bahn.iam.gserviceaccount.com"
       # The SDK version comes from pubspec.yaml (`environment: flutter:`), the
       # same line IzzyOnDroid's reproducible-build script parses. Pinning it a
       # second time here would let CI drift away from the release toolchain.

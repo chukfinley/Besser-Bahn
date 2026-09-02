@@ -445,26 +445,47 @@ class _TrackEndCar extends StatelessWidget {
         ),
         child: SizedBox(
           width: bodyW,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (!coach.isLocomotive)
-                Text(
-                  coach.wagonNumber > 0 ? '${coach.wagonNumber}' : '–',
-                  style: TextStyle(
-                    fontSize: compact ? 13 : 16,
-                    fontWeight: FontWeight.w800,
-                    color: fg,
+          // Same vertical structure as the middle cars ([_TrackCar]): number
+          // centered in the free space, badge pinned to the bottom. Centering
+          // the number+badge as one group made the head/tail labels ride
+          // higher than the middle coaches. The middle cars carry a 1px border
+          // that insets their content; the snout end cars are painted (no
+          // border), so match that inset here or their number+badge sit ~1px
+          // lower than the rest.
+          child: coach.isLocomotive
+              ? Center(child: Icon(Icons.train, color: fg, size: 16))
+              : Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 1),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 3),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            coach.wagonNumber > 0
+                                ? '${coach.wagonNumber}'
+                                : '–',
+                            style: TextStyle(
+                              fontSize: compact ? 13 : 16,
+                              fontWeight: FontWeight.w800,
+                              color: fg,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (freeCount != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 3),
+                          child: _FreeSeatBadge(
+                            free: freeCount!,
+                            big: !compact,
+                          ),
+                        )
+                      else if (!compact)
+                        const SizedBox(height: 14),
+                    ],
                   ),
-                )
-              else
-                Icon(Icons.train, color: fg, size: 16),
-              if (freeCount != null) ...[
-                const SizedBox(height: 3),
-                _FreeSeatBadge(free: freeCount!, big: !compact),
-              ],
-            ],
-          ),
+                ),
         ),
       ),
     );

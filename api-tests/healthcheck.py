@@ -2397,6 +2397,53 @@ def check_vendo_seat_map() -> str:
             f"gsd seat status encoding changed — unexpected {sorted(unknown)} "
             "(app assumes 0=belegt, 1/2=frei; a new code breaks free-seat counts)")
 
+    # First-class cross-fetch (#89). gsd reports free seats only for the
+    # requested `platzbedarfe.klasse`; the app merges a KLASSE_1 and a KLASSE_2
+    # fetch so first-class seats stop reading as occupied. Refetch the SAME leg
+    # in KLASSE_1 and assert the class param is honored (ssr_data + coaches). If
+    # DB ever stops serving a first-class plan here, the merge silently drops
+    # first class and #89 comes back.
+    data1 = json.loads(json.dumps(data))
+    data1["buchungskontext"]["buchungsKontextDaten"]["platzbedarfe"][0]["klasse"] = "KLASSE_1"
+    data1["buchungskontext"]["buchungsKontextId"] = str(uuid.uuid4())
+    data1["correlationID"] = _corr_id()
+    url1 = ("https://app.services-bahn.de/mob/gsd/gsd_v3?data="
+            + urllib.parse.quote(json.dumps(data1, separators=(",", ":"))))
+    r1 = _get(url1, headers={"User-Agent": DBNAV_UA}, timeout=TIMEOUT)
+    m1 = re.search(r"id='ssr_data'\s*>(.*?)</script>", r1.text, re.S)
+    free1 = only_k1 = None
+    if r1.status_code == 200 and m1:
+        ssr1 = json.loads(m1.group(1))
+        coaches1 = [w for zt in ssr1.get("zugfahrt", {}).get("zugteile", [])
+                    for w in zt.get("wagen", [])]
+        if not coaches1:
+            raise CheckError(
+                "gsd KLASSE_1 request returned no coaches — first-class seat "
+                "inventory gone; merge would drop first class (#89)")
+        free1 = sum(1 for w in coaches1 for p in w["plaetze"]
+                    if p.get("status") in (1, 2))
+        # The invariant the whole merge rests on: `klasse` genuinely scopes which
+        # seats read free. Identify each seat by (coach nummer, seat nummer) and
+        # prove there are seats free ONLY in the KLASSE_1 fetch — those are the
+        # exact seats a KLASSE_2-only fetch would mark occupied, which was #89.
+        # If the two free-sets ever coincide, a single-class fetch would look
+        # complete and the bug could silently return unnoticed.
+        def _free_ids(cs):
+            return {(w.get("nummer"), p.get("nummer"))
+                    for w in cs for p in w.get("plaetze", [])
+                    if p.get("status") in (1, 2)}
+        only_k1 = len(_free_ids(coaches1) - _free_ids(coaches))
+        if not only_k1:
+            raise CheckError(
+                "gsd free-seat sets are identical across KLASSE_1/KLASSE_2 — the "
+                "per-class scoping the app's two-class merge relies on is gone; a "
+                "single-class fetch would now wrongly look complete and #89 could "
+                "return undetected")
+    else:
+        raise CheckError(
+            f"gsd KLASSE_1 request failed (HTTP {r1.status_code}, "
+            f"ssr_data={'yes' if m1 else 'no'}) — first-class seat map broken (#89)")
+
     # Per-coach geometry endpoint.
     wtyp = coaches[0].get("wagentyp", "")
     if not wtyp:
@@ -2411,8 +2458,9 @@ def check_vendo_seat_map() -> str:
     el = teile[0]["elemente"][0]
     if "x" not in el or "y" not in el or "type" not in el:
         raise CheckError("geometry element missing x/y/type")
-    return (f"zug {fahrt_nr}: {len(coaches)} coaches, {free}/{total} free, "
-            f"geometry ok ({len(teile[0]['elemente'])} elems)")
+    return (f"zug {fahrt_nr}: {len(coaches)} coaches, {free}/{total} free "
+            f"(K2), {free1} free (K1), {only_k1} free only in K1, geometry ok "
+            f"({len(teile[0]['elemente'])} elems)")
 
 
 def check_wagenreihung_split() -> str:

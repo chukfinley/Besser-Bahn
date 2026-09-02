@@ -34,3 +34,7 @@ session.txt
 flutter-app/.test_out.txt
 
 .idea/
+
+# local scratch / apk analysis
+_scratch/
+_raw/

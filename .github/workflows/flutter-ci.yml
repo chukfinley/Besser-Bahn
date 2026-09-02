@@ -21,14 +21,29 @@ jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
 
+    # DB serves German local times, and a few parser tests assert the local
+    # wall-clock hour of a "+02:00" fixture (e.g. 00:00 local). On a UTC runner
+    # DateTime.toLocal() shifts that to 22:00 the day before, so the tests fail
+    # only in CI. Pin the runner to Europe/Berlin so it matches the dev machines.
+    env:
+      TZ: Europe/Berlin
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: "projects/658602031061/locations/global/workloadIdentityPools/github-actions/providers/github-actions"
           service_account: "github-actions-firebase@besser-bahn.iam.gserviceaccount.com"
+
+      # The SDK version comes from pubspec.yaml (`environment: flutter:`), the
+      # same line IzzyOnDroid's reproducible-build script parses. Pinning it a
+      # second time here would let CI drift away from the release toolchain.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+
       # The SDK version comes from pubspec.yaml (`environment: flutter:`), the
       # same line IzzyOnDroid's reproducible-build script parses. Pinning it a
       # second time here would let CI drift away from the release toolchain.

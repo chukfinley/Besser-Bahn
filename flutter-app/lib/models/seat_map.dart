@@ -127,6 +127,51 @@ class SeatMap {
     return '  ·  frei in Wagen ${free.join(', ')}';
   }
 
+  /// Merge two fetches of the SAME train made for different booking classes.
+  ///
+  /// gsd only reports real availability for the requested `platzbedarfe.klasse`
+  /// — a first-class seat comes back AUSWAEHLBAR only in a KLASSE_1 request and
+  /// NICHT_AUSWAEHLBAR (status 0, i.e. "occupied") in a KLASSE_2 one, and the
+  /// other way round. The app always asked KLASSE_2, so first-class seats never
+  /// showed as free (#89). Combining the two fetches — a seat is free if it is
+  /// free in *either* class's response — restores the whole-train view the DB
+  /// Navigator shows. Coaches are unioned by number so a class that returns a
+  /// disjoint or empty coach set (a sold-out class) still contributes.
+  SeatMap mergeFreedom(SeatMap other) {
+    final otherByCoach = <String, SeatCoach>{
+      for (final c in other.coaches) c.number: c,
+    };
+    final merged = <SeatCoach>[];
+    final seen = <String>{};
+    for (final c in coaches) {
+      seen.add(c.number);
+      final o = otherByCoach[c.number];
+      if (o == null) {
+        merged.add(c);
+        continue;
+      }
+      final oStatus = {for (final s in o.seats) s.number: s.status};
+      final seats = [
+        for (final s in c.seats)
+          (s.status != SeatStatus.free &&
+                  oStatus[s.number] == SeatStatus.free)
+              ? Seat(number: s.number, status: SeatStatus.free)
+              : s,
+      ];
+      merged.add(SeatCoach(
+        number: c.number,
+        wagentyp: c.wagentyp,
+        seats: seats,
+        layout: c.layout,
+      ));
+    }
+    // Coaches only present in the other fetch (a class this fetch omitted).
+    for (final c in other.coaches) {
+      if (!seen.contains(c.number)) merged.add(c);
+    }
+    return SeatMap(coaches: merged);
+  }
+
   /// Parse the `ssr_data` JSON embedded in the gsd_v3 HTML page.
   factory SeatMap.fromSsr(Map<String, dynamic> ssr) {
     final zugteile =

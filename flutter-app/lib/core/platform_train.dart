@@ -21,6 +21,49 @@ import 'train_geometry.dart';
 /// straight axis (not a chain of noisy cube points) keeps the train clean and
 /// parallel to the track — no spurious kink at the far end.
 
+/// Which side of the train the platform (and therefore the doors you exit
+/// through) is on, seen in the direction of travel.
+enum ExitSide { left, right, unknown }
+
+/// Compute the exit side at a stop from geometry we already have: the direction
+/// of travel through the stop and where the platform sits relative to the track.
+///
+/// [travelFrom] → [travelTo] is a short segment of the route polyline oriented
+/// in the direction the train MOVES (origin→destination order). [track] is a
+/// point on the rail at the stop; [platform] is the platform POI (where the
+/// doors open). A left/right answer is the sign of the 2-D cross product of the
+/// travel vector and the track→platform vector, in a local east/north metric
+/// frame — so it is independent of latitude scale and needs no map projection.
+///
+/// Returns [ExitSide.unknown] when the platform sits essentially on the track
+/// line (degenerate) or an input is missing — the caller then shows nothing
+/// rather than a guess.
+ExitSide exitSideOf({
+  required LatLng travelFrom,
+  required LatLng travelTo,
+  required LatLng track,
+  required LatLng platform,
+}) {
+  const mPerDegLat = 111320.0;
+  final mPerDegLon =
+      mPerDegLat * math.cos(travelFrom.latitude * math.pi / 180.0);
+  // Travel vector (east = x, north = y).
+  final tx = (travelTo.longitude - travelFrom.longitude) * mPerDegLon;
+  final ty = (travelTo.latitude - travelFrom.latitude) * mPerDegLat;
+  // Track → platform vector.
+  final px = (platform.longitude - track.longitude) * mPerDegLon;
+  final py = (platform.latitude - track.latitude) * mPerDegLat;
+  final tLen = math.sqrt(tx * tx + ty * ty);
+  final pLen = math.sqrt(px * px + py * py);
+  if (tLen < 1e-3 || pLen < 0.5) return ExitSide.unknown;
+  // cross > 0 ⇒ platform is counter-clockwise from travel ⇒ to the LEFT.
+  final cross = tx * py - ty * px;
+  // Guard against a platform that reads as dead-ahead (marker noise): require
+  // the sideways component to be a real fraction of the offset.
+  if (cross.abs() / (tLen * pLen) < 0.15) return ExitSide.unknown;
+  return cross > 0 ? ExitSide.left : ExitSide.right;
+}
+
 /// A–I letter index (0–8) of a single-letter section name, else null.
 int? letterIdx(String n) {
   final t = n.trim().toUpperCase();

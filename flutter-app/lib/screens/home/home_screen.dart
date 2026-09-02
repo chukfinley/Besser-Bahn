@@ -155,8 +155,10 @@ class _HomeScreenState extends State<HomeScreen> {
         onChanged: widget.navigationShell.goBranch,
         items: const [
           ChukNavItem(
-            icon: Icons.search_outlined,
-            activeIcon: Icons.search,
+            // The magnifier has no filled twin in Material; the active tab just
+            // recolours it. A filled-SVG variant was tried and dropped — it
+            // read worse than the plain lens.
+            icon: Icons.search,
             label: 'Suche',
           ),
           ChukNavItem(

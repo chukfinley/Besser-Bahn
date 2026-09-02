@@ -626,8 +626,11 @@ class _OfficialTicketTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final index = trip.index;
-    final kwId = index.kundenwunschIds.isNotEmpty
-        ? index.kundenwunschIds.first
+    // Use the leg this trip actually resolved — a round trip books outbound
+    // and return under one auftragsnummer, each its own kundenwunschId (#90).
+    // Deriving `.first` here made both tiles open the same leg.
+    final kwId = trip.ticketKey.contains('/')
+        ? trip.ticketKey.split('/').last
         : '';
     if (kwId.isEmpty) return const SizedBox.shrink();
     void onTap() => context.push(

@@ -52,6 +52,10 @@ jobs:
         working-directory: flutter-app
         run: flutter test
 
+      - name: Build APK
+        working-directory: flutter-app
+        run: flutter build apk --release
+
   authenticate-google:
     if: github.event_name == 'push'
     needs: analyze-and-test

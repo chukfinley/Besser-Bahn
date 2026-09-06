@@ -299,7 +299,9 @@ class _WeitereAbfahrtenSheetState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 54,
+              // Grows with the system font: a fixed 54 px cuts the last digit
+              // off a scaled-up "15:43" (#98).
+              width: 54 * MediaQuery.textScalerOf(context).scale(13) / 13,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [

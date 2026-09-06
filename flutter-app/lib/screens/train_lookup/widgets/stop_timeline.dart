@@ -70,9 +70,25 @@ class StopTimeline extends StatefulWidget {
   State<StopTimeline> createState() => _StopTimelineState();
 }
 
-/// Left time/duration gutter width — tight so the stop content gets the room
-/// instead of dead space under the times.
-const double _kSpineWidth = 40.0;
+/// Left time/duration gutter width at the system's default font size — tight
+/// so the stop content gets the room instead of dead space under the times.
+const double _kSpineWidthBase = 40.0;
+
+/// The gutter width for the CURRENT text scale. A rider who turned the system
+/// font up renders "15:43" wider than 40 px, and a fixed box cuts the last
+/// digit off ("15:4", #98). Scaling the gutter by the same factor the text
+/// grows by keeps every time whole, and keeps all rows in one column.
+///
+/// The factor comes from scaling the gutter's own font size (14) rather than
+/// the box: Android 14+ font scaling is non-linear, so scale(40) != 40 * f.
+double _spineWidth(BuildContext context) =>
+    _kSpineWidthBase * MediaQuery.textScalerOf(context).scale(14) / 14;
+
+/// Same idea for the fixed-height rows the times and the dots align to: the
+/// row has to grow with the font, or a scaled-up time is cut off at the top
+/// and bottom instead of the side.
+double _rowScale(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(14) / 14;
 
 class _StopTimelineState extends State<StopTimeline> {
   bool _expandedBefore = false;
@@ -498,7 +514,7 @@ class _StopTimelineState extends State<StopTimeline> {
             // Mirror the Zwischenhalte row exactly: spine (52) + gap (12) +
             // line column (20) + gap (12) → the content (icon + label) lines up
             // with the "N Zwischenhalte" text, not just the stop names.
-            const SizedBox(width: _kSpineWidth),
+            SizedBox(width: _spineWidth(context)),
             const SizedBox(width: 12),
             const SizedBox(width: 20),
             const SizedBox(width: 12),
@@ -552,7 +568,7 @@ class _StopTimelineState extends State<StopTimeline> {
             children: [
               // spine: leg duration, centred between the two stop times
               SizedBox(
-                width: _kSpineWidth,
+                width: _spineWidth(context),
                 child: duration == null
                     ? const SizedBox.shrink()
                     : Align(
@@ -739,7 +755,7 @@ class _StopTimelineState extends State<StopTimeline> {
             // board departure above and the alight arrival below, regardless of
             // what's stacked between them.
             SizedBox(
-              width: _kSpineWidth,
+              width: _spineWidth(context),
               child: duration == null
                   ? const SizedBox.shrink()
                   : Align(
@@ -876,8 +892,9 @@ class _StopRow extends StatelessWidget {
           children: [
             // Time spine column
             SizedBox(
-              width: _kSpineWidth,
+              width: _spineWidth(context),
               child: _spineTime(
+                context,
                 spinePlanned,
                 spineReal,
                 spineDelay,
@@ -899,7 +916,8 @@ class _StopRow extends StatelessWidget {
                 // looks broken between a reached stop and the next.
                 final faint = theme.colorScheme.outlineVariant;
                 final dotSize = emphasize ? 14.0 : 10.0;
-                final topGap = _nameRowHeight / 2 - dotSize / 2;
+                final topGap =
+                    _nameRowHeight * _rowScale(context) / 2 - dotSize / 2;
                 // The line ABOVE the dot belongs to the segment that arrives here;
                 // it's done once the train has reached this stop.
                 final topDone = reached;
@@ -982,8 +1000,8 @@ class _StopRow extends StatelessWidget {
                     // station name off mid-glyph: the second line was there,
                     // just clipped to its first pixel row (#57).
                     ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        minHeight: _nameRowHeight,
+                      constraints: BoxConstraints(
+                        minHeight: _nameRowHeight * _rowScale(context),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1194,6 +1212,7 @@ class _StopRow extends StatelessWidget {
 
   /// Left "spine" time: planned struck through + realtime in red on delay.
   Widget _spineTime(
+    BuildContext context,
     DateTime? planned,
     DateTime? real,
     int? delaySec,
@@ -1209,11 +1228,13 @@ class _StopRow extends StatelessWidget {
         // vertically centred — so it lines up with the timeline dot (which
         // targets that same centre), not floating above it.
         SizedBox(
-          height: _nameRowHeight,
+          height: _nameRowHeight * _rowScale(context),
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(
               planned.hhmm,
+              maxLines: 1,
+              softWrap: false,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -1230,6 +1251,8 @@ class _StopRow extends StatelessWidget {
         if (delayed && real != null)
           Text(
             real.hhmm,
+            maxLines: 1,
+            softWrap: false,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,

@@ -292,10 +292,24 @@ class JourneySearchNotifier extends Notifier<JourneySearchState> {
   /// Toggle a transport category in the multimodal filter. Never lets the user
   /// deselect the last category (that would hide everything) — re-enabling all
   /// instead. The filter is part of the query, so this re-runs the search.
+  /// Tap a product chip.
+  ///
+  /// Every category starts selected, so a plain toggle could only ever *remove*
+  /// one: to get "only Fernverkehr" a rider had to tap away five other chips,
+  /// and most people read the first tap as "show me this one". So from the
+  /// all-on state a tap isolates the tapped category; tapping the last
+  /// remaining one goes back to all; in between it toggles normally.
   void toggleProduct(ProductCategory cat) {
-    final next = Set<ProductCategory>.from(state.products);
-    if (!next.remove(cat)) next.add(cat);
-    if (next.isEmpty) next.addAll(ProductCategory.values);
+    final all = ProductCategory.values.toSet();
+    var next = Set<ProductCategory>.from(state.products);
+    if (next.length == all.length) {
+      next = {cat};
+    } else if (next.length == 1 && next.contains(cat)) {
+      next = all;
+    } else {
+      if (!next.remove(cat)) next.add(cat);
+      if (next.isEmpty) next = all;
+    }
     state = state.copyWith(products: next);
     if (state.result != null) search();
   }

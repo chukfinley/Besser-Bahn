@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,10 @@ import '../../widgets/glass_switcher.dart';
 import '../../widgets/measured_height.dart';
 import '../../core/extensions.dart';
 import '../../core/auto_refresh.dart';
+
+/// Menu value standing for "no product filter". See the filter menu below for
+/// why this cannot simply be null.
+const _allProducts = 'ALLE';
 
 class DepartureBoardScreen extends ConsumerStatefulWidget {
   /// When embedded in the combined "Bahnhof" screen, drop our own AppBar — the
@@ -194,7 +199,15 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
                                   ),
                                 ],
                                 // Product filter
-                                PopupMenuButton<String?>(
+                                // Typed <String>, with a sentinel for "Alle",
+                                // NOT <String?> with a null item: a
+                                // [PopupMenuButton] treats a null result as a
+                                // dismissal and calls onCanceled instead of
+                                // onSelected. Picking "Alle" therefore never
+                                // reached the notifier and the board stayed
+                                // filtered — with RE selected in Berlin, on an
+                                // empty list you could not get back at all.
+                                PopupMenuButton<String>(
                                   icon: Icon(
                                     Icons.filter_list,
                                     color: state.filterProduct != null
@@ -202,10 +215,14 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
                                         : null,
                                   ),
                                   tooltip: 'Filter',
-                                  onSelected: notifier.setFilter,
+                                  initialValue:
+                                      state.filterProduct ?? _allProducts,
+                                  onSelected: (v) => notifier.setFilter(
+                                    v == _allProducts ? null : v,
+                                  ),
                                   itemBuilder: (_) => [
                                     const PopupMenuItem(
-                                      value: null,
+                                      value: _allProducts,
                                       child: Text('Alle'),
                                     ),
                                     const PopupMenuItem(
@@ -227,6 +244,10 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
                                     const PopupMenuItem(
                                       value: 'suburban',
                                       child: Text('S-Bahn'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'bus',
+                                      child: Text('Bus'),
                                     ),
                                   ],
                                 ),
@@ -288,9 +309,9 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
           bottom: 32 + AppNavBar.insetOf(context),
         ),
         itemCount: departures.length,
-        separatorBuilder: (_, _) => const Divider(height: 1, indent: 84),
+        separatorBuilder: (_, _) => const Divider(height: 1, indent: 14),
         itemBuilder: (context, index) {
-          return _DepartureTile(
+          return DepartureTile(
             departure: departures[index],
             onTap: () {
               ref
@@ -309,85 +330,87 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
   }
 }
 
-class _DepartureTile extends StatelessWidget {
+/// One row of the board. Public (and [visibleForTesting]) so a golden test can
+/// render a whole board's worth of rows without a network.
+@visibleForTesting
+class DepartureTile extends StatelessWidget {
   final Departure departure;
   final VoidCallback onTap;
 
-  const _DepartureTile({required this.departure, required this.onTap});
+  const DepartureTile({super.key, required this.departure, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final time = departure.plannedWhen?.hhmm ?? '';
     final muted = theme.colorScheme.onSurfaceVariant;
-    // Column layout of a real station display: Zeit | Nach | Über | Gleis.
-    // The line label sits under the time (the way a platform board prints
-    // "RB75" below the departure minute), which frees the whole middle column
-    // for the destination and the stops on the way.
+    // A station display's columns — Zeit | Nach | Über | Gleis — in the space a
+    // list row can afford: two lines, not four. The line label rides next to
+    // the time (a board prints "RB75" under the minute; on a phone the width is
+    // the scarce axis, not the height), and the delay badge sits on the same
+    // baseline as the time instead of taking a line of its own.
     final via = departure.via.join(' · ');
+    final note = departure.remarks.isEmpty ? null : departure.remarks.first;
 
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+        padding: const EdgeInsets.fromLTRB(14, 7, 14, 7),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Zeit + line label. Fixed width so every row's destination starts
-            // on the same x — the whole point of a board.
+            // Zeit + Verspätung, then the line — a fixed width so every row's
+            // destination starts on the same x. That alignment is the whole
+            // point of a board.
             SizedBox(
-              width: 58,
+              width: 92,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Time and delay badge want more than 58 px once the badge is
-                  // there; scaleDown only bites when it has to.
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          time,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            decoration: departure.cancelled
-                                ? TextDecoration.lineThrough
-                                : null,
+                  Row(
+                    children: [
+                      Text(
+                        time,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          height: 1.15,
+                          decoration: departure.cancelled
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      if (departure.cancelled || departure.isDelayed) ...[
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: DelayBadge(
+                              delaySeconds: departure.delay,
+                              cancelled: departure.cancelled,
+                            ),
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
                   Text(
                     departure.line.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 11.5,
+                      height: 1.25,
                       fontWeight: FontWeight.w600,
                       color: muted,
                     ),
                   ),
-                  if (departure.cancelled || departure.isDelayed) ...[
-                    const SizedBox(height: 2),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: DelayBadge(
-                        delaySeconds: departure.delay,
-                        cancelled: departure.cancelled,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             // Nach + Über.
             Expanded(
               child: Column(
@@ -399,55 +422,46 @@ class _DepartureTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 14.5,
+                      height: 1.15,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (via.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: Text(
-                        via,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          height: 1.25,
-                          color: muted,
-                        ),
-                      ),
-                    ),
-                  if (departure.remarks.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        departure.remarks.first,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: departure.cancelled
-                              ? theme.colorScheme.error
-                              : muted,
-                        ),
+                  // One line only: the stops on the way are orientation, not a
+                  // route listing — the trip screen has the full run. Two lines
+                  // here cost a third of the rows on screen.
+                  if (via.isNotEmpty || note != null)
+                    Text(
+                      note ?? via,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.25,
+                        color: departure.cancelled
+                            ? theme.colorScheme.error
+                            : muted,
                       ),
                     ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            // Gleis, right-aligned like the board's last column.
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PlatformBadge(
+            const SizedBox(width: 10),
+            // Gleis — a column, not a trailing widget: fixed width and
+            // right-aligned, so the platform numbers line up down the board
+            // instead of drifting with the length of the destination. No
+            // chevron either; the whole row is tappable, and the arrow only ate
+            // the width the destination needed (a real board has no arrows).
+            SizedBox(
+              width: 54,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: PlatformBadge(
                   platform: departure.platform,
                   plannedPlatform: departure.plannedPlatform,
                 ),
-              ],
+              ),
             ),
-            Icon(Icons.chevron_right, size: 20, color: muted),
           ],
         ),
       ),

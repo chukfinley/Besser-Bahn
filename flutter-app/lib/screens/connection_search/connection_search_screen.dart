@@ -986,6 +986,21 @@ class _ConnectionSearchScreenState
       // "Nur D-Ticket" is its own search mode — Fernverkehr/Regional/… make no
       // sense alongside it, so hide them while it's on rather than showing two
       // contradictory filter sets at once (#47).
+      // The way back to the full search, visible only while something is
+      // filtered — a rider who tapped "Fernverkehr" should not have to work out
+      // that tapping it again undoes it.
+      if (!state.onlyDeutschlandTicket &&
+          state.products.length != ProductCategory.values.length)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3),
+          child: ActionChip(
+            avatar: const Icon(Icons.clear, size: 15),
+            label: const Text('Alle'),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            onPressed: notifier.setAllProducts,
+          ),
+        ),
       if (!state.onlyDeutschlandTicket)
         for (final cat in ProductCategory.values)
           Padding(

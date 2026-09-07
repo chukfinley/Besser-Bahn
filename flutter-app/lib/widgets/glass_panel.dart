@@ -108,3 +108,120 @@ class GlassPanel extends StatelessWidget {
     );
   }
 }
+
+/// Round glass button for map chrome — the same pane of glass the search bar
+/// and the nav bar are made of, in the footprint of a small FAB.
+///
+/// Map controls used to be opaque [FloatingActionButton]s and [Material]
+/// cards. Over a live map that reads as a stack of unrelated widgets pasted on
+/// top, and it hides the very thing the rider is looking at. Everything that
+/// floats over content in this app is glass; these are no exception.
+class GlassIconButton extends StatelessWidget {
+  const GlassIconButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+    this.size = 40,
+    this.active = false,
+  });
+
+  final Widget icon;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+  final double size;
+
+  /// Tints the glyph in the app's accent — for a control that is *on*, where
+  /// an opaque button would have been filled.
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final button = GlassPanel(
+      radius: GlassPanel.pillRadius,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            child: Center(
+              child: IconTheme.merge(
+                data: IconThemeData(
+                  size: 20,
+                  color: active ? colors.primary : colors.onSurface,
+                ),
+                child: icon,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return tooltip == null
+        ? button
+        : Tooltip(message: tooltip!, child: button);
+  }
+}
+
+/// Pill-shaped glass button with an icon and a label — the map's "Legende" and
+/// "Bahnsteigplan" controls, and anything else that floats over content.
+class GlassPillButton extends StatelessWidget {
+  const GlassPillButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.tooltip,
+    this.active = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  /// An *on* control keeps the glass and colours its content in the accent,
+  /// instead of turning into an opaque block.
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final fg = active ? colors.primary : colors.onSurface;
+    final pill = GlassPanel(
+      radius: GlassPanel.pillRadius,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(GlassPanel.pillRadius),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 15, color: fg),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return tooltip == null ? pill : Tooltip(message: tooltip!, child: pill);
+  }
+}

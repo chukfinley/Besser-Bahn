@@ -335,15 +335,34 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                         bare: true,
                       ),
                     ),
+                    // Both notices get the search bar's own inner padding.
+                    // Without it the text and the icon sat flush against the
+                    // rounded edge and read as squeezed/cut off.
                     if (notice != null)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                        child: GlassPanel(child: notice),
+                        child: GlassPanel(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: notice,
+                          ),
+                        ),
                       ),
                     if (facility != null)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-                        child: GlassPanel(child: facility),
+                        child: GlassPanel(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: facility,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -622,12 +641,11 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
               // pinned to the raw bottom edge would sit under it forever. Away
               // from the top edge as well, which is where the floating switcher
               // is now.
-              FloatingActionButton.small(
-                heroTag: 'station-map-center',
+              GlassIconButton(
                 tooltip: 'Auf Karte zentrieren',
                 // A framing/centre glyph — distinct from the "Mein Standort" GPS
                 // crosshair so the two buttons no longer look identical.
-                child: const Icon(Icons.center_focus_strong),
+                icon: const Icon(Icons.center_focus_strong),
                 onPressed: () => _recenter(map),
               ),
               const SizedBox(height: 8),
@@ -1067,11 +1085,8 @@ class _LevelSwitcher extends StatelessWidget {
     if (map.levels.length <= 1) return const SizedBox.shrink();
     // A compact vertical strip sized to the floor count — rounded ends, hugging
     // its content so it never stretches down the whole map edge.
-    return Material(
-      elevation: 3,
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
+    return GlassPanel(
+      radius: 18,
       child: Padding(
         padding: const EdgeInsets.all(3),
         child: Column(
@@ -1158,42 +1173,15 @@ class _IndoorToggle extends StatelessWidget {
   const _IndoorToggle({required this.on, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final fg = on ? Colors.white : theme.iconTheme.color;
-    return Material(
-      elevation: 3,
-      color: on ? AppColors.dbRed : theme.cardColor,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Tooltip(
-          message: on
-              ? 'DB-Bahnsteigplan ausblenden'
-              : 'DB-Bahnsteigplan einblenden',
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(on ? Icons.map : Icons.map_outlined, size: 15, color: fg),
-                const SizedBox(width: 5),
-                Text(
-                  'Bahnsteigplan',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: fg,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GlassPillButton(
+    icon: on ? Icons.map : Icons.map_outlined,
+    label: 'Bahnsteigplan',
+    active: on,
+    tooltip: on
+        ? 'DB-Bahnsteigplan ausblenden'
+        : 'DB-Bahnsteigplan einblenden',
+    onTap: onTap,
+  );
 }
 
 /// Tappable category legend / filter. Collapsed to a small pill by default so
@@ -1228,34 +1216,17 @@ class _LegendState extends State<_Legend> {
     final theme = Theme.of(context);
 
     if (!_expanded) {
-      // Collapsed: a compact "Legende" pill.
-      return Material(
-        elevation: 3,
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => setState(() => _expanded = true),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.layers, size: 15, color: theme.iconTheme.color),
-                const SizedBox(width: 5),
-                const Text(
-                  'Legende',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-        ),
+      // Collapsed: a compact "Legende" pill — glass, like every other control
+      // floating over the map.
+      return GlassPillButton(
+        icon: Icons.layers,
+        label: 'Legende',
+        onTap: () => setState(() => _expanded = true),
       );
     }
 
-    return Card(
-      elevation: 3,
+    return GlassPanel(
+      radius: 16,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 220, maxWidth: 168),
         child: Column(

@@ -240,7 +240,12 @@ class StationMapService {
     // otherwise jank the map. `compute` ships only the (slug, body) strings out
     // and a plain-data StationMap back, both isolate-sendable.
     try {
-      final map = await compute(_parseInIsolate, _ParseInput(slug, res.body));
+      // Decode as UTF-8 explicitly. bahnhof.de answers `text/x-component`
+      // WITHOUT a charset, and Dart's http then falls back to latin-1 — which
+      // is what turned "Verwaltungsgebäude" into "VerwaltungsgebÃ¤ude" in the
+      // facility warnings on the map.
+      final body = utf8.decode(res.bodyBytes, allowMalformed: true);
+      final map = await compute(_parseInIsolate, _ParseInput(slug, body));
       if (!background) {
         _logParsed(
           slug,
@@ -251,7 +256,7 @@ class StationMapService {
         );
       }
       _cache[slug] = map;
-      return (body: res.body, map: map);
+      return (body: body, map: map);
     } on StationMapException {
       // RSC stream lacked the poi data (unexpected server shape) — fall back to
       // the full HTML document and reassemble the __next_f chunks the old way,
@@ -277,10 +282,11 @@ class StationMapService {
           transient: false,
         );
       }
+      final htmlBody = utf8.decode(html.bodyBytes, allowMalformed: true);
       try {
         final map = await compute(
           _parseInIsolate,
-          _ParseInput(slug, html.body),
+          _ParseInput(slug, htmlBody),
         );
         if (!background) {
           _logParsed(
@@ -292,7 +298,7 @@ class StationMapService {
           );
         }
         _cache[slug] = map;
-        return (body: html.body, map: map);
+        return (body: htmlBody, map: map);
       } on StationMapException {
         // No poi in the HTML either → this station genuinely has no map data.
         _noMap.add(slug);

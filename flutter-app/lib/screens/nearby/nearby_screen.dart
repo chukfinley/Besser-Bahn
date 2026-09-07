@@ -109,18 +109,12 @@ class _NearbyScreenState extends ConsumerState<NearbyScreen>
               // drifting — the heavy map made the default drift feel endless.
               physics: const _SnappyTabPhysics(),
               children: [
-                // Zug and Abfahrten open with a search field that must clear the
-                // floating switcher, so they start below it.
-                Padding(
-                  padding: EdgeInsets.only(top: GlassSwitcher.insetOf(context)),
-                  child: const TrainLookupScreen(embedded: true),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: GlassSwitcher.insetOf(context)),
-                  child: const DepartureBoardScreen(embedded: true),
-                ),
-                // The map runs full-bleed *under* the switcher — it floats its
-                // own search on glass, so nothing needs to clear the top here.
+                // All three run full-bleed *under* the switcher and float
+                // their own search on glass, so nothing is padded here: each
+                // view clears the switcher with `GlassSwitcher.insetOf` on its
+                // own header and lets its content scroll underneath.
+                const TrainLookupScreen(embedded: true),
+                const DepartureBoardScreen(embedded: true),
                 const StationMapScreen(embedded: true),
               ],
             ),

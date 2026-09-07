@@ -12,6 +12,9 @@ import '../../widgets/station_search_field.dart';
 import '../../widgets/delay_badge.dart';
 import '../../widgets/platform_badge.dart';
 import '../../widgets/app_menu_button.dart';
+import '../../widgets/glass_panel.dart';
+import '../../widgets/glass_switcher.dart';
+import '../../widgets/measured_height.dart';
 import '../../core/extensions.dart';
 import '../../core/auto_refresh.dart';
 
@@ -29,6 +32,12 @@ class DepartureBoardScreen extends ConsumerStatefulWidget {
 
 class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
     with AutoRefreshMixin {
+  /// Height of the floating header, measured (see [MeasuredHeight]). The board
+  /// pads itself by it, so rows scroll *under* the glass instead of stopping
+  /// at it — which is what makes the search bar read as glass here, exactly as
+  /// it already does on the Karte tab.
+  double _headerHeight = 0;
+
   @override
   Future<void> onAutoRefresh() =>
       ref.read(departureBoardProvider.notifier).refreshSilent();
@@ -75,128 +84,162 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
               title: Text(state.station?.name ?? 'Abfahrtstafel'),
               actions: const [AppMenuButton()],
             ),
-      body: Column(
+      // Content full-bleed, header floating on glass over it — the Karte
+      // tab's layout, so all three Bahnhof views look the same (a Column
+      // would put the glass over the scaffold colour, i.e. over nothing).
+      body: Stack(
         children: [
-          // Station search — the shared Bahnhof search bar (same on Zug/Karte).
-          BahnhofSearchBar(
-            trailing: actions,
-            child: StationSearchField(
-              hint: 'Bahnhof suchen...',
-              prefixIcon: Icons.location_city,
-              initialStation: state.station,
-              onSelected: notifier.setStation,
-              dense: true,
-              bare: true,
-              // A board needs an EVA — addresses have none.
-              stopsOnly: true,
+          Positioned.fill(child: _buildBoard(context, ref, state)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: MeasuredHeight(
+              onHeight: (h) {
+                if (mounted && h != _headerHeight) {
+                  setState(() => _headerHeight = h);
+                }
+              },
+              child: Padding(
+                // Embedded, the floating switcher sits above this view; on the
+                // standalone route the AppBar already took that space.
+                padding: EdgeInsets.only(
+                  top: widget.embedded ? GlassSwitcher.insetOf(context) : 0,
+                ),
+                child: Column(
+                  children: [
+                    // Station search — the shared Bahnhof search bar (same on
+                    // Zug/Karte).
+                    BahnhofSearchBar(
+                      trailing: actions,
+                      child: StationSearchField(
+                        hint: 'Bahnhof suchen...',
+                        prefixIcon: Icons.location_city,
+                        initialStation: state.station,
+                        onSelected: notifier.setStation,
+                        dense: true,
+                        bare: true,
+                        // A board needs an EVA — addresses have none.
+                        stopsOnly: true,
+                      ),
+                    ),
+
+                    // Mode toggle, filter and the "last updated" line — on
+                    // their own pane of glass, so they stay readable over the
+                    // rows sliding underneath.
+                    if (state.station != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                        child: GlassPanel(
+                          radius: GlassPanel.pillRadius,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 2, 4, 2),
+                            child: Row(
+                              children: [
+                                // This row overflowed — the yellow-and-black
+                                // stripes — on every phone narrower than
+                                // ~440 px, which is every phone. Two fixes,
+                                // because one alone would only move the cliff:
+                                //
+                                //  * the checkmark and the arrows are gone.
+                                //    Decoration on top of two words that
+                                //    already say which way the trains are
+                                //    going, and between them ~90 px of the
+                                //    overflow;
+                                //  * what is left scales down rather than
+                                //    overflowing. A [SegmentedButton] sizes
+                                //    itself to its labels and does not care
+                                //    what it was given, so *any* fixed layout
+                                //    here is one system text scale away from
+                                //    the stripes again. scaleDown only bites
+                                //    when it has to (the departure tile's own
+                                //    trick — see `_DepartureTile`).
+                                Expanded(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: SegmentedButton<BoardMode>(
+                                      showSelectedIcon: false,
+                                      style: SegmentedButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      segments: const [
+                                        ButtonSegment(
+                                          value: BoardMode.departures,
+                                          label: Text('Abfahrten'),
+                                        ),
+                                        ButtonSegment(
+                                          value: BoardMode.arrivals,
+                                          label: Text('Ankünfte'),
+                                        ),
+                                      ],
+                                      selected: {state.mode},
+                                      onSelectionChanged: (v) =>
+                                          notifier.setMode(v.first),
+                                    ),
+                                  ),
+                                ),
+                                if (state.lastUpdated != null) ...[
+                                  Icon(
+                                    Icons.sync,
+                                    size: 13,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    state.lastUpdated!.hhmm,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                                // Product filter
+                                PopupMenuButton<String?>(
+                                  icon: Icon(
+                                    Icons.filter_list,
+                                    color: state.filterProduct != null
+                                        ? theme.colorScheme.primary
+                                        : null,
+                                  ),
+                                  tooltip: 'Filter',
+                                  onSelected: notifier.setFilter,
+                                  itemBuilder: (_) => [
+                                    const PopupMenuItem(
+                                      value: null,
+                                      child: Text('Alle'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'nationalExpress',
+                                      child: Text('ICE'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'national',
+                                      child: Text('IC/EC'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'regionalExpress',
+                                      child: Text('RE'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'regional',
+                                      child: Text('RB'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'suburban',
+                                      child: Text('S-Bahn'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
-
-          // Departure / Arrival toggle
-          if (state.station != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  // This row overflowed — the yellow-and-black stripes — on
-                  // every phone narrower than ~440 px, which is every phone.
-                  // Two fixes, because one alone would only move the cliff:
-                  //
-                  //  * the checkmark and the arrows are gone. Decoration on
-                  //    top of two words that already say which way the trains
-                  //    are going, and between them ~90 px of the overflow;
-                  //  * what is left scales down rather than overflowing. A
-                  //    [SegmentedButton] sizes itself to its labels and does
-                  //    not care what it was given, so *any* fixed layout here
-                  //    is one system text scale away from the stripes again.
-                  //    scaleDown only bites when it has to (the departure
-                  //    tile's own trick — see `_DepartureTile.leading`).
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: SegmentedButton<BoardMode>(
-                        showSelectedIcon: false,
-                        style: SegmentedButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        segments: const [
-                          ButtonSegment(
-                            value: BoardMode.departures,
-                            label: Text('Abfahrten'),
-                          ),
-                          ButtonSegment(
-                            value: BoardMode.arrivals,
-                            label: Text('Ankünfte'),
-                          ),
-                        ],
-                        selected: {state.mode},
-                        onSelectionChanged: (v) => notifier.setMode(v.first),
-                      ),
-                    ),
-                  ),
-                  // Product filter
-                  PopupMenuButton<String?>(
-                    icon: Icon(
-                      Icons.filter_list,
-                      color: state.filterProduct != null
-                          ? theme.colorScheme.primary
-                          : null,
-                    ),
-                    tooltip: 'Filter',
-                    onSelected: notifier.setFilter,
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(value: null, child: Text('Alle')),
-                      const PopupMenuItem(
-                        value: 'nationalExpress',
-                        child: Text('ICE'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'national',
-                        child: Text('IC/EC'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'regionalExpress',
-                        child: Text('RE'),
-                      ),
-                      const PopupMenuItem(value: 'regional', child: Text('RB')),
-                      const PopupMenuItem(
-                        value: 'suburban',
-                        child: Text('S-Bahn'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-          // Quiet "last updated" line — auto-refreshes in the background.
-          if (state.station != null && state.lastUpdated != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.sync,
-                    size: 13,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Aktualisiert ${state.lastUpdated!.hhmm}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            const SizedBox(height: 8),
-
-          // The board.
-          Expanded(child: _buildBoard(context, ref, state)),
         ],
       ),
     );
@@ -233,11 +276,17 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
     }
 
     return RefreshIndicator(
+      // Drop the spinner below the floating header — at the default 40 it
+      // spins behind the glass and looks like nothing happened.
+      displacement: _headerHeight + 24,
       onRefresh: () =>
           ref.read(departureBoardProvider.notifier).refreshSilent(),
       child: ListView.separated(
         // Clear the floating nav bar — it hovers over this list.
-        padding: EdgeInsets.only(bottom: 32 + AppNavBar.insetOf(context)),
+        padding: EdgeInsets.only(
+          top: _headerHeight,
+          bottom: 32 + AppNavBar.insetOf(context),
+        ),
         itemCount: departures.length,
         separatorBuilder: (_, _) => const Divider(height: 1, indent: 84),
         itemBuilder: (context, index) {

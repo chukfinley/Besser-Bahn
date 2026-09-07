@@ -19,6 +19,8 @@ import '../../widgets/app_menu_button.dart';
 import '../../widgets/app_nav_bar.dart';
 import '../../widgets/station_search_field.dart';
 import '../../widgets/traewelling_logo.dart';
+import '../../widgets/glass_switcher.dart';
+import '../../widgets/measured_height.dart';
 import '../../widgets/trwl_checkin_sheet.dart';
 import 'widgets/train_detail_view.dart';
 
@@ -39,6 +41,11 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
   final _focusNode = FocusNode();
   Station? _fromStation;
   bool _showStationField = false;
+
+  /// Height of the floating header, measured (see [MeasuredHeight]) — the
+  /// content pads itself by it so it slides under the glass instead of
+  /// starting below it.
+  double _headerHeight = 0;
 
   /// Pending auto-search — see [_debounceDelay].
   Timer? _debounce;
@@ -186,8 +193,27 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
               title: const Text('Zugnummer'),
               actions: const [AppMenuButton()],
             ),
-      body: Column(
+      // Content full-bleed, header floating on glass over it — same layout as
+      // Abfahrten and Karte, so the three Bahnhof views look alike.
+      body: Stack(
         children: [
+          Positioned.fill(child: _buildContent(context, state, theme)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: MeasuredHeight(
+              onHeight: (h) {
+                if (mounted && h != _headerHeight) {
+                  setState(() => _headerHeight = h);
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: widget.embedded ? GlassSwitcher.insetOf(context) : 0,
+                ),
+                child: Column(
+                  children: [
           // Search bar — the shared Bahnhof search bar (same on Abfahrten/Karte).
           BahnhofSearchBar(
             trailing: actions,
@@ -303,12 +329,14 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
               ),
             ),
 
-          _buildSavedTrains(context),
+                    _buildSavedTrains(context),
 
-          const SizedBox(height: 8),
-
-          // Content
-          Expanded(child: _buildContent(context, state, theme)),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -337,6 +365,18 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
   }
 
   Widget _buildContent(
+    BuildContext context,
+    TrainLookupState state,
+    ThemeData theme,
+  ) => Padding(
+    // Everything but the trip list is a centred placeholder, so padding the
+    // whole branch is enough; the list pads itself (see below) to keep
+    // scrolling under the glass.
+    padding: EdgeInsets.only(top: state.trip == null ? _headerHeight : 0),
+    child: _buildContentBody(context, state, theme),
+  );
+
+  Widget _buildContentBody(
     BuildContext context,
     TrainLookupState state,
     ThemeData theme,
@@ -438,10 +478,15 @@ class _TrainLookupScreenState extends ConsumerState<TrainLookupScreen>
     final trip = state.trip!;
 
     return RefreshIndicator(
+      // Below the floating header, not behind it.
+      displacement: _headerHeight + 24,
       onRefresh: () => ref.read(trainLookupProvider.notifier).refresh(),
       child: ListView(
         // Clear the floating nav bar — it hovers over this list.
-        padding: EdgeInsets.only(bottom: 32 + AppNavBar.insetOf(context)),
+        padding: EdgeInsets.only(
+          top: _headerHeight,
+          bottom: 32 + AppNavBar.insetOf(context),
+        ),
         children: [
           TrainDetailView(
             trip: trip,

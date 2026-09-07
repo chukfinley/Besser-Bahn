@@ -20,6 +20,7 @@ import '../../widgets/app_nav_bar.dart';
 import '../../widgets/bay_departures_sheet.dart';
 import '../../widgets/app_menu_button.dart';
 import '../../widgets/glass_panel.dart';
+import '../../widgets/bahnhof_search_bar.dart';
 import '../../widgets/glass_switcher.dart';
 import '../../widgets/station_search_field.dart';
 
@@ -316,38 +317,34 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
               right: 0,
               // Clear the floating switcher (which sits above this view).
               child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  12,
-                  GlassSwitcher.insetOf(context),
-                  12,
-                  0,
+                padding: EdgeInsets.only(
+                  top: GlassSwitcher.insetOf(context),
                 ),
                 child: Column(
                   children: [
-                    GlassPanel(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        child: StationSearchField(
-                          hint: 'Bahnhof, Adresse oder Ort…',
-                          prefixIcon: Icons.location_city,
-                          initialStation: state.station,
-                          onSelected: (s) => _openLocation(s, notifier),
-                          dense: true,
-                          bare: true,
-                        ),
+                    // The shared shell, not a hand-rolled panel: Zug and
+                    // Abfahrten use the same one, so all three searches sit at
+                    // the same height and have the same frame.
+                    BahnhofSearchBar(
+                      child: StationSearchField(
+                        hint: 'Bahnhof, Adresse oder Ort…',
+                        prefixIcon: Icons.location_city,
+                        initialStation: state.station,
+                        onSelected: (s) => _openLocation(s, notifier),
+                        dense: true,
+                        bare: true,
                       ),
                     ),
-                    if (notice != null) ...[
-                      const SizedBox(height: 6),
-                      GlassPanel(child: notice),
-                    ],
-                    if (facility != null) ...[
-                      const SizedBox(height: 6),
-                      GlassPanel(child: facility),
-                    ],
+                    if (notice != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                        child: GlassPanel(child: notice),
+                      ),
+                    if (facility != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                        child: GlassPanel(child: facility),
+                      ),
                   ],
                 ),
               ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +10,7 @@ import '../../providers/settings_provider.dart';
 import '../../utils/arrival_buffer.dart';
 import '../../vendor/chuk_ui/chuk_squircle.dart';
 import '../../widgets/app_nav_bar.dart';
+import '../../widgets/measured_height.dart';
 import '../../widgets/update_banner.dart';
 import '../../widgets/glass_panel.dart';
 import '../../widgets/station_search_field.dart';
@@ -39,7 +39,7 @@ class _ConnectionSearchScreenState
   bool _collapsed = false;
 
   /// What the floating header (form + saved routes + filter) covers, measured
-  /// by [_MeasuredHeight]. The results pad themselves by it so the first
+  /// by [MeasuredHeight]. The results pad themselves by it so the first
   /// connection starts below the glass instead of under it.
   double _headerHeight = 0;
 
@@ -234,7 +234,7 @@ class _ConnectionSearchScreenState
             top: 0,
             left: 0,
             right: 0,
-            child: _MeasuredHeight(
+            child: MeasuredHeight(
               onHeight: _setHeaderHeight,
               child: _header(context, state, notifier, theme),
             ),
@@ -250,7 +250,7 @@ class _ConnectionSearchScreenState
   ///
   /// Laid out top-anchored and free of the results' layout, so the fold
   /// animation moves only this column — the list underneath keeps its own
-  /// height and simply re-pads (see [_MeasuredHeight]).
+  /// height and simply re-pads (see [MeasuredHeight]).
   Widget _header(
     BuildContext context,
     JourneySearchState state,
@@ -1071,63 +1071,6 @@ class _ConnectionSearchScreenState
       time.minute,
     );
     ref.read(journeySearchProvider.notifier).setDateTime(dt);
-  }
-}
-
-/// Reports its own laid-out height to [onHeight] whenever it changes.
-///
-/// This is what the results pad themselves by, so the floating header covers
-/// nothing the rider needs to reach.
-///
-/// **Why measuring is safe here, when `AppNavBar.insetOf` may not.** The nav
-/// bar deliberately reserves a *constant* footprint: its pill shrinks while the
-/// rider scrolls, so a measured footprint would shorten every list, which moves
-/// `maxScrollExtent`, which moves the scroll position, which decides whether
-/// the pill shrinks — a layout driving its own input, and at the margin a
-/// twitch. Nothing closes that loop here. This header's height depends on the
-/// fold state, the saved routes, the filter chips and the text scale; the
-/// results' padding cannot reach a single one of them (the fold is driven by
-/// `resultSerial`, never by scrolling — see [_watchResults]). So the measure is
-/// strictly one-way: it settles one frame after the header changes size and
-/// stays settled, and in exchange no height has to be hardcoded and kept in
-/// sync — which is what a fixed number would eventually fail to be.
-class _MeasuredHeight extends SingleChildRenderObjectWidget {
-  const _MeasuredHeight({required this.onHeight, required Widget super.child});
-
-  final ValueChanged<double> onHeight;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) =>
-      _RenderMeasuredHeight(onHeight);
-
-  @override
-  void updateRenderObject(
-    BuildContext context,
-    _RenderMeasuredHeight renderObject,
-  ) {
-    renderObject.onHeight = onHeight;
-  }
-}
-
-class _RenderMeasuredHeight extends RenderProxyBox {
-  _RenderMeasuredHeight(this.onHeight);
-
-  ValueChanged<double> onHeight;
-
-  /// The last height handed out — so a relayout that changes nothing (every
-  /// scroll frame, for one) doesn't schedule a rebuild of the whole screen.
-  double? _reported;
-
-  @override
-  void performLayout() {
-    super.performLayout();
-    if (_reported == size.height) return;
-    _reported = size.height;
-    // setState during layout is illegal; hand the number to the next frame.
-    // That one frame of lag is invisible — while the form folds, the list's
-    // padding trails the glass by 16 ms — and it is what keeps this a
-    // measurement rather than a layout that rewrites itself mid-pass.
-    WidgetsBinding.instance.addPostFrameCallback((_) => onHeight(size.height));
   }
 }
 

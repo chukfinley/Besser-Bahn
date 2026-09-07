@@ -304,9 +304,15 @@ class _TicketStatusBlock extends StatelessWidget {
     final date = ticket.gueltigAb != null
         ? DateFormat('dd.MM.yyyy').format(ticket.gueltigAb!)
         : '';
-    final tariff = ticket.angebotsname?.trim().isNotEmpty == true
-        ? '${ticket.angebotsname} ${ticket.firstClass ? '1.Kl' : '2.Kl'}'
-        : (ticket.firstClass ? 'Einzelkarte 1.Kl' : 'Einzelkarte 2.Kl');
+    // The class is only appended when the order actually states one — a
+    // ticket whose payload carries no class must not be labelled "2.Kl" (#99).
+    final klasse = ticket.hasClass
+        ? (ticket.firstClass ? '1.Kl' : '2.Kl')
+        : null;
+    final name = ticket.angebotsname?.trim().isNotEmpty == true
+        ? ticket.angebotsname!
+        : 'Einzelkarte';
+    final tariff = klasse == null ? name : '$name $klasse';
     // Prefer the station name + Haltestellen-Nummer printed on the ticket
     // ("Raisdorf (5120) → Kaltenkirchen (617)"), with the bare JSON names
     // ("Raisdorf · Kaltenkirchen") as a fallback when the HTML isn't there.
@@ -561,12 +567,13 @@ class _FallbackTicket extends StatelessWidget {
                   'Tarif',
                   t.angebotsname!,
                 ),
-              _row(
-                theme,
-                Icons.event_seat_outlined,
-                'Klasse',
-                t.firstClass ? '1. Klasse' : '2. Klasse',
-              ),
+              if (t.hasClass)
+                _row(
+                  theme,
+                  Icons.event_seat_outlined,
+                  'Klasse',
+                  t.firstClass ? '1. Klasse' : '2. Klasse',
+                ),
               _row(theme, Icons.group_outlined, 'Reisende', t.reisendeText),
               if (t.gueltigAb != null)
                 _row(

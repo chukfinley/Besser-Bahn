@@ -665,7 +665,7 @@ class _OfficialTicketTile extends ConsumerWidget {
                 DateFormat(
                   'dd.MM.yyyy',
                 ).format(t?.gueltigAb ?? index.aenderungsDatum!),
-              if (t != null) t.firstClass ? '1. Kl.' : '2. Kl.',
+              if (t != null && t.hasClass) t.firstClass ? '1. Kl.' : '2. Kl.',
               if (t?.angebotsname != null) t!.angebotsname!,
             ].where((s) => s.isNotEmpty).join(' · '),
             maxLines: 1,

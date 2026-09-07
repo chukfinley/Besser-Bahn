@@ -74,7 +74,9 @@ class DbTicket {
   final String? angebotsname; // "Flexpreis Europa", "Super Sparpreis" …
   final String status; // GUELTIG / …
   final String? ticketStatus;
-  final String klasse; // KLASSE_1 / KLASSE_2
+  /// KLASSE_1 / KLASSE_2, or null when the order does not state a class —
+  /// which is not the same as 2. Klasse and must not be shown as one (#99).
+  final String? klasse;
   final String? fahrtrichtung; // einfacheFahrt / hin_und_rueckfahrt
   final String? cityInfotext;
 
@@ -114,7 +116,7 @@ class DbTicket {
     required this.auftragsnummer,
     required this.kundenwunschId,
     required this.status,
-    required this.klasse,
+    this.klasse,
     required this.reisendeText,
     this.angebotsname,
     this.ticketStatus,
@@ -134,6 +136,10 @@ class DbTicket {
   });
 
   bool get firstClass => klasse == 'KLASSE_1';
+
+  /// Whether the order says anything about the class at all. The ticket view
+  /// hides the row rather than guessing when this is false.
+  bool get hasClass => klasse == 'KLASSE_1' || klasse == 'KLASSE_2';
 
   bool get isReturn =>
       (fahrtrichtung ?? '').toLowerCase().contains('rueck') ||
@@ -162,10 +168,58 @@ class DbTicket {
     return (name: name, id: m.group(2));
   }
 
+  /// The order node inside an `auftrag/kundenwunsch` response.
+  ///
+  /// The payload is a **union**, not one fixed shape: DB Navigator's own model
+  /// (`AuftragsbezogeneReiseModel`) has one optional child per kind of order —
+  /// `reise` (a booked journey), `reisekette` (several tickets in one order),
+  /// `katalog` (a flat-rate ticket: Länder-Tickets, Quer-durchs-Land …),
+  /// `streckenzeitkarte` (a season ticket for one route) and `vertrag`
+  /// (a subscription). Each wraps its own `*Infos` block, and those all carry
+  /// the same fields we read: `angebotsname`, `klasse`, `ticket`, `ticketStatus`
+  /// and `reisendenInformation`.
+  ///
+  /// Reading only `reise` is what made a Länder-Ticket ("Mecklenburg-Vorpommern
+  /// -Ticket, 1. Kl.") show up as a nameless "Einzelkarte 2.Kl" with no barcode
+  /// (#99): its data sits under `katalog`, so every field fell back to its
+  /// default — and the default for the class silently claimed 2. Klasse.
+  static ({Map<String, dynamic> std, Map<String, dynamic> info}) _orderNode(
+    Map<String, dynamic> json,
+  ) {
+    Map<String, dynamic>? m(dynamic v) => v is Map<String, dynamic> ? v : null;
+
+    for (final (node, infoKey) in const [
+      ('reise', 'reiseInfos'),
+      ('katalog', 'katalogInfos'),
+      ('streckenzeitkarte', 'streckenzeitkarteInfos'),
+      ('reisekette', 'reiseketteInfos'),
+      ('vertrag', 'vertragInfos'),
+    ]) {
+      final outer = m(json[node]);
+      if (outer == null) continue;
+      final std = m(outer['standardInfos']) ?? const {};
+      var info = m(outer[infoKey]) ?? const <String, dynamic>{};
+      // Two of the five keep the ticket one level deeper, in a list of
+      // per-ticket blocks. Take the first: the rest of this model describes
+      // ONE ticket, and the order's own standardInfos stay the same either way.
+      final nested =
+          (info['reisekettenTicketInfos'] as List<dynamic>?) ??
+          (info['vertragTicketInfos'] as List<dynamic>?);
+      if (nested != null) {
+        final first = nested.whereType<Map<String, dynamic>>().firstOrNull;
+        if (first != null) {
+          // Keep the outer block's own fields (verbindung, reiseDetails,
+          // reservierungen) and let the ticket block win where both have one.
+          info = {...info, ...first};
+        }
+      }
+      if (std.isNotEmpty || info.isNotEmpty) return (std: std, info: info);
+    }
+    return (std: const {}, info: const {});
+  }
+
   factory DbTicket.fromJson(Map<String, dynamic> json) {
-    final reise = json['reise'] as Map<String, dynamic>? ?? const {};
-    final std = reise['standardInfos'] as Map<String, dynamic>? ?? const {};
-    final info = reise['reiseInfos'] as Map<String, dynamic>? ?? const {};
+    final (:std, :info) = _orderNode(json);
 
     final zeit = std['zeitlicheGueltigkeit'] as Map<String, dynamic>?;
     final raum = info['raeumlicheGueltigkeit'] as Map<String, dynamic>?;
@@ -178,14 +232,17 @@ class DbTicket {
     return DbTicket(
       auftragsnummer: (std['auftragsnummer'] ?? '').toString(),
       kundenwunschId: (std['kundenwunschId'] ?? '').toString(),
-      angebotsname: info['angebotsname'] as String?,
+      angebotsname:
+          info['angebotsname'] as String? ??
+          info['uebergreifenderAnzeigeName'] as String?,
       status: (std['status'] ?? info['ticketStatus'] ?? '').toString(),
       ticketStatus: info['ticketStatus'] as String?,
-      klasse: (info['klasse'] ?? 'KLASSE_2').toString(),
+      // No default any more: an absent class is unknown, not 2. Klasse (#99).
+      klasse: info['klasse']?.toString(),
       fahrtrichtung: info['fahrtrichtung'] as String?,
       cityInfotext: info['cityInfotext'] as String?,
-      vonName: von?['name'] as String?,
-      nachName: nach?['name'] as String?,
+      vonName: von?['name'] as String? ?? info['abgangsort'] as String?,
+      nachName: nach?['name'] as String? ?? info['ankunftsort'] as String?,
       gueltigAb: _parse(zeit?['ersterGeltungszeitpunkt']),
       gueltigBis: _parse(zeit?['letzterGeltungszeitpunkt']),
       buchungsdatum: _parse(std['buchungsdatum']),

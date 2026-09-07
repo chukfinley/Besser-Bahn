@@ -10,8 +10,12 @@ import '../services/traewelling_service.dart';
 import '../services/prediction_service.dart';
 import '../services/seat_map_service.dart';
 import '../services/db_account_service.dart';
+import '../services/iris_service.dart';
 
 final hafasServiceProvider = Provider<HafasService>((ref) => HafasService());
+
+/// IRIS plan feed — only used to add the "Über" stops to a station board.
+final irisServiceProvider = Provider<IrisService>((ref) => IrisService());
 
 final seatMapServiceProvider = Provider<SeatMapService>((ref) {
   final service = SeatMapService();

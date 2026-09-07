@@ -35,6 +35,7 @@ import pathlib
 import sys
 import time
 import urllib.parse
+import xml.etree.ElementTree as ET
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
@@ -288,6 +289,53 @@ def check_vendo_departures() -> str:
         raise CheckError("departure position has no line text")
     return (f"{len(pos)} departures, first '{e.get('mitteltext', '?')}' → "
             f"{e.get('richtung', '?')}, zuglaufId len={len(e['zuglaufId'])}")
+
+
+def check_iris_board_via() -> str:
+    """GET iris.noncd.db.de/iris-tts/timetable/plan/{eva}/{yymmdd}/{hh} — the
+    station plan feed. It is the only cheap source of the "Über" stops the app
+    shows under each board row: the Vendo bahnhofstafel carries just `richtung`,
+    and a `zuglauf` per row would be ~37 KB each (and a fast way into a 429).
+
+    Checked here: the XML still has <s><tl n=…> plus a <dp>/<ar> with `pt` and
+    a pipe-separated `ppth`, AND that at least one plan entry still lines up
+    with a Vendo board row on train number + planned minute — that pairing is
+    what puts the stops on the right row."""
+    now = datetime.now()
+    url = (f"https://iris.noncd.db.de/iris-tts/timetable/plan/{KOELN_HBF}/"
+           f"{now.strftime('%y%m%d')}/{now.strftime('%H')}")
+    r = _get(url, headers={"Accept": "application/xml"}, timeout=TIMEOUT)
+    r.raise_for_status()
+    root = ET.fromstring(r.text)
+    runs = {}
+    for s in root.findall("s"):
+        tl = s.find("tl")
+        nr = (tl.get("n") or "").strip() if tl is not None else ""
+        dp = s.find("dp")
+        if not nr or dp is None:
+            continue
+        pt, ppth = dp.get("pt"), dp.get("ppth")
+        if not pt or not ppth:
+            continue
+        runs[(nr, pt)] = ppth.split("|")
+    if not runs:
+        raise CheckError("IRIS plan has no <s><dp pt= ppth=> entries")
+
+    # Cross-check against the board the app actually renders.
+    paired = 0
+    for p in _vendo_board(KOELN_HBF):
+        planned = p.get("abgangsDatum", "")
+        nr = str(p.get("zugnummer") or "")
+        if not planned or not nr:
+            continue
+        key = (nr, datetime.fromisoformat(planned).strftime("%y%m%d%H%M"))
+        if key in runs:
+            paired += 1
+    if paired == 0:
+        raise CheckError(
+            "no Vendo board row matches an IRIS plan entry on "
+            "(zugnummer, planned minute) — the 'Über' column would stay empty")
+    return f"{len(runs)} IRIS runs, {paired} matched to board rows"
 
 
 def check_vendo_board_semantics() -> str:
@@ -3791,6 +3839,7 @@ CHECKS = [
     ("vendo departures (bahnhofstafel)", check_vendo_departures, False),
     ("vendo arrivals (bahnhofstafel)", check_vendo_arrivals, False),
     ("vendo board semantics (gattung/cancel)", check_vendo_board_semantics, False),
+    ("IRIS plan via stops (board \"Über\")", check_iris_board_via, False),
     ("vendo train run (zuglauf halte)", check_vendo_zuglauf_detail, False),
     ("vendo platform change (gleis vs ezGleis)", check_vendo_platform_change, True),
     ("vendo zuglauf notes (Umleitung/Zusatzhalt)", check_vendo_zuglauf_notes, False),

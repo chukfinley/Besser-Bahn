@@ -13,6 +13,12 @@ class Departure {
   final bool cancelled;
   final List<String> remarks;
 
+  /// Stops on the way ("Über" on a station board) — the ones still to come for
+  /// a departure, the ones already served for an arrival. The Vendo board does
+  /// not carry them; they are filled in from the IRIS plan (see [IrisService]),
+  /// so they stay empty for anything IRIS does not know (buses, ferries).
+  final List<String> via;
+
   const Departure({
     required this.tripId,
     required this.stop,
@@ -25,7 +31,23 @@ class Departure {
     required this.line,
     this.cancelled = false,
     this.remarks = const [],
+    this.via = const [],
   });
+
+  Departure copyWith({List<String>? via}) => Departure(
+    tripId: tripId,
+    stop: stop,
+    when: when,
+    plannedWhen: plannedWhen,
+    delay: delay,
+    platform: platform,
+    plannedPlatform: plannedPlatform,
+    direction: direction,
+    line: line,
+    cancelled: cancelled,
+    remarks: remarks,
+    via: via ?? this.via,
+  );
 
   bool get hasPlatformChange =>
       platform != null &&

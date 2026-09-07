@@ -239,7 +239,7 @@ class _DepartureBoardScreenState extends ConsumerState<DepartureBoardScreen>
         // Clear the floating nav bar — it hovers over this list.
         padding: EdgeInsets.only(bottom: 32 + AppNavBar.insetOf(context)),
         itemCount: departures.length,
-        separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
+        separatorBuilder: (_, _) => const Divider(height: 1, indent: 84),
         itemBuilder: (context, index) {
           return _DepartureTile(
             departure: departures[index],
@@ -270,86 +270,138 @@ class _DepartureTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final time = departure.plannedWhen?.hhmm ?? '';
+    final muted = theme.colorScheme.onSurfaceVariant;
+    // Column layout of a real station display: Zeit | Nach | Über | Gleis.
+    // The line label sits under the time (the way a platform board prints
+    // "RB75" below the departure minute), which frees the whole middle column
+    // for the destination and the stops on the way.
+    final via = departure.via.join(' · ');
 
-    return ListTile(
+    return InkWell(
       onTap: onTap,
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      leading: SizedBox(
-        width: 44,
-        // Time + badge want ~43 px; the dense ListTile caps leading at 40, so
-        // a delayed/cancelled row overflowed by 3 px. scaleDown shrinks the
-        // pair to fit only when the badge is there — a plain row is untouched.
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                time,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  decoration: departure.cancelled
-                      ? TextDecoration.lineThrough
-                      : null,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Zeit + line label. Fixed width so every row's destination starts
+            // on the same x — the whole point of a board.
+            SizedBox(
+              width: 58,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Time and delay badge want more than 58 px once the badge is
+                  // there; scaleDown only bites when it has to.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          time,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            decoration: departure.cancelled
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    departure.line.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: muted,
+                    ),
+                  ),
+                  if (departure.cancelled || departure.isDelayed) ...[
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: DelayBadge(
+                        delaySeconds: departure.delay,
+                        cancelled: departure.cancelled,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Nach + Über.
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    departure.direction,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (via.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        via,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          height: 1.25,
+                          color: muted,
+                        ),
+                      ),
+                    ),
+                  if (departure.remarks.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        departure.remarks.first,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: departure.cancelled
+                              ? theme.colorScheme.error
+                              : muted,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Gleis, right-aligned like the board's last column.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PlatformBadge(
+                  platform: departure.platform,
+                  plannedPlatform: departure.plannedPlatform,
                 ),
-              ),
-              DelayBadge(
-                delaySeconds: departure.delay,
-                cancelled: departure.cancelled,
-              ),
-            ],
-          ),
+              ],
+            ),
+            Icon(Icons.chevron_right, size: 20, color: muted),
+          ],
         ),
       ),
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              departure.line.displayName,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              departure.direction,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Row(
-        children: [
-          PlatformBadge(
-            platform: departure.platform,
-            plannedPlatform: departure.plannedPlatform,
-          ),
-          if (departure.remarks.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                departure.remarks.first,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-      trailing: const Icon(Icons.chevron_right, size: 20),
     );
   }
 }

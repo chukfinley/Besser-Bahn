@@ -109,11 +109,23 @@ class DepartureBoardNotifier extends Notifier<DepartureBoardState> {
     }
   }
 
-  Future<List<Departure>> _fetch(Station station) {
+  Future<List<Departure>> _fetch(Station station) async {
     final hafas = ref.read(hafasServiceProvider);
-    return state.mode == BoardMode.departures
-        ? hafas.getDepartures(station.id, duration: 120)
-        : hafas.getArrivals(station.id, duration: 120);
+    final arrivals = state.mode == BoardMode.arrivals;
+    final board = arrivals
+        ? await hafas.getArrivals(station.id, duration: 120)
+        : await hafas.getDepartures(station.id, duration: 120);
+    // The board itself only names the final destination. The stops on the way
+    // ("Über", the column every station display has) come from the IRIS plan —
+    // one small request per hour instead of a `zuglauf` per row. Best effort:
+    // if IRIS is unreachable the board is shown exactly as before.
+    try {
+      return await ref
+          .read(irisServiceProvider)
+          .withVia(board, station.id, arrivals: arrivals);
+    } catch (_) {
+      return board;
+    }
   }
 }
 

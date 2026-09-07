@@ -3745,6 +3745,46 @@ def check_prediction_service() -> str:
             f"verbindungsscore={d.get('verbindungsscore')})")
 
 
+def check_github_releases_api() -> str:
+    """The in-app update hint reads GitHub's latest-release endpoint.
+
+    The app compares `tag_name` against its own version and offers the .apk
+    asset that matches the phone's ABI, so both fields have to stay where they
+    are. Unauthenticated GitHub API calls are rate-limited per IP (60/h), so a
+    403 with a rate-limit header is a skip, not a failure.
+    """
+    url = ("https://api.github.com/repos/chuk-development/Besser-Bahn"
+           "/releases/latest")
+    r = _get(url, headers={"Accept": "application/vnd.github+json",
+                           "User-Agent": "BesserBahn-healthcheck"},
+             timeout=TIMEOUT)
+    if r.status_code == 403 and r.headers.get("x-ratelimit-remaining") == "0":
+        raise _SkipCheck("GitHub API rate limit for this IP reached")
+    r.raise_for_status()
+    d = r.json()
+    tag = d.get("tag_name")
+    if not isinstance(tag, str) or not tag:
+        raise CheckError("latest release has no 'tag_name' — the update hint "
+                         "would never fire")
+    if not re.match(r"^v?\d+\.\d+", tag):
+        raise CheckError(f"tag_name {tag!r} is not a version the app can "
+                         f"compare (expects 2.4.1 style)")
+    assets = d.get("assets")
+    if not isinstance(assets, list):
+        raise CheckError("release has no 'assets' list")
+    apks = [a.get("name", "") for a in assets
+            if isinstance(a, dict) and str(a.get("name", "")).endswith(".apk")]
+    if not apks:
+        raise CheckError("latest release ships no .apk asset — the download "
+                         "button would fall back to the release page")
+    if not any("arm64-v8a" in n for n in apks):
+        raise CheckError(f"no arm64-v8a .apk in the latest release: {apks}")
+    if not any(isinstance(a, dict) and a.get("browser_download_url")
+               for a in assets):
+        raise CheckError("assets carry no 'browser_download_url'")
+    return f"latest={tag}, {len(apks)} apk asset(s)"
+
+
 # (name, callable, soft) — soft checks warn instead of fail.
 CHECKS = [
     ("bahn.de web API blocked (reiseloesung)", check_bahn_web_api_blocked, True),
@@ -3811,6 +3851,8 @@ CHECKS = [
     ("DB BahnBonus CO₂ service (#37)", check_db_bahnbonus_co2, True),
     ("HAFAS rest mirror (flaky)", check_hafas_rest, True),
     ("website journey blocked check", check_website_journey_still_blocked, True),
+    # Soft: GitHub rate-limits per IP, and CI shares its IP widely.
+    ("GitHub releases API (In-App-Update-Hinweis)", check_github_releases_api, True),
 ]
 
 

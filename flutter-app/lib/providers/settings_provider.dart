@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/reisende.dart';
 import '../models/split_ticket.dart';
 import '../models/transfer_profile.dart';
+import '../services/update_check_service.dart';
 
 class AppSettings {
   final BahnCardType bahnCard;
@@ -69,6 +70,12 @@ class AppSettings {
   /// instead of the minutes (#76). Off by default → minutes.
   final bool liveChipStops;
 
+  /// Ask GitHub once a day whether a newer release exists. On by default for
+  /// direct installs, and silently skipped for store installs (an F-Droid
+  /// client updates the app itself). Nothing about the device or the rider is
+  /// sent — it is the same request the releases page makes.
+  final bool updateCheckEnabled;
+
   const AppSettings({
     this.bahnCard = BahnCardType.none,
     this.hasDeutschlandTicket = false,
@@ -87,6 +94,7 @@ class AppSettings {
     this.partyCustomized = false,
     this.plainLanguage = false,
     this.liveChipStops = false,
+    this.updateCheckEnabled = true,
   });
 
   AppSettings copyWith({
@@ -107,6 +115,7 @@ class AppSettings {
     bool? partyCustomized,
     bool? plainLanguage,
     bool? liveChipStops,
+    bool? updateCheckEnabled,
   }) {
     return AppSettings(
       bahnCard: bahnCard ?? this.bahnCard,
@@ -126,6 +135,7 @@ class AppSettings {
       partyCustomized: partyCustomized ?? this.partyCustomized,
       plainLanguage: plainLanguage ?? this.plainLanguage,
       liveChipStops: liveChipStops ?? this.liveChipStops,
+      updateCheckEnabled: updateCheckEnabled ?? this.updateCheckEnabled,
     );
   }
 }
@@ -165,6 +175,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
       partyCustomized: prefs.getBool('partyCustomized') ?? false,
       plainLanguage: prefs.getBool('plainLanguage') ?? false,
       liveChipStops: prefs.getBool('liveChipStops') ?? false,
+      updateCheckEnabled: prefs.getBool('updateCheckEnabled') ?? true,
     );
   }
 
@@ -187,6 +198,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
     await prefs.setBool('partyCustomized', state.partyCustomized);
     await prefs.setBool('plainLanguage', state.plainLanguage);
     await prefs.setBool('liveChipStops', state.liveChipStops);
+    await prefs.setBool('updateCheckEnabled', state.updateCheckEnabled);
   }
 
   void setPlainLanguage(bool value) {
@@ -196,6 +208,12 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setLiveChipStops(bool value) {
     state = state.copyWith(liveChipStops: value);
+    _save();
+  }
+
+  void setUpdateCheckEnabled(bool value) {
+    state = state.copyWith(updateCheckEnabled: value);
+    if (!value) UpdateCheckService.available.value = null;
     _save();
   }
 

@@ -7,6 +7,7 @@ import 'core/app_log.dart';
 import 'core/tile_cache.dart';
 import 'services/background_trip_tracking.dart';
 import 'services/notification_service.dart';
+import 'services/update_check_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,5 +27,8 @@ Future<void> main() async {
   // Persist the Android headless callback before a journey starts. Once the
   // GPS companion is enabled, native updates can reach Dart without the UI.
   await BackgroundTripTracking.registerHeadlessCallback();
+  // Ask GitHub once a day whether a newer release is out. Fire-and-forget, off
+  // for store installs (their client updates the app), and never blocking.
+  UpdateCheckService.check();
   runApp(const ProviderScope(child: BessereBahnApp()));
 }

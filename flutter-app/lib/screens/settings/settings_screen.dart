@@ -19,6 +19,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/traewelling_provider.dart';
 import '../../services/backup_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/update_check_service.dart';
 import '../../widgets/traewelling_logo.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -74,6 +75,8 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+
+          const _UpdateCard(),
 
           _sectionHeader(context, 'Benachrichtigungen'),
 
@@ -508,6 +511,20 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.system_update_outlined),
+                  title: const Text('Nach Updates suchen'),
+                  subtitle: const Text(
+                    'Fragt einmal am Tag bei GitHub nach einer neueren '
+                    'Version. Es wird nichts über dich übertragen.',
+                  ),
+                  value: settings.updateCheckEnabled,
+                  onChanged: (v) {
+                    notifier.setUpdateCheckEnabled(v);
+                    if (v) UpdateCheckService.check(force: true);
+                  },
+                ),
+                const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.favorite_outline),
                   title: const Text('Feedback'),
@@ -526,12 +543,47 @@ class SettingsScreen extends ConsumerWidget {
 
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            child: ListTile(
-              leading: const Icon(Icons.bug_report_outlined),
-              title: const Text('Debug-Log'),
-              subtitle: const Text('Live-API-Aufrufe (vendo / bahn.de)'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/debug-log'),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.bug_report_outlined),
+                  title: const Text('Debug-Log'),
+                  subtitle: const Text('Live-API-Aufrufe (vendo / bahn.de)'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/debug-log'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.system_update_outlined),
+                  title: const Text('Update-Hinweis jetzt prüfen'),
+                  subtitle: const Text(
+                    'Fragt GitHub sofort. Langes Drücken zeigt den Hinweis '
+                    'mit einer erfundenen Version, um ihn anzusehen.',
+                  ),
+                  onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    await UpdateCheckService.check(force: true);
+                    final info = UpdateCheckService.available.value;
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          info == null
+                              ? 'Kein Update: ${AppConstants.appVersion} ist '
+                                    'die neueste Version.'
+                              : 'Version ${info.latestVersion} verfügbar.',
+                        ),
+                      ),
+                    );
+                  },
+                  onLongPress: () =>
+                      UpdateCheckService.available.value = UpdateInfo(
+                        currentVersion: AppConstants.appVersion,
+                        latestVersion: '${AppConstants.appVersion} (Test)',
+                        releasePageUrl:
+                            'https://github.com/chuk-development/Besser-Bahn/releases',
+                      ),
+                ),
+              ],
             ),
           ),
 
@@ -836,6 +888,89 @@ Future<void> _openUrl(BuildContext context, String url) async {
   if (!ok) {
     messenger.showSnackBar(
       const SnackBar(content: Text("Konnte den Link nicht öffnen.")),
+    );
+  }
+}
+
+/// "Version X ist da" — shown only when the check found something newer and
+/// the rider has not skipped that version. Never blocks anything: the rider
+/// can open the release, skip the version, or ignore the card entirely.
+class _UpdateCard extends ConsumerWidget {
+  const _UpdateCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(
+      settingsProvider.select((s) => s.updateCheckEnabled),
+    );
+    if (!enabled) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+
+    return ValueListenableBuilder<UpdateInfo?>(
+      valueListenable: UpdateCheckService.available,
+      builder: (context, info, _) {
+        if (info == null) return const SizedBox.shrink();
+        return Card(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          color: theme.colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.system_update,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Version ${info.latestVersion} ist da',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          Text(
+                            'Du hast ${info.currentVersion}. Das Update lädst '
+                            'du auf GitHub herunter und installierst es über '
+                            'die alte Version — deine Daten bleiben.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () =>
+                          UpdateCheckService.skip(info.latestVersion),
+                      child: const Text('Überspringen'),
+                    ),
+                    const SizedBox(width: 4),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          _openUrl(context, info.apkUrl ?? info.releasePageUrl),
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Herunterladen'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

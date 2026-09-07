@@ -21,6 +21,7 @@ import '../../services/backup_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/update_check_service.dart';
 import '../../widgets/traewelling_logo.dart';
+import '../../widgets/update_banner.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -76,7 +77,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
-          const _UpdateCard(),
+          const UpdateBanner(),
 
           _sectionHeader(context, 'Benachrichtigungen'),
 
@@ -888,89 +889,6 @@ Future<void> _openUrl(BuildContext context, String url) async {
   if (!ok) {
     messenger.showSnackBar(
       const SnackBar(content: Text("Konnte den Link nicht öffnen.")),
-    );
-  }
-}
-
-/// "Version X ist da" — shown only when the check found something newer and
-/// the rider has not skipped that version. Never blocks anything: the rider
-/// can open the release, skip the version, or ignore the card entirely.
-class _UpdateCard extends ConsumerWidget {
-  const _UpdateCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(
-      settingsProvider.select((s) => s.updateCheckEnabled),
-    );
-    if (!enabled) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-
-    return ValueListenableBuilder<UpdateInfo?>(
-      valueListenable: UpdateCheckService.available,
-      builder: (context, info, _) {
-        if (info == null) return const SizedBox.shrink();
-        return Card(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          color: theme.colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.system_update,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Version ${info.latestVersion} ist da',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                          Text(
-                            'Du hast ${info.currentVersion}. Das Update lädst '
-                            'du auf GitHub herunter und installierst es über '
-                            'die alte Version — deine Daten bleiben.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () =>
-                          UpdateCheckService.skip(info.latestVersion),
-                      child: const Text('Überspringen'),
-                    ),
-                    const SizedBox(width: 4),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          _openUrl(context, info.apkUrl ?? info.releasePageUrl),
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('Herunterladen'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

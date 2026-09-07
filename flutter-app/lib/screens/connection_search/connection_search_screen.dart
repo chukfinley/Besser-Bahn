@@ -11,6 +11,7 @@ import '../../providers/settings_provider.dart';
 import '../../utils/arrival_buffer.dart';
 import '../../vendor/chuk_ui/chuk_squircle.dart';
 import '../../widgets/app_nav_bar.dart';
+import '../../widgets/update_banner.dart';
 import '../../widgets/glass_panel.dart';
 import '../../widgets/station_search_field.dart';
 import '../../widgets/app_menu_button.dart';
@@ -259,6 +260,10 @@ class _ConnectionSearchScreenState
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // A new version, said once and quietly, on the tab every rider opens.
+        // Tapping downloads, the x hides it for that version.
+        const UpdateBanner(compact: true),
+
         // Search form — folds to a one-line summary once results are in, so
         // the connections get the space instead of a form nobody is filling
         // in any more.

@@ -8,6 +8,7 @@ import '../../models/db_account.dart';
 import '../../models/db_ticket.dart';
 import '../../providers/account_provider.dart';
 import '../../widgets/app_nav_bar.dart';
+import '../../services/update_check_service.dart';
 import 'widgets/bahncard_view.dart';
 
 /// "Profil" tab — the signed-in DB account: identity, BahnBonus, BahnCards and
@@ -57,6 +58,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       appBar: AppBar(
         title: const Text('Profil'),
         actions: [
+          // The Profil tab has no overflow menu, so the settings were only
+          // reachable from another tab. Gear sits left of the logout.
+          ValueListenableBuilder<UpdateInfo?>(
+            valueListenable: UpdateCheckService.available,
+            child: const Icon(Icons.settings),
+            builder: (context, update, icon) => IconButton(
+              tooltip: 'Einstellungen',
+              icon: update == null
+                  ? icon!
+                  : Badge(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      smallSize: 8,
+                      child: icon,
+                    ),
+              onPressed: () => context.push('/settings'),
+            ),
+          ),
           if (auth.isLoggedIn)
             IconButton(
               tooltip: 'Abmelden',
